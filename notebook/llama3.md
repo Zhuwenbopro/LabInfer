@@ -44,9 +44,11 @@ Query、Key、Value 是注意力机制的精华所在，每一个 transformer �
 好啦，我们现在仔细看一眼 llama 的结构图，我们会发现在 Q、K 旁边会有个太极的标记。在图的右侧对太极图标的标注是“Rotary Positional Embedding”。关于位置编码，[这篇文章](https://zhuanlan.zhihu.com/p/642884818)讲得挺好，看他第一个评论让人茅厕顿开。我简单总结一下。
 
 如果只是 $q_n = W_q \cdot x_n、k_i = W_k \cdot x_i$ 这样并没有考虑 $x_i$ 所在的位置信息 $i$ 。我们希望有一个函数，让从 $x_i$ 变为 $q_i、k_i$ 时考虑到位置信息 $i$ ，如下面公式所示。
+
 $$\begin{aligned} q_n &= f_q(x_n, n)\\k_i &= f_k(x_i, i)\\v_i &= f_v(x_i, i) \end{aligned}$$
 
 经过计算出 $q_n、k_i、v_i$ 就会进行我在上节 Attention 部分讲述的过程，用数学公式表示如下：
+
 $$\begin{aligned} \alpha_{n,i} &= \frac{exp(\frac{q^T_nk_i}{\sqrt{d}})}{\sum^n_{j=1}exp(\frac{q^T_nk_j}{\sqrt{d}})}\\o_n&=\sum^n_{i=1}\alpha_{n,i}v_i \end{aligned}$$
 
 最开始用的是绝对位置编码，但是科学家们又考虑找个函数将相对位置也表示进去。我们看上面第一个式子分母上面的 $q^T_nk_i$ ，也就是 $f_q(x_n, n)^Tf_k(x_i, i)$。要考虑到相对位置的话，我们希望这个函数 $f$ 满足 $f_q(x_n, n)^Tf_k(x_i, i) = g(x_n, x_i, n-i)$。然后科学家们就找到了旋转矩阵 $R_{\theta}$ 。旋转矩阵满足以下两个性质：
@@ -56,6 +58,7 @@ $$
 $$
 
 我们下面来把这个性质套到上面我们希望找到的函数里：
+
 $$
 \begin{aligned}&f_q(x_n, n)^Tf_k(x_i, i) \\=\ &(R_nW_qx_n)^T(R_iW_kx_i)\\=\ &x_n^TW_q^TR_n^TR_iW_kx_i\\=\ &x_n^TW_q^TR_{i-n}W_kx_i\\=\ &g(x_n, x_i, n-i)\end{aligned}
 $$
