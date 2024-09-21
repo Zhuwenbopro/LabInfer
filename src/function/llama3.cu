@@ -239,11 +239,14 @@ void free_transformer(Transformer *t) {
 // ----------------------------------------------------------------------------
 
 // Utility routine to divide a into ceiling of b parts
+// 向上取整
 int divUp(int a, int b) {
     return (a - 1) / b + 1;
 }
 
+// 一个 线程块 可以包含 1024 个线程。1024 是 CUDA 的硬件限制，即每个块最多可以拥有 1024 个线程。
 const int num_threads_large = 1024;
+
 const int num_threads_small = 64;
 
 __global__ void rmsnorm_kernel(float *o, float *x, float *weight, int size, int elementsPerThread) {

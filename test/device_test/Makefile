@@ -3,7 +3,6 @@ CXX = g++
 
 # 路径设置
 SRC_DIR = ../../src
-BUILD_DIR = ../../build
 DEVICE_DIR = $(SRC_DIR)/device
 TEST_DIR = .
 
