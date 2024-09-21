@@ -9,7 +9,8 @@ TEST_DIR = .
 BUILD_DIR = .
 
 # CUDA 和编译选项
-CUDA_LIB_DIR = /usr/local/cuda/lib64/
+#CUDA_LIB_DIR = /usr/local/cuda/lib64/
+CUDA_LIB_DIR = /usr/local/cuda-12.1/targets/x86_64-linux/lib
 CXXFLAGS = -std=c++11 -I$(SRC_DIR)/function/cuda  # 添加头文件路径
 LDFLAGS = -L$(BUILD_DIR) -Wl,-rpath=$(BUILD_DIR) -L$(CUDA_LIB_DIR) -lcudart
 
