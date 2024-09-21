@@ -9,10 +9,9 @@ TEST_DIR = .
 BUILD_DIR = .
 
 # CUDA 和编译选项
-CUDA_LIB_DIR = /usr/local/cuda-12.1/targets/x86_64-linux/lib
+CUDA_LIB_DIR = /usr/local/cuda/lib64/
 CXXFLAGS = -std=c++11 -I$(SRC_DIR)/function/cuda  # 添加头文件路径
 LDFLAGS = -L$(BUILD_DIR) -Wl,-rpath=$(BUILD_DIR) -L$(CUDA_LIB_DIR) -lcudart
-NVCCFLAGS = -Xcompiler -fPIC -shared
 
 # 主程序源文件
 MAIN_SRC = $(TEST_DIR)/main.cc
@@ -25,6 +24,13 @@ CUDA_LIBS = $(addprefix $(BUILD_DIR)/lib, $(addsuffix .so, $(CUDA_BASENAMES)))
 
 # 获取库名称（去掉 'lib' 前缀和 '.so' 后缀）
 LIB_NAMES = $(patsubst lib%.so, %, $(notdir $(CUDA_LIBS)))
+
+# 检查是否为调试模式
+ifeq ($(DEBUG), 1)
+    NVCCFLAGS = -DDEBUG -G -g -Xcompiler -fPIC -shared
+else
+    NVCCFLAGS = -Xcompiler -fPIC -shared
+endif
 
 # 默认目标
 all: $(MAIN_TARGET)
