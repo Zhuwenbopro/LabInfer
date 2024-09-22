@@ -13,11 +13,6 @@ public:
     virtual ~Variable();                               // 析构函数
 
     virtual void to(Device &dev) = 0;
-    virtual void shape() const = 0;
-
-    void whereami() { 
-        std::cout << dev << std::endl; 
-    }
 
 protected:
     float* value;          // 数据指针

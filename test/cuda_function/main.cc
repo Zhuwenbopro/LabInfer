@@ -4,7 +4,7 @@
 #include <cmath>    // 用于fabs函数
 #include <cstdlib>  // 用于rand函数
 #include <ctime>    // 用于时间种子
-#include "cuda_function.h"
+#include "CudaFunctionLibrary.h"
 #define N 4096  // 输入向量长度
 #define D 4096   // 输出向量长度
 

@@ -1,19 +1,11 @@
-// function.cu
-
 #include <cuda_runtime.h>
 #include <cub/cub.cuh>
-#include "cuda_function.h"
+#include "rmsnorm.h"
+#include "common.h"
 
-// 定义线程块大小
-const int num_threads_large = 1024;
-
-// 向上取整函数
-int divUp(int a, int b) {
-    return (a - 1) / b + 1;
-}
 
 // RMSNorm CUDA 内核
-__global__ void rmsnorm_kernel(float *o, const float *x, const float *weight, int size, int elementsPerThread) {
+__global__ void rmsnorm_kernel(float *o, const float *x, const float *weight, const float epsilon, int size, int elementsPerThread) {
     float ss = 0.0f;
     for (int i = 0; i < elementsPerThread; i++) {
         int j = threadIdx.x + i * num_threads_large;
@@ -29,7 +21,7 @@ __global__ void rmsnorm_kernel(float *o, const float *x, const float *weight, in
     __shared__ float shared_ss;
     if (threadIdx.x == 0) {
         ss /= size;
-        ss += 1e-5f;
+        ss += epsilon;
         ss = 1.0f / sqrtf(ss);
         shared_ss = ss;
     }
@@ -46,7 +38,7 @@ __global__ void rmsnorm_kernel(float *o, const float *x, const float *weight, in
 }
 
 // 封装的 rmsnorm 函数
-void rmsnorm_cuda(float *output, const float *input, const float *weight, int size) {
+extern "C" void rmsnorm_cuda(float *output, const float *input, const float *weight, const float epsilon, int size) {
     int elementsPerThread = divUp(size, num_threads_large);
 
     // 为输入和输出数据分配设备内存
@@ -65,7 +57,7 @@ void rmsnorm_cuda(float *output, const float *input, const float *weight, int si
     dim3 gridSize(1); // 当前实现仅使用一个线程块
 
     // 调用 CUDA 内核
-    rmsnorm_kernel<<<gridSize, blockSize>>>(d_output, d_input, d_weight, size, elementsPerThread);
+    rmsnorm_kernel<<<gridSize, blockSize>>>(d_output, d_input, d_weight, epsilon, size, elementsPerThread);
 
     // 将结果从设备拷贝回主机
     cudaMemcpy(output, d_output, bytes, cudaMemcpyDeviceToHost);
