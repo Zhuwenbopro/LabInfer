@@ -1,49 +1,42 @@
 # 编译器
-CXX = g++
-NVCC = nvcc
+CXX := g++
+NVCC := nvcc
 
 # 路径设置
-SRC_DIR = ../../src
-CUDA_DIR = $(SRC_DIR)/function/cuda
-TEST_DIR = .
-BUILD_DIR = .
+SRC_DIR := ../../src
+CUDA_DIR := $(SRC_DIR)/function/cuda
+BUILD_DIR := .
 
-# CUDA 和编译选项
-#CUDA_LIB_DIR = /usr/local/cuda/lib64/
-CUDA_LIB_DIR = /usr/local/cuda-12.1/targets/x86_64-linux/lib
-CXXFLAGS = -std=c++11 -I$(SRC_DIR)/function/cuda  # 添加头文件路径
+# 包含目录（如果有）
+INCLUDES := -I./$(CUDA_DIR)
+
+# CUDA 编译参数
+# 假设 CUDA 源文件扩展名为 .cu
+CUDA_SRC := $(wildcard $(CUDA_DIR)/*.cu)
+CUDA_OBJ := $(patsubst $(CUDA_DIR)/%.cu, $(BUILD_DIR)/%.o, $(CUDA_SRC))
+CUDA_LIB := libCudaFunctionLibrary.so
+CUDA_LIB_DIR = /usr/local/cuda/lib64/
 LDFLAGS = -L$(BUILD_DIR) -Wl,-rpath=$(BUILD_DIR) -L$(CUDA_LIB_DIR) -lcudart
 
 # 主程序源文件
-MAIN_SRC = $(TEST_DIR)/main.cc
-MAIN_TARGET = $(TEST_DIR)/test
-
-# CUDA 源文件和对应的动态库
-CUDA_SRCS = $(wildcard $(CUDA_DIR)/*.cu)
-CUDA_BASENAMES = $(basename $(notdir $(CUDA_SRCS)))
-CUDA_LIBS = $(addprefix $(BUILD_DIR)/lib, $(addsuffix .so, $(CUDA_BASENAMES)))
-
-# 获取库名称（去掉 'lib' 前缀和 '.so' 后缀）
-LIB_NAMES = $(patsubst lib%.so, %, $(notdir $(CUDA_LIBS)))
-
-# 检查是否为调试模式
-ifeq ($(DEBUG), 1)
-    NVCCFLAGS = -DDEBUG -G -g -Xcompiler -fPIC -shared
-else
-    NVCCFLAGS = -Xcompiler -fPIC -shared
-endif
+MAIN_SRC = main.cc
+MAIN_TARGET = test
 
 # 默认目标
 all: $(MAIN_TARGET)
 
-# 编译主程序
-$(MAIN_TARGET): $(MAIN_SRC) $(CUDA_LIBS)
-	$(CXX) $(CXXFLAGS) $< -o $@ $(LDFLAGS) $(addprefix -l, $(LIB_NAMES))
+# 链接生成动态库
+$(BUILD_DIR)/$(CUDA_LIB): $(CUDA_OBJ)
+	$(NVCC) -shared -o $@ $^ -lcudart
 
-# 编译 CUDA 源文件为动态库
-$(BUILD_DIR)/lib%.so: $(CUDA_DIR)/%.cu
-	$(NVCC) $(NVCCFLAGS) $< -o $@
+# 规则：编译 .cu 文件
+$(BUILD_DIR)/%.o: $(CUDA_DIR)/%.cu
+	$(NVCC) -c -Xcompiler -fPIC $(INCLUDES) $< -o $@
 
-# 清理
+# 规则：编译并链接 main.cc 成可执行文件 main
+$(MAIN_TARGET): $(MAIN_SRC) $(BUILD_DIR)/$(CUDA_LIB) 
+	$(CXX) $(INCLUDES) main.cc -L$(BUILD_DIR) -lCudaFunctionLibrary $(LDFLAGS) -o $(MAIN_TARGET)
+
+# 清理生成文件
 clean:
-	rm -f $(MAIN_TARGET) $(CUDA_LIBS)
+	rm -f $(BUILD_DIR)/*.o $(BUILD_DIR)/$(CUDA_LIB) $(MAIN_TARGET)
