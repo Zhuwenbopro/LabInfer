@@ -3,7 +3,7 @@ CXX = g++
 
 # 路径设置
 SRC_DIR = ../../src
-DEVICE_DIR = $(SRC_DIR)/device
+DEVICE_DIR = $(SRC_DIR)/variable
 
 # 编译标志
 CXXFLAGS = -std=c++11 -I$(DEVICE_DIR)
