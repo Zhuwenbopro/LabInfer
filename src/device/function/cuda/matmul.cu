@@ -25,7 +25,7 @@ void destroy_cublas() {
     }
 }
 
-extern "C" void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
+void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
     // 初始化 cuBLAS 句柄，给外边运行
     // init_cublas();
 

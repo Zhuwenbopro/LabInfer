@@ -2,49 +2,33 @@
 #ifndef DEVICE_H
 #define DEVICE_H
 
-#include <iostream>
 #include <string>
+#include "allocator/Allocator.h"
+#include "function/Function.h"
 
 class Device {
 public:
-    // 构造函数和析构函数
-    Device(const std::string& deviceName = "cpu");
-    Device(const Device& other);
-    ~Device();
+    // 虚析构函数，确保派生类的析构函数被调用
+    virtual ~Device() = default;
 
-    // 重载 << 运算符
-    friend std::ostream& operator<<(std::ostream& os, const Device& obj);
+    // 禁止拷贝构造和拷贝赋值，避免浅拷贝问题
+    Device(const Device&) = delete;
+    Device& operator=(const Device&) = delete;
 
-    // 获取设备名称
-    std::string getDeviceName() const;
+    // 从 CPU 内存中取数据
+    virtual void move_in(float* ptr_dev, float* ptr_cpu, size_t bytes) = 0;
+    // 移除数据到 CPU
+    virtual void move_out(float* ptr_dev, float* ptr_cpu, size_t bytes) = 0;
+    // 分配内存
+    virtual void allocate(float* ptr, size_t size) = 0;
+    // 回收内存
+    virtual void deallocate(float* ptr) = 0;
 
-private:
     // 成员变量
-    std::string dev;    // 设备名称
-    int nodeId;         // 设备结点号
-    int deviceId;       // 设备号
+    std::string deviceName;
+    Function* F;
+    // 之所以还要设置allocator，是为了以后在内存管理上做文章，目前还用不到
+    Allocator* allocator;
 };
-
-// 构造函数
-Device::Device(const std::string& deviceName)
-    : dev(deviceName), nodeId(0), deviceId(0) {}
-
-// 拷贝构造函数
-Device::Device(const Device& other)
-    : dev(other.dev), nodeId(other.nodeId), deviceId(other.deviceId) {}
-
-// 析构函数
-Device::~Device() {}
-
-// 重载 << 运算符
-std::ostream& operator<<(std::ostream& os, const Device& obj) {
-    os << "Device: " << obj.dev;
-    return os;
-}
-
-// 获取设备名称
-std::string Device::getDeviceName() const {
-    return dev;
-}
 
 #endif // DEVICE_H

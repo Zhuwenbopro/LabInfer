@@ -38,7 +38,7 @@ __global__ void rmsnorm_kernel(float *o, const float *x, const float *weight, co
 }
 
 // 封装的 rmsnorm 函数
-extern "C" void rmsnorm_cuda(float *output, const float *input, const float *weight, const float epsilon, int size) {
+void rmsnorm_cuda(float *output, const float *input, const float *weight, const float epsilon, int size) {
     int elementsPerThread = divUp(size, num_threads_large);
 
     // 为输入和输出数据分配设备内存
