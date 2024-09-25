@@ -3,8 +3,8 @@
 #define DEVICE_H
 
 #include <string>
-#include "allocator/Allocator.h"
-#include "function/Function.h"
+#include "Allocator.h"
+#include "Function.h"
 
 class Device {
 public:
