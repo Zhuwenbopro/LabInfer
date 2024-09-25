@@ -29,8 +29,10 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # =============================================================================
 # 编译标志
 # =============================================================================
-CXXFLAGS := -std=c++11 -I$(DEVICE_DIR) $(INCLUDES)
-NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES)
+MACRO := -DUSE_CUDA
+CXXSTAND := -std=c++14
+CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO)
+NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO)
 
 # =============================================================================
 # 最终目标
@@ -69,8 +71,9 @@ endef
 # 定义编译 .cu 文件为 .o 文件的规则
 define compile_cuda
 $(BUILD_DIR)/$(notdir $(1:.cu=.o)): $(1) | $(BUILD_DIR)
-	$(NVCC) $(NVCCFLAGS) -MMD -c $< -o $$@
+	$(NVCC) $(NVCCFLAGS) -MMD -c $(1) -o $$@
 endef
+
 
 # 为每个 .cc 文件生成编译规则
 $(foreach src,$(CPU_SRC),$(eval $(call compile_cpu,$(src))))
@@ -85,7 +88,7 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # 清理目标
 # =============================================================================
 clean:
-	rm -f $(BUILD_DIR)/*.o $(BUILD_DIR)/*.d $(TARGET)
+	rm -rf $(BUILD_DIR) $(TARGET)
 
 # =============================================================================
 # 声明伪目标

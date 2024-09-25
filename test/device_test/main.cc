@@ -4,6 +4,9 @@
 int main() {
 
     DeviceManager& manager = DeviceManager::getInstance();
+    std::cout << "start: deviceManager -> "<< &manager << std::endl;
+
+    Device * dc = manager.getDevice("cpu");
     for(auto it : manager.getDevices()) {
         std::cout << "sss"<< std::endl;
     }

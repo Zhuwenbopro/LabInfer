@@ -12,6 +12,6 @@
 class CUDAFunction : public Function {
 public:
     CUDAFunction() {}
-}
+};
 
 #endif // CUDA_FUNCTION_H

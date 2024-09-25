@@ -8,6 +8,7 @@
 
 class Device {
 public:
+    Device() = default;
     // 虚析构函数，确保派生类的析构函数被调用
     virtual ~Device() = default;
 

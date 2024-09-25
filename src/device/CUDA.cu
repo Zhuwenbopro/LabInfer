@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include "CUDA.h"
 #include "allocator/cuda/CUDAAllocator.h"
 #include "function/cuda/CUDAFunction.h"
 
@@ -20,10 +21,10 @@ void CUDA::move_out(float* ptr_dev, float* ptr_cpu, size_t bytes) {
 
 // 分配设备内存
 void CUDA::allocate(float* ptr, size_t size) {
-    ptr = allocator->allocate(size);
+    allocator->allocate((void*)ptr, size);
 }
 
 // 回收设备内存
 void CUDA::deallocate(float* ptr) {
-    allocator->deallocate(ptr);
+    allocator->deallocate((void*)ptr);
 }
