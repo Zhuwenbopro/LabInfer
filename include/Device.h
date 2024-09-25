@@ -17,11 +17,11 @@ public:
     Device& operator=(const Device&) = delete;
 
     // 从 CPU 内存中取数据
-    virtual void move_in(float* ptr_dev, float* ptr_cpu, size_t bytes) = 0;
+    virtual void move_in(float* ptr_dev, float* ptr_cpu, size_t size) = 0;
     // 移除数据到 CPU
-    virtual void move_out(float* ptr_dev, float* ptr_cpu, size_t bytes) = 0;
+    virtual void move_out(float* ptr_dev, float* ptr_cpu, size_t size) = 0;
     // 分配内存
-    virtual void allocate(float* ptr, size_t size) = 0;
+    virtual float* allocate(size_t size) = 0;
     // 回收内存
     virtual void deallocate(float* ptr) = 0;
 

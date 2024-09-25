@@ -27,8 +27,9 @@ public:
     }
 
     // 分配内存
-    void allocate(float* ptr, size_t size) override {
-        allocator->allocate((void*)ptr, size);
+    float* allocate(size_t size) override {
+        float* ptr = (float*)allocator->allocate(size*sizeof(float));
+        return ptr;
     }
 
     // 回收内存
