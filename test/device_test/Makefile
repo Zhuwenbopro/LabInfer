@@ -65,7 +65,7 @@ $(MAIN_OBJ): $(MAIN_SRC) | $(BUILD_DIR)
 # 定义编译 .cc 文件为 .o 文件的规则
 define compile_cpu
 $(BUILD_DIR)/$(notdir $(1:.cc=.o)): $(1) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -MMD -c $< -o $$@
+	$(CXX) $(CXXFLAGS) -MMD -c $(1) -o $$@
 endef
 
 # 定义编译 .cu 文件为 .o 文件的规则
