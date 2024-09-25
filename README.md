@@ -27,12 +27,28 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;整体架构如上图所示，项目分为三个阶段完成。首先完成设备抽象层的实现，到此层有抽象的接口去使用底层不同硬件；然后实现管理层代码（中间两部分），实现后可以在单机多卡上跑通大语言模型；最后一个阶段是实现分布式的推理，完成后可以一键提供大语言模型的推理服务。
 
 ### Device 层
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Device 类拥有四项内存相关的功能：1）分配内存；2）回收内存；3）把数据移入设备；4）把数据移出设备。其中前两项主要是依靠 allocator 完成。除了内存相关的函数外，与计算相关的函数通过调用 F 使用，使用方法为 `dev.F.calculate()` 。
+```
+Device
+    // 从 CPU 内存中取数据
+    void move_in(float* ptr_dev, float* ptr_cpu, size_t bytes);
+    // 移除数据到 CPU
+    void move_out(float* ptr_dev, float* ptr_cpu, size_t bytes);
+    // 分配内存
+    void allocate(float* ptr, size_t size);
+    // 回收内存
+    void deallocate(float* ptr);
+
+    Function* F;
+    Allocator* allocator;
+```
+
 #### Allocator
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Allocator 类目前就负责两个责任：1）分配设备内存，2）回收设备内存。更高级、复制的机制我们在后面再慢慢往里加。
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Allocator 类目前就负责两个责任：1）分配设备内存，2）回收设备内存。更高级、复杂的机制我们在后面再慢慢往里加。
 ```
 Allocator
-    void allocate(void* ptr, std::size_t size) = 0;
-    void deallocate(void* ptr) = 0;
+    void allocate(void* ptr, std::size_t size);
+    void deallocate(void* ptr);
 ```
 #### Function
 
