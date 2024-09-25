@@ -4,6 +4,6 @@
 
 class Function {
     
-}
+};
 
 #endif // Function_H
