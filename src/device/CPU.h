@@ -28,12 +28,12 @@ public:
 
     // 分配内存
     void allocate(float* ptr, size_t size) override {
-        ptr = allocator->allocate(size);
+        allocator->allocate((void*)ptr, size);
     }
 
     // 回收内存
     void deallocate(float* ptr) override {
-        allocator->deallocate(ptr);
+        allocator->deallocate((void*)ptr);
     }
 };
 

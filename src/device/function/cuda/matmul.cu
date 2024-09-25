@@ -71,7 +71,7 @@ __global__ void matmul_kernel(float *xout, float *x, float *w, int n, int d) {
     xout[i] = sum;
 }
 
-extern "C" void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
+void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
 
     // 为输入和输出数据分配设备内存
     float *d_x = nullptr, *d_w = nullptr, *d_xout = nullptr;

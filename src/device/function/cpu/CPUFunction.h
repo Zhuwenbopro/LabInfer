@@ -8,5 +8,5 @@
 // #include "another_function.h"
 class CPUFunction : public Function {
 
-}
+};
 #endif // CPU_FUNCTION_H

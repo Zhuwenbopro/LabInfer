@@ -8,9 +8,7 @@
 #include "Device.h"
 
 // 根据 FLAG 包含对应的设备头文件
-#ifdef USE_CPU
 #include "CPU.h"
-#endif
 
 #ifdef USE_CUDA
 #include "CUDA.h"
@@ -39,7 +37,8 @@ public:
             return it->second;
         } else {
             // 不存在，创建新实例并存储
-            std::cout << "unkown device" << deviceName << std::endl;
+            std::cout << "unkown device " << deviceName << std::endl;
+            return nullptr;
         }
     }
 
@@ -48,9 +47,9 @@ private:
 
     // 私有构造函数，初始化设备实例
     DeviceManager() {
-#ifdef USE_CPU
+        // cpu 是一定有的
         devices["cpu"] = new CPU();
-#endif
+
 #ifdef USE_CUDA
         devices["cuda"] = new CUDA();
 #endif

@@ -12,17 +12,16 @@ public:
 
     }
 
-    float* allocate(size_t size) override {
-        float* ptr = (float*)malloc(sizeof(float) * size);
+    void allocate(void* ptr, size_t size) override {
+        ptr = malloc(sizeof(float) * size);
         if (ptr == nullptr) {
             throw std::runtime_error("cpu malloc error");
         }
-        return ptr;
     }
 
     void deallocate(void* ptr) override {
         free(ptr);
     }
-}
+};
 
 #endif // CPUAllocator_H

@@ -27,7 +27,14 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;整体架构如上图所示，项目分为三个阶段完成。首先完成设备抽象层的实现，到此层有抽象的接口去使用底层不同硬件；然后实现管理层代码（中间两部分），实现后可以在单机多卡上跑通大语言模型；最后一个阶段是实现分布式的推理，完成后可以一键提供大语言模型的推理服务。
 
 ### Device 层
-
+#### Allocator
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Allocator 类目前就负责两个责任：1）分配设备内存，2）回收设备内存。更高级、复制的机制我们在后面再慢慢往里加。
+```
+Allocator
+    void allocate(void* ptr, std::size_t size) = 0;
+    void deallocate(void* ptr) = 0;
+```
+#### Function
 
 
 #### 变量（variable）与模型（model）的关系
