@@ -1,5 +1,5 @@
 #include <cuda_runtime.h>
-#include "matmul.h"
+#include "matmul_cuda.h"
 #include "common.h"
 
 // TODO:日后要是有需要的话，给他变成 矩阵乘矩阵吧
@@ -59,7 +59,7 @@ void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
 }
 #else
 // CUDA 内核实现矩阵乘法
-__global__ void matmul_kernel(float *xout, float *x, float *w, int n, int d) {
+__global__ void matmul_kernel(float *xout,const float *x,const float *w, int n, int d) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= d)
         return;
@@ -73,19 +73,6 @@ __global__ void matmul_kernel(float *xout, float *x, float *w, int n, int d) {
 
 void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
 
-    // 为输入和输出数据分配设备内存
-    float *d_x = nullptr, *d_w = nullptr, *d_xout = nullptr;
-    size_t x_bytes = n * sizeof(float);
-    size_t w_bytes = n * d * sizeof(float);
-    size_t xout_bytes = d * sizeof(float);
-    cudaMalloc((void**)&d_x, x_bytes);
-    cudaMalloc((void**)&d_w, w_bytes);
-    cudaMalloc((void**)&d_xout, xout_bytes);
-
-    // 将数据从主机拷贝到设备
-    cudaMemcpy(d_x, x, x_bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_w, w, w_bytes, cudaMemcpyHostToDevice);
-
     // 计算线程块和网格大小
     int blockSize = num_threads_small;
     int gridSize = (d + blockSize - 1) / blockSize;
@@ -94,15 +81,7 @@ void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
     gridSize = min(gridSize, 1024); // 根据 GPU 的规格调整
 
     // 调用 CUDA 内核
-    matmul_kernel<<<gridSize, blockSize>>>(d_xout, d_x, d_w, n, d);
-
-    // 将结果从设备拷贝回主机
-    cudaMemcpy(xout, d_xout, xout_bytes, cudaMemcpyDeviceToHost);
-
-    // 释放设备内存
-    cudaFree(d_x);
-    cudaFree(d_w);
-    cudaFree(d_xout);
+    matmul_kernel<<<gridSize, blockSize>>>(xout, x, w, n, d);
 
 }
 #endif

@@ -10,18 +10,19 @@ CUDA::CUDA() {
 }
 
 // 从 CPU 内存中取数据并传输到设备
-void CUDA::move_in(float* ptr_dev, float* ptr_cpu, size_t bytes) {
-    cudaError_t err = cudaMemcpy(ptr_dev, ptr_cpu, bytes, cudaMemcpyHostToDevice);
+void CUDA::move_in(float* ptr_dev, float* ptr_cpu, size_t size) {
+    cudaError_t err = cudaMemcpy(ptr_dev, ptr_cpu, sizeof(float)*size, cudaMemcpyHostToDevice);
 }
 
 // 从设备内存中取数据并传输到 CPU
-void CUDA::move_out(float* ptr_dev, float* ptr_cpu, size_t bytes) {
-    cudaError_t err = cudaMemcpy(ptr_cpu, ptr_dev, bytes, cudaMemcpyDeviceToHost);
+void CUDA::move_out(float* ptr_dev, float* ptr_cpu, size_t size) {
+    cudaError_t err = cudaMemcpy(ptr_cpu, ptr_dev, sizeof(float)*size, cudaMemcpyDeviceToHost);
 }
 
 // 分配设备内存
-void CUDA::allocate(float* ptr, size_t size) {
-    allocator->allocate((void*)ptr, size);
+float* CUDA::allocate(size_t size) {
+    float* ptr = (float*)allocator->allocate(size*sizeof(float));
+    return ptr;
 }
 
 // 回收设备内存

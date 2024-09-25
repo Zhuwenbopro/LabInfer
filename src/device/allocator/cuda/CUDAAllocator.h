@@ -8,7 +8,7 @@ class CUDAAllocator : public Allocator {
 public:
     CUDAAllocator();
 
-    void allocate(void* ptr, std::size_t size) override;
+    void* allocate(size_t size) override;
 
     void deallocate(void* ptr) override;
 };

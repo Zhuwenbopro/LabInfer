@@ -3,8 +3,10 @@
 
 CUDAAllocator::CUDAAllocator(){ }
 
-void CUDAAllocator::allocate(void* devPtr, std::size_t size) {
+void* CUDAAllocator::allocate(size_t size) {
+    void* devPtr;
     cudaMalloc((void **)&devPtr, size);
+    return devPtr;
 }
 
 void CUDAAllocator::deallocate(void* ptr) {

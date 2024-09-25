@@ -4,14 +4,25 @@
 
 // 包含所有相关的头文件
 #include "Function.h"
-#include "matmul.h"
-#include "rmsnorm.h"
+#include "matmul_cuda.h"
+#include "rmsnorm_cuda.h"
+#include "softmax_cuda.h"
 // 如果有更多的头文件，继续添加
 // #include "another_function.h"
 
 class CUDAFunction : public Function {
 public:
-    CUDAFunction() {}
+    void matmul(float *xout, const float *x, const float *w, int n, int d) override {
+        matmul_cuda(xout, x, w, n, d);
+    }
+
+    void rmsnorm(float* output, const float* input, const float* weight, const float epsilon, int size) override {
+        rmsnorm_cuda(output, input, weight, epsilon, size);
+    }
+
+    void softmax(float *x, int n){
+        softmax_cuda(x, n);
+    }
 };
 
 #endif // CUDA_FUNCTION_H

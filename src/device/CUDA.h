@@ -7,9 +7,9 @@
 class CUDA : public Device {
 public:
     CUDA();
-    void move_in(float* ptr_dev, float* ptr_cpu, size_t bytes) override;
-    void move_out(float* ptr_dev, float* ptr_cpu, size_t bytes) override;
-    void allocate(float* ptr, size_t size) override;
+    void move_in(float* ptr_dev, float* ptr_cpu, size_t size) override;
+    void move_out(float* ptr_dev, float* ptr_cpu, size_t size) override;
+    float* allocate(size_t size) override;
     void deallocate(float* ptr) override;
 };
 
