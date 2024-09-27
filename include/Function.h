@@ -36,6 +36,8 @@ public:
     virtual void matmul(float *xout, const float *x, const float *w, int n, int d) = 0;
 
     virtual void softmax(float *x, int n) = 0;
+
+    virtual void rotary_positional_embedding(int pos, float *vec, int dim, int head_size) = 0;
 };
 
 #endif // Function_H

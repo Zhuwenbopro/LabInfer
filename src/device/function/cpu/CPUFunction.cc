@@ -11,7 +11,6 @@ void matmul_cpu(float *xout, const float *x, const float *w, int n, int d) {
     }
 }
 
-
 void rmsnorm_cpu(float* output, const float* input, const float* weight, const float epsilon, int size) {
     // 求平方和
     float sum_of_squares = 0.0f;
@@ -48,5 +47,30 @@ void softmax_cpu(float *x, int n){
     // 将每个指数值除以总和，得到概率分布
     for(int i = 0; i < n; ++i){
         x[i] /= sum;
+    }
+}
+
+// CPU 实现：对向量应用 RoPE 旋转
+void rotary_positional_embedding_cpu(int pos, float *vec, int dim, int head_size){
+    int num_heads = dim / head_size;
+    int num_complex = head_size / 2; // 每个头的复数对数
+
+    for (int h = 0; h < num_heads; h++) {
+        for (int k = 0; k < num_complex; k++) {
+            int idx = h * head_size + k * 2;
+
+            float freq = 1.0f / powf(10000.0f, (2.0f * k) / (float)head_size);
+
+            float theta = pos * freq;
+            float cos_theta = cosf(theta);
+            float sin_theta = sinf(theta);
+
+            float real = vec[idx];
+            float imag = vec[idx + 1];
+
+            // 应用旋转矩阵
+            vec[idx]     = real * cos_theta - imag * sin_theta;
+            vec[idx + 1] = real * sin_theta + imag * cos_theta;
+        }
     }
 }
