@@ -350,6 +350,7 @@ __global__ void matmul_kernel(float *xout, float *x, float *w, int n, int d) {
     }
     xout[i] = sum;
 }
+
 void matmul(float *xout, float *x, float *w, int n, int d) {
     matmul_kernel<<<divUp(d, num_threads_small), num_threads_small>>>(xout, x, w, n, d);
 }
@@ -372,6 +373,7 @@ __global__ void RoPe_rotation_kernel(int pos, float *sq, float *sk, int kv_dim, 
         vec[i + 1] = v0 * fci + v1 * fcr;
     }
 }
+
 void RoPe_rotation(int pos, RunState *s, int dim, int kv_dim, int head_size) {
     RoPe_rotation_kernel<<<1, dim / 2>>>(pos, s->q, s->k, kv_dim, head_size);
 }
@@ -438,6 +440,7 @@ __global__ void f_silu_elementwise_mul_w3_kernel(float *shb, float *shb2, int hi
         shb[i] = val;
     }
 }
+
 void f_silu_elementwise_mul_w3(RunState *s, int hidden_dim) {
     f_silu_elementwise_mul_w3_kernel<<<divUp(hidden_dim, num_threads_small), num_threads_small>>>(s->hb, s->hb2,
                                                                                                   hidden_dim);
@@ -449,6 +452,7 @@ __global__ void accum_kernel(float *a, float *b, int size) {
         a[i] += b[i];
     }
 }
+
 void accum(float *a, float *b, int size) {
     accum_kernel<<<divUp(size, num_threads_small), num_threads_small>>>(a, b, size);
 }

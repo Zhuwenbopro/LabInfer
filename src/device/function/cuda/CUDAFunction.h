@@ -7,6 +7,7 @@
 #include "matmul_cuda.h"
 #include "rmsnorm_cuda.h"
 #include "softmax_cuda.h"
+#include "rope_cuda.h"
 // 如果有更多的头文件，继续添加
 // #include "another_function.h"
 
@@ -20,8 +21,12 @@ public:
         rmsnorm_cuda(output, input, weight, epsilon, size);
     }
 
-    void softmax(float *x, int n){
+    void softmax(float *x, int n) override {
         softmax_cuda(x, n);
+    }
+
+    void rotary_positional_embedding(int pos, float *vec, int dim, int head_size) override {
+        rotary_positional_embedding_cuda(pos, vec, dim, head_size);
     }
 };
 
