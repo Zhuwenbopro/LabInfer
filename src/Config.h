@@ -1,7 +1,6 @@
+#include <string>
 class Config{
 public:
-    Config(std:string config_file_path);
-
     int dim;            // 模型的维度 D
     int hidden_dim;     // 隐藏层维度 DD
     int n_layers;       // 层数 NL
@@ -9,4 +8,4 @@ public:
     int n_kv_heads;     // Key-Value头数 KVHN = 6
     int vocab_size;     // 词汇表大小 VS
     int max_seq_len;    // 最大序列长度 M
-}
+};
