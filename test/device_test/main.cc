@@ -21,7 +21,7 @@ void check_rmsnorm(Device *cpu, Device *cuda);
 void check_matmul(Device *cpu, Device *cuda);
 void check_softmax(Device *cpu, Device *cuda);
 void check_rope(Device *cpu, Device *cuda);
-
+void check_silu(Device *cpu, Device *cuda);
 
 int main() {
 
@@ -35,6 +35,7 @@ int main() {
     check_matmul(cpu, cuda);
     check_softmax(cpu, cuda);
     check_rope(cpu, cuda);
+    check_silu(cpu, cuda);
     std::cout << "test finished ..." << std::endl;
 
     return 0;
@@ -210,6 +211,34 @@ void check_rope(Device *cpu, Device *cuda){
         check_pass("[rotary_postional_embedding] CUDA and CPU results match.");
     } else {
         check_error("[rotary_postional_embedding] CUDA and CPU results do not match!");
+    }
+
+    cpu->deallocate(x_cpu);
+    cpu->deallocate(cuda_to_cpu);
+    cuda->deallocate(x_cuda);
+}
+
+void check_silu(Device *cpu, Device *cuda){
+    // 分配主机内存
+    float *x_cpu = cpu->allocate(N);
+    float *cuda_to_cpu = cpu->allocate(N);
+    float *x_cuda = cuda->allocate(N);
+
+    rand_init(x_cpu, N);
+
+    cuda->move_in(x_cuda, x_cpu, N);
+
+    // 模拟的这个向量在第 20 的位置
+    cuda->F->silu(x_cuda, N);
+    cpu->F->silu(x_cpu,N);
+
+    cuda->move_out(x_cuda, cuda_to_cpu, N);
+
+    // 比较结果
+    if (compare_results(cuda_to_cpu, x_cpu, N)) {
+        check_pass("[silu] CUDA and CPU results match.");
+    } else {
+        check_error("[silu] CUDA and CPU results do not match!");
     }
 
     cpu->deallocate(x_cpu);
