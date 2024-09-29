@@ -8,6 +8,7 @@
 #include "rmsnorm_cuda.h"
 #include "softmax_cuda.h"
 #include "rope_cuda.h"
+#include "silu_cuda.h"
 // 如果有更多的头文件，继续添加
 // #include "another_function.h"
 
@@ -27,6 +28,10 @@ public:
 
     void rotary_positional_embedding(int pos, float *vec, int dim, int head_size) override {
         rotary_positional_embedding_cuda(pos, vec, dim, head_size);
+    }
+
+    void silu(float *x, const int n) override {
+        silu_cuda(x, n);
     }
 };
 

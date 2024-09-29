@@ -38,6 +38,8 @@ public:
     virtual void softmax(float *x, int n) = 0;
 
     virtual void rotary_positional_embedding(int pos, float *vec, int dim, int head_size) = 0;
+
+    virtual void silu(float *x, const int n) = 0;
 };
 
 #endif // Function_H
