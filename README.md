@@ -6,9 +6,11 @@
 
 **TODO List**
 
-- [ ] llama 3 中用到的函数（cuda 实现）。
+- [x] llama 3 中用到的函数（cuda 实现）。
 - [x] cuda allocator。
-- [ ] device 为上层提供接口服务。
+- [x] device 为上层提供接口服务。
+- [ ] 测试 manager
+- [ ] 完成 Layer 设计
 
 
 - [ ] 分词器 tokenizer
@@ -18,7 +20,7 @@
 
 
 ## 设计
-* **设计目标**：异构的、可调度的、分布式的推理服务程序。
+* **设计目标**：异构的、可调度的、支持分布式的推理服务程序。
 
 <p align="center">
   <img src="./assets/arch.png" width="500" alt="架构">
@@ -51,7 +53,10 @@ Allocator
     void deallocate(void* ptr);
 ```
 #### Function
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;函数部分负责提供计算，目前默认是使用100%的算力，没有提供算力使用率的选项，未来manager在进行分配时应当把算力使用率考虑在内。
 
+### Manager 层
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manager 层负责调度加速器，包括：算力和内存两部分，对于cuda来讲，算力就是分配给上层 layer 的 SM 芯片数，内存就是显存。理论上来讲 manager 层可以把当前加速器的内存同一收集起来自己做调度，这样会有很大的优化空间。目前，我们仅仅是向上传递 allocator 的方法，先实现，再优化。
 
 #### 变量（variable）与模型（model）的关系
 变量类 Variable 有两个子类：Tensor、Parameter，分别代表隐藏层之间传递的参数和模型自身的权重。变量应该仅为模型使用，整个模型的内存也都由变量占据。变量的内存应该由模型借助 allocator 去分配。这样在进行模型内部改造时会比较灵活。*为了节省内存，可以让一块GPU内的所有隐藏层结果放到同一块显存中。*
