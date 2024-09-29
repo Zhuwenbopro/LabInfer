@@ -74,3 +74,9 @@ void rotary_positional_embedding_cpu(int pos, float *vec, int dim, int head_size
         }
     }
 }
+
+void silu_cpu(float *x, const int n){
+    for(int i = 0; i < n; i++){
+        x[i] = x[i] / (1 + std::exp(-x[i]));
+    }
+}
