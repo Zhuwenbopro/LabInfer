@@ -7,8 +7,8 @@
 class Tensor : public Variable {
 public:
     // 构造函数
-    Tensor(const std::string& var_name, float* var_value, const std::vector<int>& var_shape, 
-        const std::string& device) : Variable(var_name, var_value, var_shape, device) {
+    Tensor(const std::string& _name, float* _value, const std::vector<int>& _shape, 
+        const std::string& _device) : Variable(_name, _value, _shape, _device) {
         std::cout << "Tensor constructed: " << name << "\n";
     }
 
@@ -21,13 +21,6 @@ public:
     Tensor(const Tensor&) = delete;
     Tensor& operator=(const Tensor&) = delete;
 
-    // 实现设备间传输方法
-    void to(const std::string& new_dev) {
-        // 这里应实现实际的设备间数据传输逻辑
-        // 例如，使用CUDA API进行GPU间数据拷贝
-        std::cout << "Transferring Parameter '" << name << "' from " 
-                  << dev << " to " << new_dev << "\n";
-    }
 };
 
 #endif

@@ -30,10 +30,27 @@ public:
 
     float *Data() const { return value; }
     void setData(float* val) { value = val; }
+
     const std::vector<int>& Shape() const { return shape; }
+    void setShape(const std::vector<int>& _shape){ shape = _shape; }
+
     size_t Size() const { return size; }
+    void setSize(const size_t _size) { size = _size; }
+
     const std::string& Name() const { return name; }
-    const std::string& Device() const { return dev; }
+    void setName(const std::string& _name){ name = _name; }
+
+    const std::string& Device() const { return device; }
+    void setDevice(const std::string& _device){ device = _device; }
+
+    // 实现设备间传输方法
+    void to(const std::string& new_dev) {
+        if(new_dev == device) return;
+
+        // TODO：转换数据，释放自己的空间
+        Manager& manager = Manager::getInstance();
+        manager.toDevice(*this, new_dev);
+    }
 
 protected:
     // 使用智能指针管理内存
@@ -41,11 +58,11 @@ protected:
     std::vector<int> shape;                   // 数据形状
     size_t size;                              // 数据大小（元素个数）
     std::string name;                         // 变量名称
-    std::string dev;                          // 设备
+    std::string device;                          // 设备
 
     // 构造函数
-    Variable(const std::string& var_name, float* var_value, const std::vector<int>& var_shape, 
-        const std::string& device) : value(var_value), shape(var_shape), size(1), name(var_name), dev(device) {
+    Variable(const std::string& _name, float* _value, const std::vector<int>& _shape, const std::string& _device) : 
+                                                value(_value), shape(_shape), size(1), name(_name), device(_device) {
 
         for (const auto& dim : shape) {
             size *= dim;

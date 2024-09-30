@@ -1,5 +1,5 @@
 // Manager.h
-#ifndef  MANAGER_H
+#ifndef MANAGER_H
 #define MANAGER_H
 
 #include <string>
@@ -30,6 +30,7 @@ public:
 
     Function& getFunction(const std::string& deviceName);
 
+    // 我还没想好要不要对外开放
     Device& getDevice(const std::string& deviceName);
 };
 
