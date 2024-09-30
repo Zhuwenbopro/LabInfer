@@ -18,3 +18,7 @@ Function& Manager::getFunction(const std::string& deviceName) {
     Device* dev = deviceManager.getDevice(deviceName);
     return *(dev->F);
 }
+
+Device& Manager::getDevice(const std::string& deviceName) {
+    return *(deviceManager.getDevice(deviceName));
+}

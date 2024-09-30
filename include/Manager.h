@@ -9,9 +9,6 @@
 
 class Manager {
 private:
-    // 私有静态实例指针
-    static Manager* instance;
-
     // 私有构造函数
     Manager();
 
@@ -32,6 +29,8 @@ public:
     void toDevice(Variable& variable, const std::string& deviceName);
 
     Function& getFunction(const std::string& deviceName);
+
+    Device& getDevice(const std::string& deviceName);
 };
 
 #endif // ! MANAGER_H
