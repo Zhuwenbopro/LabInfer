@@ -25,8 +25,11 @@ public:
     Variable(const Variable&) = delete;
     Variable& operator=(const Variable&) = delete;
 
+    // 隐式转换 Variable 类和 float*
+    operator float*() const { return value; }
 
     float *Data() const { return value; }
+    void setData(float* val) { value = val; }
     const std::vector<int>& Shape() const { return shape; }
     size_t Size() const { return size; }
     const std::string& Name() const { return name; }
