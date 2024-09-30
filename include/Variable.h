@@ -2,6 +2,7 @@
 #define VARIABLE_H
 
 #include <iostream>
+#include "Manager.h"
 #include <string>
 #include <vector>
 
@@ -61,8 +62,8 @@ protected:
     std::string device;                          // 设备
 
     // 构造函数
-    Variable(const std::string& _name, float* _value, const std::vector<int>& _shape, const std::string& _device) : 
-                                                value(_value), shape(_shape), size(1), name(_name), device(_device) {
+    Variable(const std::string& _name, float* _value, const std::vector<int>& _shape, 
+        const std::string& _device) : value(_value), shape(_shape), size(1), name(_name), device(_device) {
 
         for (const auto& dim : shape) {
             size *= dim;
