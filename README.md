@@ -9,8 +9,10 @@
 - [x] llama 3 中用到的函数（cuda 实现）。
 - [x] cuda allocator。
 - [x] device 为上层提供接口服务。
-- [ ] 测试 manager
-- [ ] 完成 Layer 设计
+- [x] 测试 manager
+- [x] 完成 Layer 设计
+- [ ] 完成 Linear 设计
+- [ ] 测试 Linear 
 
 
 - [ ] 分词器 tokenizer

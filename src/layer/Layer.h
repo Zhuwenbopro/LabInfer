@@ -24,17 +24,18 @@ public:
     void to(const std::string& new_dev) {
         if(new_dev == device) return;
 
-        for(Parameter& param : params) {
+        for (auto& [name, param] : params) {
             param.to(new_dev);
         }
 
-        for(Layer& layer : layers) {
-            layer.to(new_dev);
+        for (auto& [name, ptr_layer] : layers) {
+            ptr_layer->to(new_dev);
         }
     }
 
     void load_state(std::unordered_map<std::string, float*>& state_map) {
-        for(Parameter& param : params) {
+        
+        for (auto& [name, param] : params) {
             auto it = state_map.find(param.Name());
             if (it != state_map.end()) {
                 param.setData(it->second);
@@ -44,8 +45,8 @@ public:
             }
         }
 
-        for(Layer& layer : layers) {
-            layer.load_state(state_map);
+        for (auto& [name, ptr_layer] : layers) {
+            ptr_layer->load_state(state_map);
         }
     }
 
@@ -60,8 +61,8 @@ public:
 
 protected:
     Manager& manager;
-    std::vector<Parameter> params;
-    std::vector<Layer> layers;
+    std::unordered_map<std::string, Parameter> params;
+    std::unordered_map<std::string, Layer*> layers;
     std::string device;
     std::string name;
 

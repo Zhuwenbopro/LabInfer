@@ -1,4 +1,6 @@
-#include <string>
+#ifndef CONFIG_H
+#define CONFIG_H
+
 class Config{
 public:
     int dim;            // 模型的维度 D
@@ -9,3 +11,5 @@ public:
     int vocab_size;     // 词汇表大小 VS
     int max_seq_len;    // 最大序列长度 M
 };
+
+#endif // CONFIG_H
