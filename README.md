@@ -14,9 +14,16 @@
 - [ ] 完成 Linear 设计
 - [ ] 测试 Linear 
 
+#### 第一阶段
+- [ ] 分词器 tokenizer : encode、decode
+- [ ] 各种 transformer 层 layers
+- [ ] state load
+- [ ] 每层采样计算时间，用于后续评估
+- [ ] 手工搭一个模型测试推理
+- [ ] 支持 kv cache
+- [ ] 支持 batch
 
-- [ ] 分词器 tokenizer
-- [ ] cuda支持16位精度浮点运算
+#### 第二阶段
 
 **Finished List**
 
