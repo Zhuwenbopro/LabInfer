@@ -9,6 +9,7 @@ void rmsnorm_cpu(float* output, const float* input, const float* weight, const f
 void softmax_cpu(float *x, int n);
 void rotary_positional_embedding_cpu (int pos, float *vec, int dim, int head_size);
 void silu_cpu(float *x, const int n);
+void add_cpu(float* y, const float* x1, const float* x2, const int n);
 
 class CPUFunction : public Function {
 
@@ -30,6 +31,10 @@ class CPUFunction : public Function {
 
     void silu(float *x, const int n) override {
         silu_cpu(x, n);
+    }
+
+    void add(float* y, const float* x1, const float* x2, const int n) override {
+        add_cpu(y, x1, x2, n);
     }
 };
 #endif // CPU_FUNCTION_H

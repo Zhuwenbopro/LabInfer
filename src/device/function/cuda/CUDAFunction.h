@@ -9,6 +9,7 @@
 #include "softmax_cuda.h"
 #include "rope_cuda.h"
 #include "silu_cuda.h"
+#include "add_cuda.h"
 // 如果有更多的头文件，继续添加
 // #include "another_function.h"
 
@@ -32,6 +33,10 @@ public:
 
     void silu(float *x, const int n) override {
         silu_cuda(x, n);
+    }
+
+    void add(float* y, const float* x1, const float* x2, const int n) override {
+        add_cuda(y, x1, x2, n);
     }
 };
 

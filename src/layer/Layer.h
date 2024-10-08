@@ -11,9 +11,7 @@
 
 class Layer {
 public:
-    Layer() : manager(Manager::getInstance()) {
-
-    }
+    Layer(const std::string& _device, const std::string& _name) : F(Manager::getInstance().getFunction(_device)) { }
 
     const std::string& Name() const { return name; }
     void setName(const std::string& _name){ name = _name; }
@@ -26,6 +24,10 @@ public:
 
         for (auto& [name, param] : params) {
             param.to(new_dev);
+        }
+
+        for (auto& [name, temp] : temps) {
+            temp.to(new_dev);
         }
 
         for (auto& [name, ptr_layer] : layers) {
@@ -55,13 +57,10 @@ public:
     // 虚析构函数，确保派生类的析构函数被调用
     virtual ~Layer() = default;
 
-    // 禁止拷贝构造和拷贝赋值，避免浅拷贝问题
-    Layer(const Layer&) = delete;
-    Layer& operator=(const Layer&) = delete;
-
 protected:
-    Manager& manager;
+    Function& F;
     std::unordered_map<std::string, Parameter> params;
+    std::unordered_map<std::string, Tensor> temps;
     std::unordered_map<std::string, Layer*> layers;
     std::string device;
     std::string name;

@@ -2,9 +2,9 @@
 #define VARIABLE_H
 
 #include <iostream>
-#include "Manager.h"
 #include <string>
 #include <vector>
+
 
 /**
     在实现上我应该避免做很多华丽、便捷的接口机制，
@@ -22,9 +22,6 @@ public:
     // 虚析构函数，确保派生类的析构函数被调用
     virtual ~Variable() = default;
 
-    // 禁止拷贝构造和拷贝赋值，避免浅拷贝问题
-    Variable(const Variable&) = delete;
-    Variable& operator=(const Variable&) = delete;
 
     // 隐式转换 Variable 类和 float*
     operator float*() const { return value; }
@@ -32,8 +29,8 @@ public:
     float *Data() const { return value; }
     void setData(float* val) { value = val; }
 
-    const std::vector<int>& Shape() const { return shape; }
-    void setShape(const std::vector<int>& _shape){ shape = _shape; }
+    const std::vector<size_t>& Shape() const { return shape; }
+    void setShape(const std::vector<size_t>& _shape){ shape = _shape; }
 
     size_t Size() const { return size; }
     void setSize(const size_t _size) { size = _size; }
@@ -45,24 +42,18 @@ public:
     void setDevice(const std::string& _device){ device = _device; }
 
     // 实现设备间传输方法
-    void to(const std::string& new_dev) {
-        if(new_dev == device) return;
-
-        // TODO：转换数据，释放自己的空间
-        Manager& manager = Manager::getInstance();
-        manager.toDevice(*this, new_dev);
-    }
+    void to(const std::string& new_dev);
 
 protected:
     // 使用智能指针管理内存
     float* value;                             // 数据指针
-    std::vector<int> shape;                   // 数据形状
+    std::vector<size_t> shape;                // 数据形状
     size_t size;                              // 数据大小（元素个数）
     std::string name;                         // 变量名称
     std::string device;                          // 设备
 
     // 构造函数
-    Variable(const std::string& _name, float* _value, const std::vector<int>& _shape, 
+    Variable(const std::string& _name, float* _value, const std::vector<size_t>& _shape, 
         const std::string& _device) : value(_value), shape(_shape), size(1), name(_name), device(_device) {
 
         for (const auto& dim : shape) {
