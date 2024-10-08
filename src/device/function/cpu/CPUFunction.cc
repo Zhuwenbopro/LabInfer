@@ -80,3 +80,9 @@ void silu_cpu(float *x, const int n){
         x[i] = x[i] / (1 + std::exp(-x[i]));
     }
 }
+
+void add_cpu(float* y, const float* x1, const float* x2, const int n){
+    for(int i = 0; i < n; i++) {
+        y[i] = x1[i] + x2[i];
+    }
+}

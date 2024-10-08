@@ -17,7 +17,7 @@
 #### 第一阶段 v 0.1
 - [ ] 分词器 tokenizer : encode、decode
 - [ ] 各种 transformer 层 layers
-- [ ] state load
+- [ ] state load -- safetensor
 - [ ] 每层采样计算时间，用于后续评估
 - [ ] 手工搭一个模型测试推理
 - [ ] 支持 kv cache

@@ -22,6 +22,9 @@ void check_matmul(Device *cpu, Device *cuda);
 void check_softmax(Device *cpu, Device *cuda);
 void check_rope(Device *cpu, Device *cuda);
 void check_silu(Device *cpu, Device *cuda);
+void check_add(Device *cpu, Device *cuda);
+
+
 
 int main() {
 
@@ -36,6 +39,7 @@ int main() {
     check_softmax(cpu, cuda);
     check_rope(cpu, cuda);
     check_silu(cpu, cuda);
+    check_add(cpu, cuda);
     std::cout << "test finished ..." << std::endl;
 
     return 0;
@@ -244,4 +248,42 @@ void check_silu(Device *cpu, Device *cuda){
     cpu->deallocate(x_cpu);
     cpu->deallocate(cuda_to_cpu);
     cuda->deallocate(x_cuda);
+}
+
+void check_add(Device *cpu, Device *cuda){
+    // 分配主机内存
+    float *x1_cpu = cpu->allocate(N);
+    float *x2_cpu = cpu->allocate(N);
+    float *y_cpu = cpu->allocate(N);
+    float *cuda_to_cpu = cpu->allocate(N);
+    float *x1_cuda = cuda->allocate(N);
+    float *x2_cuda = cuda->allocate(N);
+    float *y_cuda = cuda->allocate(N);
+
+    rand_init(x1_cpu, N);
+    rand_init(x2_cpu, N);
+
+    cuda->move_in(x1_cuda, x1_cpu, N);
+    cuda->move_in(x2_cuda, x2_cpu, N);
+
+    // 模拟的这个向量在第 20 的位置
+    cuda->F->add(y_cuda, x1_cuda, x2_cuda, N);
+    cpu->F->add(y_cpu, x1_cpu, x2_cpu, N);
+
+    cuda->move_out(y_cuda, cuda_to_cpu, N);
+
+    // 比较结果
+    if (compare_results(cuda_to_cpu, y_cpu, N)) {
+        check_pass("[add] CUDA and CPU results match.");
+    } else {
+        check_error("[add] CUDA and CPU results do not match!");
+    }
+
+    cpu->deallocate(x1_cpu);
+    cpu->deallocate(x2_cpu);
+    cpu->deallocate(y_cpu);
+    cpu->deallocate(cuda_to_cpu);
+    cuda->deallocate(x1_cuda);
+    cuda->deallocate(x2_cuda);
+    cuda->deallocate(y_cuda);
 }

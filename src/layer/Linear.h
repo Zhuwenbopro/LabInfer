@@ -7,7 +7,10 @@
 class Linear : public Layer {
 public:
     // 构造函数，初始化线性层的输入和输出尺寸
-    Linear(const Config& config, const std::string& name = "Linear");
+    // 删除默认构造函数
+    Linear() = delete;
+    // Linear(const Config& config, const std::string& name = "Linear");
+    Linear(const size_t size_in, const size_t size_out, bool _bias, const std::string& _name = "Linear");
 
     // 覆盖基类的 forward 方法
     std::vector<Tensor> forward(std::vector<Tensor>& inputs) override;
@@ -16,41 +19,40 @@ public:
     virtual ~Linear() = default;
 
 private:
-    int input_size;
-    int output_size;
-
-    // 可以根据需要添加其他成员或方法
+    size_t input_size;
+    size_t output_size;
+    bool bias;
 };
 
-// 假设 Parameter 可以用尺寸和设备进行初始化
-Linear::Linear(const Config& config, const std::string& name) : Layer()
+// 初始化不分配内存，等到load的时候再分配
+Linear::Linear(const size_t size_in, const size_t size_out, bool _bias, const std::string& _name) : Layer("cpu", _name)
 {
-    setName(name);
 
-    // 初始化在这里
-    // 把input、output的size搞清楚，有没有bias
-    // 初始化不分配内存，等到load的时候再分配
+    std::cout << "in Linear Constructor" << std::endl;
 
+    input_size = size_in;
+    output_size = size_out;
+    bias = _bias;
+    
+    params.emplace("W", Parameter("W", nullptr, {size_in, size_out}, "cpu"));
+
+    if(bias) params.emplace("b", Parameter("W", nullptr, {size_in}, "cpu"));
+
+    temps.emplace("output", Tensor("output", new float[output_size], {output_size}, device));
 }
 
+// 这里写的代码很冗长 是因为 unordered_map 在调用 temps["output"] 时 会调用默认构造函数，
+// 但是Tensor和parameter没有默认构造函数 会报错
 std::vector<Tensor> Linear::forward(std::vector<Tensor>& inputs)
 {
-    /*
-    // 对于线性层，我们期望一个输入张量
-    assert(inputs.size() == 1);
-    Tensor input = inputs[0];
+    // 尝试获取 output 和 weight
+    Tensor& output = temps.at("output");
+    Parameter& weight = params.at("W");
 
-    // 获取权重和偏置
-    // 假设你有方法通过名称或索引访问 params
-    Tensor weight = params[0].getData(); // 形状：[output_size, input_size]
-    Tensor bias = params[1].getData(); // 形状：[output_size]
-
-    // 执行线性变换：output = input * weight^T + bias
-    // 假设 Tensor 支持矩阵乘法和加法
-    Tensor output = input.matmul(weight.transpose()) + bias;
+    // 使用它们进行运算
+    F.matmul(output, inputs[0], weight, input_size, output_size);
 
     return { output };
-    */
 }
 
 #endif // LINEAR_H

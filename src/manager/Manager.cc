@@ -13,6 +13,9 @@ void Manager::toDevice(Variable& variable, const std::string& deviceName) {
     // 单机多卡可以直接传数据，还是由本CPU传指令，直接传数据到设备内存中就行
     Device* fromDevice = deviceManager.getDevice(variable.Device());
     Device* toDevice = deviceManager.getDevice(deviceName);
+    
+    if(toDevice == nullptr)
+        return;
 
     float* from_data = variable.Data();
     float* to_data = toDevice->allocate(size);

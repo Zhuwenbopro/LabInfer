@@ -33,13 +33,15 @@ public:
     *
     * @warning 确保 `xout`、`x` 和 `w` 指针指向的内存区域已正确分配，并且大小满足上述要求，以避免内存访问错误。
     */
-    virtual void matmul(float *xout, const float *x, const float *w, int n, int d) = 0;
+    virtual void matmul(float* xout, const float *x, const float *w, int n, int d) = 0;
 
-    virtual void softmax(float *x, int n) = 0;
+    virtual void softmax(float* x, int n) = 0;
 
     virtual void rotary_positional_embedding(int pos, float *vec, int dim, int head_size) = 0;
 
-    virtual void silu(float *x, const int n) = 0;
+    virtual void silu(float* x, const int n) = 0;
+
+    virtual void add(float* y, const float* x1, const float* x2, const int n) = 0;
 };
 
 #endif // Function_H
