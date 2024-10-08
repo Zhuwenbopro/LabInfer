@@ -14,7 +14,7 @@
 - [ ] 完成 Linear 设计
 - [ ] 测试 Linear 
 
-#### 第一阶段
+#### 第一阶段 v 0.1
 - [ ] 分词器 tokenizer : encode、decode
 - [ ] 各种 transformer 层 layers
 - [ ] state load
@@ -24,6 +24,15 @@
 - [ ] 支持 batch
 
 #### 第二阶段
+- [ ] swap
+- [ ] pipeline
+- [ ] pagedAttention
+- [ ] chunk
+- [ ] 根据采样时间划分模型
+- [ ] temperature
+- [ ] top-k
+
+
 
 **Finished List**
 
