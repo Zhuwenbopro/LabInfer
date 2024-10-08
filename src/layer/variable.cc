@@ -3,7 +3,7 @@
 
 void Variable::to(const std::string& new_dev) {
     if (new_dev == device) return;
-
+    
     Manager& manager = Manager::getInstance();
     manager.toDevice(*this, new_dev);
 }

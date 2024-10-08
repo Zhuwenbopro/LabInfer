@@ -15,6 +15,10 @@
 
 class CUDAFunction : public Function {
 public:
+    void whereami() override {
+        std::cout << "Function in CUDA" << std::endl;
+    }
+
     void matmul(float *xout, const float *x, const float *w, int n, int d) override {
         matmul_cuda(xout, x, w, n, d);
     }

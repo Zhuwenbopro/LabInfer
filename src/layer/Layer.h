@@ -6,8 +6,10 @@
 #include "Manager.h"
 #include "Parameter.h"
 #include "Tensor.h"
+#include <stdexcept>
 #include <vector>
 #include <unordered_map>
+#include <functional> 
 
 class Layer {
 public:
@@ -21,15 +23,15 @@ public:
 
     void to(const std::string& new_dev) {
         if(new_dev == device) return;
-
+        
         for (auto& [name, param] : params) {
             param.to(new_dev);
         }
+        
+        F = std::ref(Manager::getInstance().getFunction(new_dev));
 
-        for (auto& [name, temp] : temps) {
-            temp.to(new_dev);
-        }
-
+        device = new_dev;
+        
         for (auto& [name, ptr_layer] : layers) {
             ptr_layer->to(new_dev);
         }
@@ -52,15 +54,24 @@ public:
         }
     }
 
-    virtual std::vector<Tensor> forward(std::vector<Tensor>& inputs) = 0;
+    virtual void forward(Tensor& x) {
+        throw std::logic_error("forward(Tensor& x) not implemented.");
+    }
+
+    virtual void forward(Tensor& y, Tensor& x) {
+        throw std::logic_error("forward(Tensor& y, Tensor& x) not implemented.");
+    }
+
+    virtual void forward(Tensor& y, Tensor& x1, Tensor& x2) {
+        throw std::logic_error("forward(Tensor& y, Tensor& x1, Tensor& x2) not implemented.");
+    }
 
     // 虚析构函数，确保派生类的析构函数被调用
     virtual ~Layer() = default;
 
 protected:
-    Function& F;
+    std::reference_wrapper<Function> F;
     std::unordered_map<std::string, Parameter> params;
-    std::unordered_map<std::string, Tensor> temps;
     std::unordered_map<std::string, Layer*> layers;
     std::string device;
     std::string name;

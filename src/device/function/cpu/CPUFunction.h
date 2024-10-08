@@ -12,6 +12,9 @@ void silu_cpu(float *x, const int n);
 void add_cpu(float* y, const float* x1, const float* x2, const int n);
 
 class CPUFunction : public Function {
+    void whereami() override {
+        std::cout << "Function in CPU" << std::endl;
+    }
 
     void matmul(float *xout, const float *x, const float *w, int n, int d) override {
         matmul_cpu(xout, x, w, n, d);

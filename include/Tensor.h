@@ -40,9 +40,7 @@ public:
     }
 
     // 虚析构函数
-    ~Tensor() override {
-        std::cout << "Tensor destructed: " << name << "\n";
-    }
+    ~Tensor() override { }
 
 };
 
