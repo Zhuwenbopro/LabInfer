@@ -4,6 +4,8 @@
 #include <cstdlib>  // 用于rand函数
 #include <ctime>    // 用于时间种子
 #include <vector>
+#include <chrono>
+
 
 // ANSI color codes
 #define RESET   "\033[0m"
@@ -22,8 +24,8 @@ void const_init(float* ptr, int size);
 int main() {
     /* 要测试 constructor、forward、load_state、to */
     
-    size_t size_in = 3;
-    size_t size_out = 2;
+    size_t size_in = 4096;
+    size_t size_out = 2048;
 
     Linear linear = Linear(size_in, size_out, false, "Linear1");
 
@@ -31,32 +33,34 @@ int main() {
     float* W = new float[size_in * size_out];
     float* in = new float[size_in];
     // 初始化输入数据和权重
-    const_init(in, size_in);
-    const_init(W, size_in * size_out);
-    Tensor tensor1("input", in, {size_in}, "cpu");
-    std::vector<Tensor> inputs = {tensor1};
+    rand_init(in, size_in);
+    rand_init(W, size_in * size_out);
+    Tensor x("input", in, {size_in}, "cpu");
+    Tensor y_cpu("output", in, {size_out}, "cpu");
 
     std::unordered_map<std::string, float*> states;
     states["W"] = W;
-
     linear.load_state(states);
 
-    auto res = linear.forward(inputs);
+    auto start = std::chrono::high_resolution_clock::now();
+    linear.forward(y_cpu, x);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
 
-    float* result = res[0];
+    Tensor y_cuda = y_cpu.copy();
 
-    for(int i = 0; i < size_in; i++)
-        std::cout << in[i] << " ";
+    y_cuda.to("cuda");
+    x.to("cuda");
+    linear.to("cuda");
+    start = std::chrono::high_resolution_clock::now();
+    linear.forward(y_cuda, x);
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
 
-    std::cout << std::endl << std::endl;
-
-    for(int i = 0; i < size_in * size_out; i++)
-        std::cout << W[i] << " ";
-
-    std::cout << std::endl << std::endl;
-
-    for(int i = 0; i < size_out; i++)
-        std::cout << result[i] << " ";
+    y_cuda.to("cpu");
+    compare_results(y_cuda, y_cpu, size_out, 1e-3f);
 
     return 0;
 }

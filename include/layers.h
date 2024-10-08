@@ -4,6 +4,7 @@
 
 
 #include "../src/layer/Linear.h"
+#include "../src/layer/Softmax.h"
 
 
 #endif
