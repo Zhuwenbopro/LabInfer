@@ -59,29 +59,30 @@ void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
 }
 #else
 // CUDA 内核实现矩阵乘法
-__global__ void matmul_kernel(float *xout,const float *x,const float *w, int n, int d) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= d)
+__global__ void matmul_kernel(float *xout, const float *x, const float *w, int n, int d, int batch_size) {
+    int batch_idx = blockIdx.y;  // 批处理索引
+    int i = blockIdx.x * blockDim.x + threadIdx.x;  // 输出向量索引
+
+    if (i >= d || batch_idx >= batch_size)
         return;
 
     float sum = 0.0f;
     for (int j = 0; j < n; j++) {
-        sum += w[i * n + j] * x[j];
+        sum += w[i * n + j] * x[batch_idx * n + j];
     }
-    xout[i] = sum;
+    xout[batch_idx * d + i] = sum;
 }
 
-void matmul_cuda(float *xout, const float *x, const float *w, int n, int d) {
+void matmul_cuda(float *y, const float *x, const float *w, int n, int d, int batch_size) {
 
     // 计算线程块和网格大小
     int blockSize = num_threads_small;
-    int gridSize = (d + blockSize - 1) / blockSize;
-
-    // 限制 gridSize，避免过多的线程块
-    gridSize = min(gridSize, 1024); // 根据 GPU 的规格调整
+    int gridSizeX = (d + blockSize - 1) / blockSize;
+    int gridSizeY = batch_size;
+    dim3 gridSize(gridSizeX, gridSizeY);
 
     // 调用 CUDA 内核
-    matmul_kernel<<<gridSize, blockSize>>>(xout, x, w, n, d);
+    matmul_kernel<<<gridSize, blockSize>>>(y, x, w, n, d, batch_size);
 
 }
 #endif
