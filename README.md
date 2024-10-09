@@ -11,8 +11,8 @@
 - [x] device 为上层提供接口服务。
 - [x] 测试 manager
 - [x] 完成 Layer 设计
-- [ ] 完成 Linear 设计
-- [ ] 测试 Linear 
+- [x] 完成 Linear 设计
+- [x] 测试 Linear 
 
 #### 第一阶段 v 0.1
 - [ ] 分词器 tokenizer : encode、decode
