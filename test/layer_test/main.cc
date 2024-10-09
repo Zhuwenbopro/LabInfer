@@ -72,7 +72,6 @@ void const_init(float* ptr, int size) {
     }    
 }
 
-
 void check_linear() {
     size_t size_in = 4096;
     size_t size_out = 2048;
@@ -154,3 +153,4 @@ void check_softmax() {
         check_error("[softmax] CUDA and CPU results do not match!");
     }
 }
+
