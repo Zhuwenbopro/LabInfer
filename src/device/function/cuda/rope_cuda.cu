@@ -2,46 +2,40 @@
 #include "rope_cuda.h"
 #include "common.h"
 
-__global__ void RoPe_rotation_kernel(const int pos, float* vec, int dim, const int head_size) {
-
-    int idx = blockIdx.x * blockDim.x + threadIdx.x; // 全局索引
+// CUDA 内核函数，支持批处理
+__global__ void RoPe_rotation_kernel(const int pos, float* vec, int dim, int head_size, int batch_size) {
+    int batch_idx = blockIdx.y;  // 批次索引
+    int idx = blockIdx.x * blockDim.x + threadIdx.x; // 每个批次内的全局索引
     int i = idx * 2; // 每个线程处理两个元素
 
-    // 每个线程的头维度
-    int head_dim = i % head_size;
-
-    // 计算频率（只计算一次）
-    float freq = 1.0f / powf(10000.0f, head_dim / (float) head_size);
-    float theta = pos * freq;
-    
-    float cos_theta = cosf(theta);
-    float sin_theta = sinf(theta);
-
-    // 确保不会越界
     if (i < dim) {
-        float real = vec[i];
-        float imag = vec[i + 1];
-        vec[i]     = real * cos_theta - imag * sin_theta;
-        vec[i + 1] = real * sin_theta + imag * cos_theta;
-    }
+        // 计算头部维度索引
+        int head_dim = i % head_size;
 
+        // 计算频率
+        float freq = 1.0f / powf(10000.0f, head_dim / (float)head_size);
+        float theta = pos * freq;
+
+        float cos_theta = cosf(theta);
+        float sin_theta = sinf(theta);
+
+        // 计算在全局向量中的偏移
+        int offset = batch_idx * dim + i;
+
+        // 读取和更新向量元素
+        float real = vec[offset];
+        float imag = vec[offset + 1];
+        vec[offset]     = real * cos_theta - imag * sin_theta;
+        vec[offset + 1] = real * sin_theta + imag * cos_theta;
+    }
 }
 
-/**
- * @brief Applies rotary positional embedding to a given vector.
- *
- * This function computes the rotary positional encoding for a specific position
- * and applies it to the input vector. The operation is performed on the GPU for
- * efficiency. The encoding introduces positional information, enhancing the model's
- * ability to understand the order of elements in the sequence.
- *
- * @param pos       The position in the sequence for which the embedding is computed.
- * @param vec       Pointer to the input vector (query or key) that will be modified.
- * @param dim       The dimensionality of the input vector.
- * @param head_size The size of one attention head
- */
+// 封装的函数，支持批处理
+void rotary_positional_embedding_cuda(int pos, float *vec, int dim, int head_size, int batch_size) {
+    int threadsPerBlock = num_threads_small;  // 假设已定义，例如 256
+    int blocksPerGrid = (dim / 2 + threadsPerBlock - 1) / threadsPerBlock;
 
-void rotary_positional_embedding_cuda(int pos, float *vec, int dim, int head_size) {
-    int numBlocks = (dim / 2 + num_threads_small - 1) / num_threads_small;
-    RoPe_rotation_kernel<<<numBlocks, num_threads_small>>>(pos, vec, dim, head_size);
+    dim3 grid(blocksPerGrid, batch_size);  // 网格维度：X 方向为 blocksPerGrid，Y 方向为 batch_size
+    RoPe_rotation_kernel<<<grid, threadsPerBlock>>>(pos, vec, dim, head_size, batch_size);
+
 }

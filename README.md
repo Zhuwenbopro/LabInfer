@@ -5,23 +5,14 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;目标是创建异构、分布式大语言模型推理框架。尽量使用最直白的实现方式实现各个模块，并提供设计实现思路，方便各位实验室的同学在此基础上修改代码，融入自己的 idea。
 
 **TODO List**
-
-- [x] llama 3 中用到的函数（cuda 实现）。
-- [x] cuda allocator。
-- [x] device 为上层提供接口服务。
-- [x] 测试 manager
-- [x] 完成 Layer 设计
-- [x] 完成 Linear 设计
-- [x] 测试 Linear 
-
 #### 第一阶段 v 0.1
-- [ ] 分词器 tokenizer : encode、decode
+分词器 tokenizer : encode、decode 暂时先用 [huggingface](https://github.com/huggingface/tokenizers) 的吧，之后再说
 - [ ] 各种 transformer 层 layers
-- [ ] state load -- safetensor
+- [ ] state load -- [safetensor]([https://github.com/syoyo/safetensors-cpp)
 - [ ] 每层采样计算时间，用于后续评估
 - [ ] 手工搭一个模型测试推理
 - [ ] 支持 kv cache
-- [ ] 支持 batch
+- [x] 支持 batch
 
 #### 第二阶段
 - [ ] swap
@@ -32,7 +23,11 @@
 - [ ] temperature
 - [ ] top-k
 
-
+#### 第三阶段
+- [ ] 精细管理 gpu
+- [ ] 构建上层服务框架
+- [ ] 实现集成式的 tokenizer
+- [ ] 优化 RoPE
 
 **Finished List**
 
