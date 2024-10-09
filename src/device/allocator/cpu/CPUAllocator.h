@@ -18,6 +18,7 @@ public:
 
     void deallocate(void* ptr) override {
         free(ptr);
+        ptr = nullptr;
     }
 };
 

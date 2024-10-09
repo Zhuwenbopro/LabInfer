@@ -11,6 +11,7 @@ CUDA::CUDA() {
 
 // 从 CPU 内存中取数据并传输到设备
 void CUDA::move_in(float* ptr_dev, float* ptr_cpu, size_t size) {
+    // std::cout << "move data into cuda" << std::endl;
     cudaError_t err = cudaMemcpy(ptr_dev, ptr_cpu, sizeof(float)*size, cudaMemcpyHostToDevice);
 }
 
@@ -28,4 +29,8 @@ float* CUDA::allocate(size_t size) {
 // 回收设备内存
 void CUDA::deallocate(float* ptr) {
     allocator->deallocate((void*)ptr);
+}
+
+void CUDA::copy(float* from, float* to, size_t size) {
+    cudaMemcpy(to, from, size * sizeof(float), cudaMemcpyDeviceToDevice);
 }

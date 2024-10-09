@@ -7,8 +7,8 @@
 class Parameter : public Variable {
 public:
     // 构造函数
-    Parameter(const std::string& var_name, float* var_value, const std::vector<size_t>& var_shape, 
-        const std::string& device) : Variable(var_name, var_value, var_shape, device) {
+    Parameter(const std::string& _name, float* _value, const std::vector<size_t>& _shape, 
+        const std::string& _device, bool _malloc_mem = false) : Variable(_name, _value, _shape, _device, _malloc_mem) {
     }
 
     // 拷贝构造函数（浅拷贝）
@@ -27,7 +27,7 @@ public:
 
     // 虚析构函数
     ~Parameter() override {
-        std::cout << "Parameter destructed: " << name << "\n";
+        
     }
 
     // parameter 只归属于 layer，它的位置由 layer 负责

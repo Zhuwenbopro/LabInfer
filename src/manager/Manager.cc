@@ -15,15 +15,18 @@ void Manager::toDevice(Variable& variable, const std::string& deviceName) {
     Device* toDevice = deviceManager.getDevice(deviceName);
     
     if(toDevice == nullptr)
+    // 在这报错
         return;
 
     float* from_data = variable.Data();
     float* to_data = toDevice->allocate(size);
+    // std::cout << from_data << "   " << to_data << std::endl;
 
 
     if(variable.Device() != "cpu"){
         if(deviceName == "cpu") { // non-cpu to cpu
             fromDevice->move_out(from_data, to_data, size);
+            // std::cout << "cuda -> cpu" <<from_data << "   " << to_data << std::endl;
         }else { // non-cpu to non-cpu
             Device* CPU = deviceManager.getDevice("cpu");
             float* cpu_data = CPU->allocate(size);

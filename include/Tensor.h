@@ -8,7 +8,7 @@ class Tensor : public Variable {
 public:
     // 构造函数
     Tensor(const std::string& _name, float* _value, const std::vector<size_t>& _shape, 
-        const std::string& _device = "cpu") : Variable(_name, _value, _shape, _device) {
+        const std::string& _device = "cpu", bool _malloc_mem = false) : Variable(_name, _value, _shape, _device, _malloc_mem) {
     }
 
      // 拷贝构造函数（浅拷贝）
@@ -27,13 +27,7 @@ public:
 
     // 深拷贝函数
     Tensor copy() const {
-        // 为新 Tensor 分配新的内存
-        float* new_value = new float[size];
-
-        // 复制数据到新的内存区域
-        std::copy(value, value + size, new_value);
-
-        Tensor res = Tensor(name, new_value, shape, device);
+        Tensor res = Tensor(name, _copy(), shape, device);
         res.to(device);
         // 创建并返回新的 Tensor 对象
         return res;

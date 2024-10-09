@@ -11,4 +11,5 @@ void* CUDAAllocator::allocate(size_t size) {
 
 void CUDAAllocator::deallocate(void* ptr) {
     cudaFree(ptr);
+    ptr = nullptr;
 }
