@@ -3,7 +3,6 @@
 #define SOFTMAX_H
 
 
-
 #include "Layer.h"
 #include "Config.h"
 

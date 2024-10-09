@@ -20,6 +20,8 @@ public:
     virtual void move_in(float* ptr_dev, float* ptr_cpu, size_t size) = 0;
     // 移除数据到 CPU
     virtual void move_out(float* ptr_dev, float* ptr_cpu, size_t size) = 0;
+
+    virtual void copy(float* from, float* to, size_t size) = 0;
     // 分配内存
     virtual float* allocate(size_t size) = 0;
     // 回收内存

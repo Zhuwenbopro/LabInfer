@@ -36,6 +36,10 @@ public:
     void deallocate(float* ptr) override {
         allocator->deallocate((void*)ptr);
     }
+
+    void copy(float* from, float* to, size_t size) override {
+        std::copy(from, from + size, to);
+    }
 };
 
 

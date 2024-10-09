@@ -11,6 +11,7 @@ public:
     void move_out(float* ptr_dev, float* ptr_cpu, size_t size) override;
     float* allocate(size_t size) override;
     void deallocate(float* ptr) override;
+    void copy(float* from, float* to, size_t size) override;
 };
 
 #endif // CUDA_H

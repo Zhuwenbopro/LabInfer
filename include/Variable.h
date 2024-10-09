@@ -20,7 +20,7 @@
 class Variable {
 public:
     // 虚析构函数，确保派生类的析构函数被调用
-    virtual ~Variable() = default;
+    virtual ~Variable();
 
 
     // 隐式转换 Variable 类和 float*
@@ -53,13 +53,9 @@ protected:
     std::string device;                          // 设备
 
     // 构造函数
-    Variable(const std::string& _name, float* _value, const std::vector<size_t>& _shape, 
-        const std::string& _device) : value(_value), shape(_shape), size(1), name(_name), device(_device) {
+    Variable(const std::string& _name, float* _value, const std::vector<size_t>& _shape, const std::string& _device, bool _malloc_mem);
 
-        for (const auto& dim : shape) {
-            size *= dim;
-        }
-    }
+    float* _copy() const;
 };
 
 
