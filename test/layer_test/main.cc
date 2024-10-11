@@ -60,69 +60,7 @@ int main() {
 
     check_linear();
     check_softmax();
-
-    std::cout << std::endl << "begin test embedding" << std::endl;
-    const size_t dim0 = 128256;
-    const size_t dim1 = 2048;
-    const size_t total_elements = dim0 * dim1;
-    int output_size = 6 * dim1;
-    
-    // 分配主机内存
-    float* weight = (float*)malloc(total_elements * sizeof(float));
-    read_bin(weight, total_elements, "model_embed_tokens_weight.bin");
-
-    float* embedding_tensor = new float[output_size];
-    read_bin(embedding_tensor, output_size, "embedding_tensor.bin");   
-
-    float* input = (float*)malloc(total_elements * sizeof(float));
-    input[0] = 128000;
-    input[1] = 791;
-    input[2] = 1401;
-    input[3] = 311;
-    input[4] = 2324;
-    input[5] = 374;
-    Tensor x("embedding input", input, {1, 6}, "cpu");
-
-    Embedding embedding = Embedding(dim0, dim1);
-    std::unordered_map<std::string, float*> states;
-    states["embed_tokens_weight"] = weight;
-    embedding.load_state(states);
-
-    float* o = (float*)malloc(output_size * sizeof(float));
-    Tensor y_cpu("embedding output", o, {6, dim1}, "cpu");
-    Tensor y_cuda = y_cpu.copy();
-
-    auto start = std::chrono::high_resolution_clock::now();
-    embedding.forward(y_cpu, x);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
-
-    y_cuda.to("cuda");
-    y_cuda.setName("y cuda");
-    x.to("cuda");
-    embedding.to("cuda");
-
-    start = std::chrono::high_resolution_clock::now();
-    embedding.forward(y_cuda, x);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
-
-    y_cuda.to("cpu");
-
-
-    if (compare_results(embedding_tensor, y_cpu, output_size)) {
-        check_pass("[embedding] CPU results correct.");
-    } else {
-        check_error("[embedding] CPU results error!");
-    }
-
-    if (compare_results(y_cuda, embedding_tensor, output_size)) {
-        check_pass("[embedding] CUDA results correct.");
-    } else {
-        check_error("[embedding] CUDA results error!");
-    }
+    check_embedding();
 
     return 0;
 }
@@ -243,3 +181,67 @@ void check_softmax() {
     }
 }
 
+void check_embedding() {
+    std::cout << std::endl << "begin test embedding" << std::endl;
+    const size_t dim0 = 128256;
+    const size_t dim1 = 2048;
+    const size_t total_elements = dim0 * dim1;
+    int output_size = 6 * dim1;
+    
+    // 分配主机内存
+    float* weight = (float*)malloc(total_elements * sizeof(float));
+    read_bin(weight, total_elements, "model_embed_tokens_weight.bin");
+
+    float* embedding_tensor = new float[output_size];
+    read_bin(embedding_tensor, output_size, "embedding_tensor.bin");   
+
+    float* input = (float*)malloc(total_elements * sizeof(float));
+    input[0] = 128000;
+    input[1] = 791;
+    input[2] = 1401;
+    input[3] = 311;
+    input[4] = 2324;
+    input[5] = 374;
+    Tensor x("embedding input", input, {1, 6}, "cpu");
+
+    Embedding embedding = Embedding(dim0, dim1);
+    std::unordered_map<std::string, float*> states;
+    states["embed_tokens_weight"] = weight;
+    embedding.load_state(states);
+
+    float* o = (float*)malloc(output_size * sizeof(float));
+    Tensor y_cpu("embedding output", o, {6, dim1}, "cpu");
+    Tensor y_cuda = y_cpu.copy();
+
+    auto start = std::chrono::high_resolution_clock::now();
+    embedding.forward(y_cpu, x);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
+
+    y_cuda.to("cuda");
+    y_cuda.setName("y cuda");
+    x.to("cuda");
+    embedding.to("cuda");
+
+    start = std::chrono::high_resolution_clock::now();
+    embedding.forward(y_cuda, x);
+    end = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
+
+    y_cuda.to("cpu");
+
+
+    if (compare_results(embedding_tensor, y_cpu, output_size)) {
+        check_pass("[embedding] CPU results correct.");
+    } else {
+        check_error("[embedding] CPU results error!");
+    }
+
+    if (compare_results(y_cuda, embedding_tensor, output_size)) {
+        check_pass("[embedding] CUDA results correct.");
+    } else {
+        check_error("[embedding] CUDA results error!");
+    }
+}
