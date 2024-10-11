@@ -14,6 +14,11 @@
 - [ ] 支持 kv cache
 - [x] 支持 batch
 
+```
+/test/layer_test 内的 测试程序 main.cc 需要下面的数据，放到文件下
+链接：https://pan.baidu.com/s/1NaCiVebIFhUJZ60hkm851g?pwd=b72y 
+提取码：b72y 
+```
 
 #### 第二阶段
 - [ ] swap
