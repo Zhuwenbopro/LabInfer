@@ -23,7 +23,7 @@ void check_softmax(Device *cpu, Device *cuda);
 void check_rope(Device *cpu, Device *cuda);
 void check_silu(Device *cpu, Device *cuda);
 void check_add(Device *cpu, Device *cuda);
-
+void check_embedding(Device *cpu, Device *cuda);
 
 
 int main() {
@@ -40,6 +40,7 @@ int main() {
     check_rope(cpu, cuda);
     check_silu(cpu, cuda);
     check_add(cpu, cuda);
+    check_embedding(cpu, cuda);
     std::cout << "test finished ..." << std::endl;
 
     return 0;
@@ -154,6 +155,53 @@ void check_matmul(Device *cpu, Device *cuda){
         check_pass("[matmul] CUDA and CPU results match.");
     } else {
         check_error("[matmul] CUDA and CPU results do not match!");
+    }
+
+    // 释放内存
+    cpu->deallocate(x_cpu);
+    cpu->deallocate(w_cpu);
+    cpu->deallocate(xout_cpu);
+    cpu->deallocate(cuda_to_cpu);
+    cuda->deallocate(x_cuda);
+    cuda->deallocate(w_cuda);
+    cuda->deallocate(xout_cuda);
+}
+
+void check_embedding(Device *cpu, Device *cuda){
+    // 分配主机内存
+    int vocal_size = 12000; 
+    int dim = 2048;
+    int seq = 4;
+    float *x_cpu = cpu->allocate(seq);
+    float *w_cpu = cpu->allocate(vocal_size * dim);
+    float *xout_cpu = cpu->allocate(seq * dim);
+    float *cuda_to_cpu = cpu->allocate(seq * dim);
+    float *x_cuda = cuda->allocate(seq);
+    float *w_cuda = cuda->allocate(vocal_size * dim);
+    float *xout_cuda = cuda->allocate(seq * dim);
+    
+
+    // 初始化输入向量 x 和矩阵 w
+    rand_init(w_cpu, vocal_size * dim);
+    x_cpu[0] = 255;
+    x_cpu[1] = 3234;
+    x_cpu[2] = 44;
+    x_cpu[3] = 6326;
+
+    cuda->move_in(x_cuda, x_cpu, seq);
+    cuda->move_in(w_cuda, w_cpu, vocal_size * dim);
+
+    // 计算
+    cuda->F->embedding(xout_cuda, x_cuda, w_cuda, dim, seq);
+    cpu->F->embedding(xout_cpu, x_cpu, w_cpu, dim, seq);
+
+    cuda->move_out(xout_cuda, cuda_to_cpu, seq * dim);
+
+    // 比较结果
+    if (compare_results(cuda_to_cpu, xout_cpu, D)) {
+        check_pass("[embedding] CUDA and CPU results match.");
+    } else {
+        check_error("[embedding] CUDA and CPU results do not match!");
     }
 
     // 释放内存

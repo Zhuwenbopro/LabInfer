@@ -5,6 +5,7 @@
 
 #include "../src/layer/Linear.h"
 #include "../src/layer/Softmax.h"
+#include "../src/layer/Embedding.h"
 
 
 #endif
