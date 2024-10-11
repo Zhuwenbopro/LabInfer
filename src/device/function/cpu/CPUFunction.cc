@@ -1,5 +1,13 @@
 #include "CPUFunction.h"
 #include <cmath>
+#include <string.h>
+
+void embedding_cpu(float* y, const float* x, const float* W, const int d, const int x_size) {
+    for(int i = 0; i < x_size; i++) {
+        int id = (int)x[i];
+        memcpy(y + i * d, W + id * d, sizeof(float) * d);
+    }
+}
 
 void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int batch_size) {
     for(int b = 0; b < batch_size; b++){
@@ -85,7 +93,6 @@ void rotary_positional_embedding_cpu(int pos, float *vec, int dim, int head_size
         }
     }
 }
-
 
 void silu_cpu(float *x, const int n, int batch_size){
     for(int b = 0; b < batch_size; b++){

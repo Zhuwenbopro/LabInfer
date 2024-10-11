@@ -27,9 +27,6 @@ private:
 // 初始化不分配内存，等到load的时候再分配
 Linear::Linear(const size_t size_in, const size_t size_out, bool _bias, const std::string& _name) : Layer("cpu", _name)
 {
-
-    std::cout << "in Linear Constructor" << std::endl;
-
     input_size = size_in;
     output_size = size_out;
     bias = _bias;

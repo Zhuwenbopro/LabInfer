@@ -10,6 +10,7 @@ void softmax_cpu(float *x, int n, int batch_size);
 void rotary_positional_embedding_cpu (int pos, float *vec, int dim, int head_size, const int batch_size);
 void silu_cpu(float *x, const int n, int batch_size);
 void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_size);
+void embedding_cpu(float* y, const float* x, const float* W, const int d, const int x_size);
 
 class CPUFunction : public Function {
     void whereami() override {
@@ -38,6 +39,10 @@ class CPUFunction : public Function {
 
     void add(float* y, const float* x1, const float* x2, const int n, const int batch_size = 1) override {
         add_cpu(y, x1, x2, n, batch_size);
+    }
+
+    void embedding(float* y, const float* x, const float* W, const int d, const int x_size) override {
+        embedding_cpu(y, x, W, d, x_size);
     }
 };
 #endif // CPU_FUNCTION_H

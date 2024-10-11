@@ -13,7 +13,8 @@
 
 class Layer {
 public:
-    Layer(const std::string& _device, const std::string& _name) : F(Manager::getInstance().getFunction(_device)) { }
+    Layer(const std::string& _device, const std::string& _name) : 
+            device(_device), name(_name), F(Manager::getInstance().getFunction(_device)) { }
 
     const std::string& Name() const { return name; }
     void setName(const std::string& _name){ name = _name; }
@@ -38,7 +39,9 @@ public:
     }
 
     void load_state(std::unordered_map<std::string, float*>& state_map) {
-        
+
+        remove_prefix_from_keys(state_map, name + "_");
+
         for (auto& [name, param] : params) {
             auto it = state_map.find(param.Name());
             if (it != state_map.end()) {
@@ -76,6 +79,30 @@ protected:
     std::string device;
     std::string name;
 
+private:
+    void remove_prefix_from_keys(std::unordered_map<std::string, float*>& state_map, const std::string& prefix) {
+        std::unordered_map<std::string, float*> updated_map;
+
+        // 遍历 state_map
+        for (auto& pair : state_map) {
+            std::string key = pair.first;
+
+            // 检查是否以 prefix 开头
+            if (key.rfind(prefix, 0) == 0) {  // rfind 返回0表示从首部开始匹配
+                // 去掉 prefix 部分
+                std::string new_key = key.substr(prefix.length());
+
+                // 将新的 key 和对应的值插入到 updated_map
+                updated_map[new_key] = pair.second;
+            } else {
+                // 如果不匹配 prefix，保留原来的键值对
+                updated_map[key] = pair.second;
+            }
+        }
+
+        // 用更新后的 map 替换原来的 map
+        state_map = std::move(updated_map);
+    }
 };
 
 #endif // LAYER_H

@@ -10,6 +10,7 @@
 #include "rope_cuda.h"
 #include "silu_cuda.h"
 #include "add_cuda.h"
+#include "embedding_cuda.h"
 // 如果有更多的头文件，继续添加
 // #include "another_function.h"
 
@@ -41,6 +42,10 @@ public:
 
     void add(float* y, const float* x1, const float* x2, const int n, const int batch_size = 1) override {
         add_cuda(y, x1, x2, n, batch_size);
+    }
+
+    void embedding(float* y, const float* x, const float* W, const int d, const int x_size) override {
+        embedding_cuda(y, x, W, d, x_size);
     }
 };
 

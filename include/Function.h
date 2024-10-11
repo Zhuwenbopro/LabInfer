@@ -44,6 +44,22 @@ public:
     virtual void silu(float* x, const int n, const int batch_size = 1) = 0;
 
     virtual void add(float* y, const float* x1, const float* x2, const int n, const int batch_size = 1) = 0;
+
+    /**
+    * @brief [batch, seq] => [batch, seq, dim]
+    *
+    * 不管怎么样，多少维度，数据怎么存储有个窍门：你从最后的维度向前看，依次存储。
+    * 比如说：[2,3,4] 这样的矩阵在数组中存储是 [[4] [4] [4]] [[4] [4] [4]]
+    *
+    * @param[out] y 指向用于存储结果矩阵的输出数组的指针。数组大小应至少为 `b x s x d`。
+    * @param[in] x 指向第一个输入向量的常量指针。矩阵的尺寸为 `b x s`。
+    * @param[in] W 指向第二个输入矩阵的常量指针。矩阵的尺寸为 `vocab x s`。
+    * @param[in] d 输出单词的词向量 token tensor 维度。
+    * @param[in] x_size x 输入 token 数。
+    * @param[in] batch_size 输入批次。默认为 1。
+    */
+    virtual void embedding(float* y, const float* x, const float* W, const int d, const int x_size) = 0;
+
 };
 
 #endif // Function_H

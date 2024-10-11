@@ -5,14 +5,15 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;目标是创建异构、分布式大语言模型推理框架。尽量使用最直白的实现方式实现各个模块，并提供设计实现思路，方便各位实验室的同学在此基础上修改代码，融入自己的 idea。
 
 **TODO List**
-#### 第一阶段 v 0.1
+#### 第一阶段 v0.1
 分词器 tokenizer : encode、decode 暂时先用 [huggingface](https://github.com/huggingface/tokenizers) 的吧，之后再说
 - [ ] 各种 transformer 层 layers
 - [ ] state load -- [safetensor]([https://github.com/syoyo/safetensors-cpp)
 - [ ] 每层采样计算时间，用于后续评估
-- [ ] 手工搭一个模型测试推理
+- [ ] 手工搭一个[模型测试推理](https://huggingface.co/meta-llama/Llama-3.2-1B/tree/main?library=transformers)
 - [ ] 支持 kv cache
 - [x] 支持 batch
+
 
 #### 第二阶段
 - [ ] swap
@@ -29,8 +30,8 @@
 - [ ] 实现集成式的 tokenizer
 - [ ] 优化 RoPE
 
-**Finished List**
-
+**detail**
+- [ ] 使用智能指针解决variable和layer内存问题，防止内存泄漏
 
 ## 设计
 * **设计目标**：异构的、可调度的、支持分布式的推理服务程序。
