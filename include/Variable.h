@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <memory>
 
 
 /**
@@ -24,38 +25,36 @@ public:
 
 
     // 隐式转换 Variable 类和 float*
-    operator float*() const { return value; }
-
-    float *Data() const { return value; }
-    void setData(float* val) { value = val; }
+    operator float*() const { return value.get(); }
+    float* rawPtr() const { return value.get(); }
+    std::shared_ptr<float[]> sharedPtr() const { return value; }
+    void setValue(std::shared_ptr<float[]>& val) { value = val; }
+    // void load_data(const std::string& filePath);
 
     const std::vector<size_t>& Shape() const { return shape; }
-    void setShape(const std::vector<size_t>& _shape){ shape = _shape; }
-
     size_t Size() const { return size; }
-    void setSize(const size_t _size) { size = _size; }
+    const std::string& Device() const { return device; }
 
     const std::string& Name() const { return name; }
     void setName(const std::string& _name){ name = _name; }
-
-    const std::string& Device() const { return device; }
-    void setDevice(const std::string& _device){ device = _device; }
 
     // 实现设备间传输方法
     void to(const std::string& new_dev);
 
 protected:
-    // 使用智能指针管理内存
-    float* value;                             // 数据指针
+    // value 是一个 std::shared_ptr<float[]> 对象，不是一个原始指针。
+    // value 持有一个指向 float 类型对象的指针，即 float*。这个指针指向动态分配的内存空间。
+    std::shared_ptr<float[]> value;           // 数据指针
     std::vector<size_t> shape;                // 数据形状
     size_t size;                              // 数据大小（元素个数）
     std::string name;                         // 变量名称
     std::string device;                          // 设备
 
     // 构造函数
-    Variable(const std::string& _name, float* _value, const std::vector<size_t>& _shape, const std::string& _device, bool _malloc_mem);
-
-    float* _copy() const;
+    Variable(const std::string& _name, const std::vector<size_t>& _shape, const std::string& _device, bool _malloc_mem);
+    
+    // 深拷贝
+    void _copy(const Variable& from);
 };
 
 
