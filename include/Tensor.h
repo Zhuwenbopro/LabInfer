@@ -8,9 +8,9 @@ class Tensor : public Variable {
 public:
     // 构造函数
     // Tensor 的 _shape 会略去 seq 这个维度，在 decode 时默认为1，prefill 时为 const std::vector<size_t>& _seq 不记录在 _shape 中
-    Tensor(const std::string& _name, float* _value, const std::vector<size_t>& _shape, 
+    Tensor(const std::string& _name, const std::vector<size_t>& _shape, 
         const std::string& _device = "cpu", bool _malloc_mem = false, const std::vector<size_t>& _seq = {}) 
-        : Variable(_name, _value, _shape, _device, _malloc_mem), seq(_seq) {
+        : Variable(_name, _shape, _device, _malloc_mem), seq(_seq) {
             if(_seq.size() != 0 && _seq.size() != 1) {
                 std::cout << " recalculate tensor size because seqs in batch are not the same size " << std::endl;
                 int area = 1;
@@ -40,10 +40,12 @@ public:
 
     // 深拷贝函数
     Tensor copy() const {
-        Tensor res = Tensor(name, _copy(), shape, device);
-        res.to(device);
+        std::cout << "DeepCopy begin tensor 1 count is : " << value.use_count() << std::endl;
+        Tensor copy_tensor = Tensor(name, shape, device, false, seq);
+        copy_tensor._copy(*this);
+        std::cout << "DeepCopy finish tensor 1 count is : " << value.use_count() << std::endl;
         // 创建并返回新的 Tensor 对象
-        return res;
+        return copy_tensor;
     }
 
     // 虚析构函数

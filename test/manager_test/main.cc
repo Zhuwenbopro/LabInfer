@@ -8,8 +8,6 @@ int main() {
 
     Function& F = manager.getFunction("cpu");
 
-    Device& CPU = manager.getDevice("cpu");
-
     size_t size = 2;
     float* x = CPU.allocate(size);
     float* M = CPU.allocate(size);

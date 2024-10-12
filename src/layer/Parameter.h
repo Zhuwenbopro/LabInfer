@@ -7,8 +7,8 @@
 class Parameter : public Variable {
 public:
     // 构造函数
-    Parameter(const std::string& _name, float* _value, const std::vector<size_t>& _shape, 
-        const std::string& _device, bool _malloc_mem = false) : Variable(_name, _value, _shape, _device, _malloc_mem) {
+    Parameter(const std::string& _name, const std::vector<size_t>& _shape, 
+        const std::string& _device, bool _malloc_mem = false) : Variable(_name, _shape, _device, _malloc_mem) {
     }
 
     // 拷贝构造函数（浅拷贝）

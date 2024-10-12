@@ -27,6 +27,8 @@ public:
     // 回收内存
     virtual void deallocate(float* ptr) = 0;
 
+    void whoami() { std::cout << "this is " << deviceName << std::endl; }
+
     // 成员变量
     std::string deviceName;
     Function* F;

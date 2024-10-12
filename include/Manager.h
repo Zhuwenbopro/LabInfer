@@ -3,8 +3,8 @@
 #define MANAGER_H
 
 #include <string>
+#include <memory>
 #include "DeviceManager.h"
-#include "Variable.h"
 #include "Function.h"
 
 class Manager {
@@ -26,12 +26,19 @@ public:
     Manager(const Manager&) = delete;
     Manager& operator=(const Manager&) = delete;
 
-    void toDevice(Variable& variable, const std::string& deviceName);
-
+    // For Layer
     Function& getFunction(const std::string& deviceName);
 
-    // 我还没想好要不要对外开放
-    Device& getDevice(const std::string& deviceName);
+    // 注册全局内存，供所有的 layer 使用
+    void RegisteMem(const std::shared_ptr<float[]>& ptr);
+
+    std::shared_ptr<float[]> allocate(const size_t size, const std::string& deviceName);
+
+    void toDevice(std::shared_ptr<float[]>& ptr, const size_t size, 
+                                    std::string& from_dev, const std::string& to_dev);
+
+    std::shared_ptr<float[]> deepCopy(const std::shared_ptr<float[]>& ptr, 
+                                    size_t size, const std::string& deviceName);
 };
 
 #endif // ! MANAGER_H
