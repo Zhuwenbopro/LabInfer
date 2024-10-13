@@ -5,7 +5,7 @@
 #include "Function.h"
 
 void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int batch_size);
-void rmsnorm_cpu(float* y, const float* x, const float* w, int n, int batch_size, const float epsilon);
+void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float epsilon);
 void softmax_cpu(float *x, int n, int batch_size);
 void rotary_positional_embedding_cpu (int pos, float *vec, int dim, int head_size, const int batch_size);
 void silu_cpu(float *x, const int n, int batch_size);
@@ -21,8 +21,8 @@ class CPUFunction : public Function {
         matmul_cpu(y, x, w, n, d, batch_size);
     }
 
-    void rmsnorm(float* y, const float* x, const float* w, const int n, const int batch_size = 1, const float epsilon=1e-5) override {
-        rmsnorm_cpu(y, x, w, n, batch_size, epsilon);
+    void rmsnorm(float* x, const float* w, const int n, const int batch_size = 1, const float epsilon=1e-5) override {
+        rmsnorm_cpu(x, w, n, batch_size, epsilon);
     }
 
     void softmax(float *x, const int n, const int batch_size = 1) override {

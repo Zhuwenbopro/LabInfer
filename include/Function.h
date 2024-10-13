@@ -21,7 +21,7 @@ public:
     * @param epsilon 一个小的浮点数值，用于在计算过程中防止除零错误或数值不稳定性。通常取一个非常小的值，如 `1e-5`。
     * 
     */
-    virtual void rmsnorm(float* y, const float* x, const float* w, int n, int batch_size = 1, const float epsilon=1e-5) = 0;
+    virtual void rmsnorm(float* x, const float* w, int n, int batch_size = 1, const float epsilon=1e-5) = 0;
 
     /**
     * @brief 矩阵乘法操作。batch x (1 x n) x (n x d)

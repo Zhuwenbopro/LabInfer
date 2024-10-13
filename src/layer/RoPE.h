@@ -31,7 +31,7 @@ RoPE::RoPE(const size_t _vocab_size, const size_t _hidden_size, const std::strin
     vocab_size = _vocab_size;
     hidden_size = _hidden_size;
     
-    params.emplace("weight", Parameter("weight", nullptr, {_vocab_size, _hidden_size}, "cpu"));
+    params.emplace("weight", Parameter("weight", {_vocab_size, _hidden_size}, "cpu"));
 }
 
 // 这里写的代码很冗长 是因为 unordered_map 在调用 temps["output"] 时 会调用默认构造函数，

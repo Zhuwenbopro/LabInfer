@@ -24,8 +24,8 @@ public:
         matmul_cuda(y, x, w, n, d, batch_size);
     }
 
-    void rmsnorm(float* y, const float* x, const float* w, const int n, int batch_size = 1, const float epsilon=1e-5) override {
-        rmsnorm_cuda(y, x, w, n, batch_size, epsilon);
+    void rmsnorm(float* x, const float* w, const int n, int batch_size = 1, const float epsilon=1e-5) override {
+        rmsnorm_cuda(x, w, n, batch_size, epsilon);
     }
 
     void softmax(float *x, const int n, const int batch_size = 1) override {

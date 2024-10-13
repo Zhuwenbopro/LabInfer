@@ -21,10 +21,12 @@ public:
     virtual ~Add() = default;
 };
 
-// 这里写的代码很冗长 是因为 unordered_map 在调用 temps["output"] 时 会调用默认构造函数，
-// 但是Tensor和parameter没有默认构造函数 会报错
+
 void Add::forward(Tensor& y, Tensor& x1, Tensor& x2)
 {
+    if(x1.Size() != x2.Size()) {
+        throw std::runtime_error("Add Layer x1 size and x2 size don't match.");
+    }
     F.get().add(y, x1, x2, x1.Size());
 }
 
