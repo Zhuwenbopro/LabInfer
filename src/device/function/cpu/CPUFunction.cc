@@ -12,21 +12,22 @@ void embedding_cpu(float* y, const float* x, const float* W, const int d, const 
 void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int batch_size) {
     for(int b = 0; b < batch_size; b++){
         for (int i = 0; i < d; ++i) {
-            float sum = 0.0f;
-            for (int j = 0; j < n; ++j) {
-                sum += w[i * n + j] * x[b*n + j];
+            double sum = 0.0f;
+            for (int j = 0; j < n; ++j) {    
+                sum += w[i * n + j] * x[b * n + j];
             }
             y[b*d + i] = sum;
         }
     }
 }
 
-void rmsnorm_cpu(float* y, const float* x, const float* w, int n, int batch_size, const float epsilon) {
+void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float epsilon) {
     for(int b = 0; b < batch_size; b++) {
         // 求平方和
         float sum_of_squares = 0.0f;
         for (int i = 0; i < n; ++i) {
-            sum_of_squares += x[i + b*n] * x[i + b*n];
+            int index = i + b * n;
+            sum_of_squares += x[index] * x[index];
         }
 
         // 计算均方根归一化系数
@@ -35,7 +36,8 @@ void rmsnorm_cpu(float* y, const float* x, const float* w, int n, int batch_size
 
         // 归一化并乘以权重
         for (int i = 0; i < n; ++i) {
-            y[i + b*n] = w[i] * x[i + b*n] * rms;
+            int index = i + b * n;
+            x[index] = w[i] * x[index] * rms;
         }
     }
 }

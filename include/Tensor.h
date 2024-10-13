@@ -40,10 +40,9 @@ public:
 
     // 深拷贝函数
     Tensor copy() const {
-        std::cout << "DeepCopy begin tensor 1 count is : " << value.use_count() << std::endl;
         Tensor copy_tensor = Tensor(name, shape, device, false, seq);
         copy_tensor._copy(*this);
-        std::cout << "DeepCopy finish tensor 1 count is : " << value.use_count() << std::endl;
+        
         // 创建并返回新的 Tensor 对象
         return copy_tensor;
     }

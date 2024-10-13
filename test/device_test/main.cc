@@ -88,11 +88,9 @@ void check_rmsnorm(Device *cpu, Device *cuda){
     // 分配主机内存
     float *input_cpu = cpu->allocate(N * batch_size);
     float *weight_cpu = cpu->allocate(N * batch_size);
-    float *output_cpu = cpu->allocate(N * batch_size);
     float *cuda_to_cpu = cpu->allocate(N * batch_size);
     float *input_cuda = cuda->allocate(N * batch_size);
     float *weight_cuda = cuda->allocate(N * batch_size);
-    float *output_cuda = cuda->allocate(N * batch_size);
 
     input_cpu[1] = 0.5;
     // 初始化输入数据和权重
@@ -104,13 +102,13 @@ void check_rmsnorm(Device *cpu, Device *cuda){
 
     // 调用 rmsnorm 函数
     const float epsilon = 1e-5;
-    cuda->F->rmsnorm(output_cuda, input_cuda, weight_cuda, N, batch_size, epsilon);
-    cpu->F->rmsnorm(output_cpu, input_cpu, weight_cpu, N, batch_size, epsilon);
+    cuda->F->rmsnorm(input_cuda, weight_cuda, N, batch_size, epsilon);
+    cpu->F->rmsnorm(input_cpu, weight_cpu, N, batch_size, epsilon);
 
-    cuda->move_out(output_cuda, cuda_to_cpu, N * batch_size);
+    cuda->move_out(input_cuda, cuda_to_cpu, N * batch_size);
 
     // 输出部分结果进行验证
-    if (compare_results(cuda_to_cpu, output_cpu, N * batch_size)) {
+    if (compare_results(cuda_to_cpu, input_cpu, N * batch_size)) {
         check_pass("[rmsnorm] CUDA and CPU results match.");
     } else {
         check_error("[rmsnorm] CUDA and CPU results do not match!");
@@ -118,11 +116,9 @@ void check_rmsnorm(Device *cpu, Device *cuda){
 
     cpu->deallocate(input_cpu);
     cpu->deallocate(weight_cpu);
-    cpu->deallocate(output_cpu);
     cpu->deallocate(cuda_to_cpu);
     cuda->deallocate(input_cuda);
     cuda->deallocate(weight_cuda);
-    cuda->deallocate(output_cuda);
 }
 
 void check_matmul(Device *cpu, Device *cuda){

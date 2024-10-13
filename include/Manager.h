@@ -4,6 +4,7 @@
 
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include "DeviceManager.h"
 #include "Function.h"
 
@@ -11,9 +12,9 @@ class Manager {
 private:
     // 私有构造函数
     Manager();
-
     // 添加 DeviceManager 的引用
     DeviceManager& deviceManager;
+    std::unordered_map<std::string, std::shared_ptr<float[]>> shared_mem;
 
 public:
     // 静态方法，提供全局访问点
@@ -30,7 +31,9 @@ public:
     Function& getFunction(const std::string& deviceName);
 
     // 注册全局内存，供所有的 layer 使用
-    void RegisteMem(const std::shared_ptr<float[]>& ptr);
+    void RegisteMem(const std::string& deviceName, const std::shared_ptr<float[]>& ptr);
+
+    std::shared_ptr<float[]> GetMem(const std::string& deviceName) const;
 
     std::shared_ptr<float[]> allocate(const size_t size, const std::string& deviceName);
 

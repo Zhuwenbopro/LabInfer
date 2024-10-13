@@ -14,8 +14,6 @@
     1. value、shape、device 初始化
     2. to 设备传输功能，当前仅实现单机多卡之间的设备传输
 
-    TODO：
-    1. 当前value成员是一个裸指针（float*），这可能导致内存泄漏或悬挂指针的问题，特别是在复制或移动对象时。
  */
 
 class Variable {

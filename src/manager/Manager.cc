@@ -42,8 +42,6 @@ std::shared_ptr<float[]> Manager::allocate(const size_t size, const std::string&
     // 使用 Lambda 捕获 dev，并作为删除器
     auto deleter = [dev](float* ptr) {
         if (ptr) {
-            // dev->whoami();
-            std::cout << "deleter: 释放 float 数组内存\n";
             dev->deallocate(ptr);
         }
     };
@@ -63,4 +61,16 @@ std::shared_ptr<float[]> Manager::deepCopy(const std::shared_ptr<float[]>& ptr, 
     dev->copy(ptr.get(), cptr.get(), size);
 
     return cptr;
+}
+
+void Manager::RegisteMem(const std::string& deviceName, const std::shared_ptr<float[]>& ptr) {
+    shared_mem[deviceName] = ptr;
+}
+
+std::shared_ptr<float[]> Manager::GetMem(const std::string& deviceName) const {
+    auto it = shared_mem.find(deviceName);
+    if (it != shared_mem.end()) {
+        return it->second;
+    }
+    return nullptr; // 找不到时返回空指针
 }
