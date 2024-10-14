@@ -7,7 +7,7 @@
 void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int batch_size);
 void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float epsilon);
 void softmax_cpu(float *x, int n, int batch_size);
-void rotary_positional_embedding_cpu (int pos, float *vec, int dim, int head_size, const int batch_size);
+void apply_rope_cpu(float *_x, const float *pos, const float *_cos, const float *_sin, const int n, const int dim, const int num);
 void silu_cpu(float *x, const int n, int batch_size);
 void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_size);
 void embedding_cpu(float* y, const float* x, const float* W, const int d, const int x_size);
@@ -29,8 +29,8 @@ class CPUFunction : public Function {
         softmax_cpu(x, n, batch_size);
     }
 
-    void rotary_positional_embedding(int pos, float *vec, int dim, int head_size, const int batch_size = 1) override {
-        rotary_positional_embedding_cpu(pos, vec, dim, head_size, batch_size);
+    void apply_rope(float *x, const float *pos, const float *cos, const float *sin, const int n, const int dim, const int num) override {
+        apply_rope_cpu(x, pos, cos, sin, n, dim, num);
     }
 
     void silu(float *x, const int n, const int batch_size = 1) override {

@@ -2,7 +2,7 @@
 #ifndef ROPE_H
 #define ROPE_H
 
-
+#include <cmath>
 #include "Layer.h"
 #include "Config.h"
 
@@ -12,35 +12,95 @@ public:
     // 删除默认构造函数
     RoPE() = delete;
     // Linear(const Config& config, const std::string& name = "Linear");
-    RoPE(const size_t vocab_size, const size_t hidden_size, const std::string& _name = "embed_tokens");
+    RoPE(const size_t vocab_size, const size_t hidden_size, const std::string& _name = "rotary positional embedding");
 
     // 覆盖基类的 forward 方法
-    void forward(Tensor& y, Tensor& x) override;
+    void forward(Tensor& x, Tensor& pos) override;
 
     // 虚析构函数
     virtual ~RoPE() = default;
 
 private:
-    size_t vocab_size;
+    static bool init;
+    size_t max_pos = 32;
+    size_t num_heads;
     size_t hidden_size;
+    float rope_theta = 500000;
+    int factor = 32;
+    int low_freq_factor = 1;
+    int high_freq_factor = 4;
+    int old_context_len = 8192;
 };
 
+bool RoPE::init = false;
+
 // 初始化不分配内存，等到load的时候再分配
-RoPE::RoPE(const size_t _vocab_size, const size_t _hidden_size, const std::string& _name) : Layer("cpu", _name)
+RoPE::RoPE(const size_t _hidden_size, const size_t _attn_head, const std::string& _name) : 
+        Layer("cpu", _name), hidden_size(_hidden_size), num_heads(_hidden_size / _attn_head)
 {
-    vocab_size = _vocab_size;
-    hidden_size = _hidden_size;
-    
-    params.emplace("weight", Parameter("weight", {_vocab_size, _hidden_size}, "cpu"));
+    size_t dim = num_heads / 2;
+    Manager& manager = Manager::getInstance();
+
+    if(!init) {
+        Parameter _cos(device+":cos", {max_pos, dim}, "cpu", true);
+        Parameter _sin(device+":sin", {max_pos, dim}, "cpu", true);
+        params.emplace("cos", _cos);
+        params.emplace("sin", _sin);
+        _cos.setShared();
+        _sin.setShared();
+
+        float inv_freq[dim];
+        float inv_freq_div_factor[dim];
+        for (int k = 0; k < dim; k++) {
+            inv_freq[k] = 1.0f / powf(rope_theta, k / (float)dim);
+            inv_freq_div_factor[k] = inv_freq[k] / factor;
+        }            
+
+        float wavelen[dim];
+        for (size_t i = 0; i < dim; ++i)
+            wavelen[i] = 2.0f * M_PI / inv_freq[i];
+        
+        float low_freq_wavelen = old_context_len / low_freq_factor;
+        float high_freq_wavelen = old_context_len / high_freq_factor;
+
+        float inv_freq_llama[dim];
+        for (size_t i = 0; i < dim; ++i) {
+            if (wavelen[i] > low_freq_wavelen) {
+                inv_freq_llama[i] = inv_freq_div_factor[i];
+            } else if (wavelen[i] < high_freq_wavelen) {
+                inv_freq_llama[i] = inv_freq[i];
+            } else { // Between high_freq_wavelen and low_freq_wavelen
+                float smooth_factor = (old_context_len / wavelen[i] - low_freq_factor) / (high_freq_factor - low_freq_factor);
+                float smoothed_inv_freq = (1.0f - smooth_factor) * inv_freq_div_factor[i] + smooth_factor * inv_freq[i];
+                inv_freq_llama[i] = smoothed_inv_freq;
+            }
+        }
+
+        for(int p = 0; p < max_pos; p++) {
+            int No = p * dim;
+            for(int d = 0; d < dim; d++) {
+                _cos[No + d] = cosf(p * inv_freq_llama[d]);
+                _sin[No + d] = sinf(p * inv_freq_llama[d]);
+            }
+        }
+
+        manager.RegisteMem(device+":cos", _cos.sharedPtr());
+        manager.RegisteMem(device+":sin", _sin.sharedPtr());
+
+        init = true;
+    }else {
+        params.emplace("cos", Parameter(device+":cos", {max_pos, dim}, "cpu"));
+        params.emplace("sin", Parameter(device+":sin", {max_pos, dim}, "cpu"));
+        params.at("cos").setValue(manager.GetMem(device+":cos"));
+        params.at("sin").setValue(manager.GetMem(device+":sin"));
+        params.at("cos").setShared();
+        params.at("sin").setShared();
+    }
 }
 
-// 这里写的代码很冗长 是因为 unordered_map 在调用 temps["output"] 时 会调用默认构造函数，
-// 但是Tensor和parameter没有默认构造函数 会报错
-void RoPE::forward(Tensor& y, Tensor& x)
+void RoPE::forward(Tensor& x, Tensor& pos)
 {
-    Parameter& weight = params.at("weight");
-    // 使用它们进行运算
-    F.get().embedding(y, x, weight, hidden_size, x.Size());
+    F.get().apply_rope(x, pos, params.at("cos"), params.at("sin"), x.Size()/pos.Size(), num_heads/2, pos.Size());
 }
 
 

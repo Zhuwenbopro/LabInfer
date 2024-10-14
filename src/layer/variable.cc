@@ -17,7 +17,8 @@ Variable::Variable(const std::string& _name, const std::vector<size_t>& _shape, 
 
 void Variable::to(const std::string& new_dev) {
     if (new_dev == device) return;
-    if(new_dev == "") return;
+    if(new_dev == "")
+        throw std::logic_error("there is no device " + new_dev);
     
     Manager& manager = Manager::getInstance();
     manager.toDevice(value, size, device, new_dev);

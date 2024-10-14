@@ -49,7 +49,6 @@ std::shared_ptr<float[]> Manager::allocate(const size_t size, const std::string&
     return std::shared_ptr<float[]>(raw_ptr, deleter);
 }
 
-// 深度复制函数
 std::shared_ptr<float[]> Manager::deepCopy(const std::shared_ptr<float[]>& ptr, size_t size, const std::string& deviceName) {
     if (!ptr) {
         return nullptr;
@@ -63,14 +62,15 @@ std::shared_ptr<float[]> Manager::deepCopy(const std::shared_ptr<float[]>& ptr, 
     return cptr;
 }
 
-void Manager::RegisteMem(const std::string& deviceName, const std::shared_ptr<float[]>& ptr) {
-    shared_mem[deviceName] = ptr;
+void Manager::RegisteMem(const std::string& name, const std::shared_ptr<float[]>& ptr) {
+    shared_mem[name] = ptr;
 }
 
-std::shared_ptr<float[]> Manager::GetMem(const std::string& deviceName) const {
-    auto it = shared_mem.find(deviceName);
-    if (it != shared_mem.end()) {
-        return it->second;
-    }
-    return nullptr; // 找不到时返回空指针
+std::shared_ptr<float[]>& Manager::GetMem(const std::string& name) {
+    return shared_mem.at(name);
+}
+
+bool Manager::FindMem(const std::string& name) {
+    auto it = shared_mem.find(name);
+    return (it != shared_mem.end());
 }

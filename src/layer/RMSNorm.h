@@ -32,8 +32,6 @@ RMSNorm::RMSNorm(const size_t _dim, const float _epsilon, const std::string& _na
     params.emplace("weight", Parameter("weight", {dim}, "cpu"));
 }
 
-// 这里写的代码很冗长 是因为 unordered_map 在调用 temps["output"] 时 会调用默认构造函数，
-// 但是Tensor和parameter没有默认构造函数 会报错
 void RMSNorm::forward(Tensor& x)
 {
     Parameter& W = params.at("weight");

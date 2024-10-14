@@ -26,10 +26,37 @@ public:
     }
 
     // 虚析构函数
-    ~Parameter() override {
+    ~Parameter() override { }
+
+    void setShared(){ shared = true; }
+
+    void to(const std::string& new_dev) override {
+        if (new_dev == device) return;
+        if(new_dev == "")
+            throw std::logic_error("there is no device " + new_dev);
         
+        Manager& manager = Manager::getInstance();
+
+        if(shared) {
+            std::cout << "deep copy param" << std::endl;
+            name.replace(0, device.length(), new_dev);
+            if(manager.FindMem(name)) {
+                value = manager.GetMem(name);
+            } else {
+                std::shared_ptr<float []> val = manager.deepCopy(value, size, device);
+                manager.toDevice(val, size, device, new_dev);
+                manager.RegisteMem(name, val);
+                value = val;
+            }
+        }else{
+            manager.toDevice(value, size, device, new_dev);
+        }
+
+        device = new_dev;
     }
 
-    // parameter 只归属于 layer，它的位置由 layer 负责
+private:
+    bool shared = false;
 };
+
 #endif

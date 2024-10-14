@@ -28,20 +28,24 @@ public:
     Manager& operator=(const Manager&) = delete;
 
     // For Layer
-    Function& getFunction(const std::string& deviceName);
+    Function& getFunction(const std::string& device);
 
     // 注册全局内存，供所有的 layer 使用
-    void RegisteMem(const std::string& deviceName, const std::shared_ptr<float[]>& ptr);
+    void RegisteMem(const std::string& name, const std::shared_ptr<float[]>& ptr);
 
-    std::shared_ptr<float[]> GetMem(const std::string& deviceName) const;
+    std::shared_ptr<float[]>& GetMem(const std::string& name);
 
-    std::shared_ptr<float[]> allocate(const size_t size, const std::string& deviceName);
+    bool FindMem(const std::string& name);
+
+    // 分配 device 里大小为 size 的内存
+    std::shared_ptr<float[]> allocate(const size_t size, const std::string& device);
 
     void toDevice(std::shared_ptr<float[]>& ptr, const size_t size, 
                                     std::string& from_dev, const std::string& to_dev);
 
+    // 深度复制同类型的数据 device 是 ptr 的
     std::shared_ptr<float[]> deepCopy(const std::shared_ptr<float[]>& ptr, 
-                                    size_t size, const std::string& deviceName);
+                                    size_t size, const std::string& device);
 };
 
 #endif // ! MANAGER_H

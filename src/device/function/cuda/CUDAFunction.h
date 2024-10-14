@@ -32,8 +32,8 @@ public:
         softmax_cuda(x, n, batch_size);
     }
 
-    void rotary_positional_embedding(int pos, float *vec, int dim, int head_size, const int batch_size = 1) override {
-        rotary_positional_embedding_cuda(pos, vec, dim, head_size, batch_size);
+    void apply_rope(float *x, const float *pos, const float *cos, const float *sin, const int n, const int dim, const int num) override {
+        apply_rope_cuda(x, pos, cos, sin, n, dim, num);
     }
 
     void silu(float *x, const int n, const int batch_size = 1) override {

@@ -67,30 +67,18 @@ void softmax_cpu(float *x, int n, int batch_size){
     }
 }
 
-// CPU 实现：对向量应用 RoPE 旋转，支持批处理
-void rotary_positional_embedding_cpu(int pos, float *vec, int dim, int head_size, const int batch_size){
-    int num_heads = dim / head_size;
-    int num_complex = head_size / 2; // 每个头的复数对数
-
-    for (int b = 0; b < batch_size; b++) {
-        float *vec_batch = vec + b * dim;  // 指向当前批次的数据起始位置
-
-        for (int h = 0; h < num_heads; h++) {
-            for (int k = 0; k < num_complex; k++) {
-                int idx = h * head_size + k * 2;
-
-                float freq = 1.0f / powf(10000.0f, (2.0f * k) / (float)head_size);
-
-                float theta = pos * freq;
-                float cos_theta = cosf(theta);
-                float sin_theta = sinf(theta);
-
-                float real = vec_batch[idx];
-                float imag = vec_batch[idx + 1];
-
-                // 应用旋转矩阵
-                vec_batch[idx]     = real * cos_theta - imag * sin_theta;
-                vec_batch[idx + 1] = real * sin_theta + imag * cos_theta;
+// dim = 32, num = 6
+void apply_rope_cpu(float *_x, const float *_pos, const float *_cos, const float *_sin, const int n, const int dim, const int num) {
+    for(int p = 0; p < num; p++){   // 6
+        const float* cos = _cos + (int)_pos[p] * dim;
+        const float* sin = _sin + (int)_pos[p] * dim;
+        for(int i = 0; i < n/(dim*2); i++) {      
+            float* x = _x + p*n + i*dim*2; 
+            for(int j = 0; j < dim; j++) {
+                float x1 = x[j];
+                float x2 = x[dim + j];
+                x[j]       = x1 * cos[j] - x2 * sin[j];
+                x[dim + j] = x2 * cos[j] + x1 * sin[j];
             }
         }
     }

@@ -39,7 +39,7 @@ public:
 
     virtual void softmax(float* x, const int n, const int batch_size = 1) = 0;
 
-    virtual void rotary_positional_embedding(int pos, float *x, int d, int head_size, const int batch_size = 1) = 0;
+    virtual void apply_rope(float *x, const float *pos, const float *cos, const float *sin, const int n, int dim, const int num) = 0;
 
     virtual void silu(float* x, const int n, const int batch_size = 1) = 0;
 
