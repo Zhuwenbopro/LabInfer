@@ -20,7 +20,6 @@ void rand_init(float* ptr, int size);
 void check_rmsnorm(Device *cpu, Device *cuda);
 void check_matmul(Device *cpu, Device *cuda);
 void check_softmax(Device *cpu, Device *cuda);
-void check_rope(Device *cpu, Device *cuda);
 void check_silu(Device *cpu, Device *cuda);
 void check_add(Device *cpu, Device *cuda);
 void check_embedding(Device *cpu, Device *cuda);
@@ -37,7 +36,6 @@ int main() {
     check_rmsnorm(cpu, cuda);
     check_matmul(cpu, cuda);
     check_softmax(cpu, cuda);
-    check_rope(cpu, cuda);
     check_silu(cpu, cuda);
     check_add(cpu, cuda);
     check_embedding(cpu, cuda);
@@ -231,37 +229,6 @@ void check_softmax(Device *cpu, Device *cuda){
         check_pass("[softmax] CUDA and CPU results match.");
     } else {
         check_error("[softmax] CUDA and CPU results do not match!");
-    }
-
-    cpu->deallocate(x_cpu);
-    cpu->deallocate(cuda_to_cpu);
-    cuda->deallocate(x_cuda);
-}
-
-void check_rope(Device *cpu, Device *cuda){
-    int size = 2048;
-    // 分配主机内存
-    float *x_cpu = cpu->allocate(size);
-    float *cuda_to_cpu = cpu->allocate(size);
-    float *x_cuda = cuda->allocate(size);
-
-    rand_init(x_cpu, size);
-
-    cuda->move_in(x_cuda, x_cpu, size);
-
-    // 模拟的这个向量在第 20 的位置
-    int pos = 20;
-    int head_size = size / 4;
-    cuda->F->rotary_positional_embedding(pos, x_cuda, size, head_size);
-    cpu->F->rotary_positional_embedding(pos, x_cpu, size, head_size);
-
-    cuda->move_out(x_cuda, cuda_to_cpu, size);
-
-    // 比较结果
-    if (compare_results(cuda_to_cpu, x_cpu, size)) {
-        check_pass("[rotary_postional_embedding] CUDA and CPU results match.");
-    } else {
-        check_error("[rotary_postional_embedding] CUDA and CPU results do not match!");
     }
 
     cpu->deallocate(x_cpu);

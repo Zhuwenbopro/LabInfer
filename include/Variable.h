@@ -26,7 +26,7 @@ public:
     operator float*() const { return value.get(); }
     float* rawPtr() const { return value.get(); }
     std::shared_ptr<float[]> sharedPtr() const { return value; }
-    void setValue(std::shared_ptr<float[]>& val) { value = val; }
+    void setValue(const std::shared_ptr<float[]>& val) { value = val; }
     // void load_data(const std::string& filePath);
 
     const std::vector<size_t>& Shape() const { return shape; }
@@ -37,7 +37,7 @@ public:
     void setName(const std::string& _name){ name = _name; }
 
     // 实现设备间传输方法
-    void to(const std::string& new_dev);
+    virtual void to(const std::string& new_dev);
 
 protected:
     // value 是一个 std::shared_ptr<float[]> 对象，不是一个原始指针。

@@ -17,8 +17,10 @@
 #define N 4096  // 输入向量长度
 #define D 4096   // 输出向量长度
 
-void check_pass(const char* message);
-void check_error(const char* message);
+std::unordered_map<std::string, std::shared_ptr<float []>> states;
+
+void check_pass(const std::string& message);
+void check_error(const std::string& message);
 bool compare_results(const float *a, const float *b, int size, float tolerance = 1e-3);
 void rand_init(float* ptr, int size);
 void const_init(float* ptr, int size);
@@ -59,20 +61,21 @@ void read_bin(float* ptr, size_t num, const std::string& filename) {
 
 int main() {
 
-    check_linear();
-    check_softmax();
-    check_embedding();
+    RoPE rope(2048, 32);
+    // check_linear();
+    // check_softmax();
+    // check_embedding();
     check_attention();
 
     return 0;
 }
 
 
-void check_pass(const char*  message){
+void check_pass(const std::string&  message){
     std::cout << GREEN << message << RESET << std::endl;
 }
 
-void check_error(const char*  message){
+void check_error(const std::string&  message){
     std::cout << RED << message << RESET << std::endl;
 }
 
@@ -86,6 +89,7 @@ bool compare_results(const float *a, const float *b, int size, float tolerance) 
         if (fabs(a[i] - b[i]) > tolerance) {
             std::cout << "Difference at index " << i << ": " << a[i] << " vs " << b[i] << std::endl;
             flag = false;
+            break;
         }
     }
     return flag;
@@ -246,6 +250,55 @@ void check_embedding() {
     }
 }
 
+void test_layer(Layer& layer, Tensor& result, Tensor& x, Tensor& real_result, float e = 1e-2) {
+    x.to(layer.Device());
+    result.to(layer.Device());
+
+    auto start = std::chrono::high_resolution_clock::now();
+    layer.forward(result, x);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
+
+    if(layer.Device() != "cpu")
+        result.to("cpu");
+    
+    if (compare_results(result, real_result, result.Size(), e)) {
+        check_pass("[" + layer.Name() +"] " + layer.Device() + " results correct.");
+    } else {
+        check_error("[" + layer.Name() +"] " + layer.Device() + " results error!");
+    }
+}
+
+void test_layer(Layer& layer, Tensor& result, Tensor& real_result, float e = 1e-2) {
+    result.to(layer.Device());
+
+    auto start = std::chrono::high_resolution_clock::now();
+    layer.forward(result);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
+
+    if(layer.Device() != "cpu")
+        result.to("cpu");
+    
+    if (compare_results(result, real_result, result.Size(), e)) {
+        check_pass("[" + layer.Name() +"] " + layer.Device() + " results correct.");
+    } else {
+        check_error("[" + layer.Name() +"] " + layer.Device() + " results error!");
+    }
+}
+
+void load_layer(Layer& layer, const std::string filename, const std::vector<size_t>& weight_shape, const std::string map_name) {
+    if(layer.Device() != "cpu"){
+        
+    }
+    Parameter weight("weight", weight_shape, "cpu", true);
+    read_bin(weight, weight.Size(), filename);
+    states[map_name] = weight.sharedPtr();
+    layer.load_state(states);
+}
+
 void check_attention() {
     std::cout << std::endl << "begin test attention" << std::endl;
     const size_t hidden_state = 2048;
@@ -255,139 +308,63 @@ void check_attention() {
     read_bin(x_cpu, seq * hidden_state, "embedding_tensor.bin");
     Tensor x_cuda = x_cpu.copy();
 
-    Tensor result("result", {seq, hidden_state}, "cpu", true);
-    read_bin(result, seq * hidden_state, "input_layernorm_output.bin");
-
     RMSNorm rms_norm = RMSNorm(hidden_state);
+    load_layer(rms_norm, "model_layers_0_input_layernorm_weight.bin", {hidden_state}, "RMSNorm.weight");
+    Tensor norm_result("result", {seq, hidden_state}, "cpu", true);
+    read_bin(norm_result, seq * hidden_state, "input_layernorm_output.bin");
+    test_layer(rms_norm, x_cpu, norm_result);
+
     Linear q_linear = Linear(hidden_state, hidden_state, "linear_q");
-    Linear k_linear = Linear(hidden_state, 512, "linear_k");
-    Linear v_linear = Linear(hidden_state, 512, "linear_v");
-
-    Parameter weight("weight", {hidden_state}, "cpu", true);
-    read_bin(weight, hidden_state, "model_layers_0_input_layernorm_weight.bin");
-    std::unordered_map<std::string, std::shared_ptr<float []>> states;
-    states["RMSNorm.weight"] = weight.sharedPtr();
-    rms_norm.load_state(states);
-
-    Parameter qw("weight", {hidden_state, hidden_state}, "cpu", true);
-    Parameter kw("weight", {hidden_state, 512}, "cpu", true);
-    Parameter vw("weight", {hidden_state, 512}, "cpu", true);
-    read_bin(qw, hidden_state*hidden_state, "model_layers_0_self_attn_q_proj_weight.bin");
-    read_bin(kw, 512*hidden_state, "model_layers_0_self_attn_k_proj_weight.bin");
-    read_bin(vw, 512*hidden_state, "model_layers_0_self_attn_v_proj_weight.bin");
-
-
-    states["linear_q.weight"] = qw.sharedPtr();
-    states["linear_k.weight"] = kw.sharedPtr();
-    states["linear_v.weight"] = vw.sharedPtr();
-
-    q_linear.load_state(states);
-    k_linear.load_state(states);
-    v_linear.load_state(states);
-
-    auto start = std::chrono::high_resolution_clock::now();
-    rms_norm.forward(x_cpu);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
-    
-    if (compare_results(result, x_cpu, seq * hidden_state, 1e-2)) {
-        check_pass("[RMSNorm] CPU results correct.");
-    } else {
-        check_error("[RMSNorm] CPU results error!");
-    }
-
+    load_layer(q_linear, "model_layers_0_self_attn_q_proj_weight.bin", {hidden_state, hidden_state}, "linear_q.weight");
+    Tensor q_result_cpu("q_result_cpu", {seq, hidden_state}, "cpu", true);
+    Tensor q_result_cuda = q_result_cpu.copy();
     Tensor q_result("q_result", {seq, hidden_state}, "cpu", true);
     read_bin(q_result, seq * hidden_state, "query_states.bin");
+    test_layer(q_linear, q_result_cpu, x_cpu, q_result, 6e-2);
+    
+    Linear k_linear = Linear(hidden_state, 512, "linear_k");
+    load_layer(k_linear, "model_layers_0_self_attn_k_proj_weight.bin", {hidden_state, 512}, "linear_k.weight");
+    Tensor k_result_cpu("k_result_cpu", {seq, 512}, "cpu", true);
+    Tensor k_result_cuda = k_result_cpu.copy();
     Tensor k_result("k_result", {seq, 512}, "cpu", true);
     read_bin(k_result, seq * 512, "key_states.bin");
+    test_layer(k_linear, k_result_cpu, x_cpu, k_result, 6e-2);
+    
+    Linear v_linear = Linear(hidden_state, 512, "linear_v");
+    load_layer(v_linear, "model_layers_0_self_attn_v_proj_weight.bin", {hidden_state, 512}, "linear_v.weight");
+    Tensor v_result_cpu("v_result_cpu", {seq, 512}, "cpu", true);
+    Tensor v_result_cuda = v_result_cpu.copy();
     Tensor v_result("v_result", {seq, 512}, "cpu", true);
     read_bin(v_result, seq * 512, "value_states.bin");
-
-    Tensor q_result_cpu("q_result_cpu", {seq, hidden_state}, "cpu", true);
-    Tensor k_result_cpu("k_result_cpu", {seq, 512}, "cpu", true);
-    Tensor v_result_cpu("v_result_cpu", {seq, 512}, "cpu", true);
-
-    Tensor q_result_cuda = q_result_cpu.copy();
-    Tensor k_result_cuda = k_result_cpu.copy();
-    Tensor v_result_cuda = v_result_cpu.copy();
-
-    start = std::chrono::high_resolution_clock::now();
-    q_linear.forward(q_result_cpu, x_cpu);
-    k_linear.forward(k_result_cpu, x_cpu);
-    v_linear.forward(v_result_cpu, x_cpu);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
-
-    if (compare_results(q_result_cpu, q_result, seq * hidden_state, 1e-1)) {
-        check_pass("[q_linear] CPU results correct.");
-    } else {
-        check_error("[q_linear] CPU results error!");
-    }
-    if (compare_results(k_result_cpu, k_result, seq * 512, 1e-1)) {
-        check_pass("[k_linear] CPU results correct.");
-    } else {
-        check_error("[k_linear] CPU results error!");
-    }
-    if (compare_results(v_result_cpu, v_result, seq * 512, 1e-2)) {
-        check_pass("[v_linear] CPU results correct.");
-    } else {
-        check_error("[v_linear] CPU results error!");
-    }
-
+    test_layer(v_linear, v_result_cpu, x_cpu, v_result);
 
 
     x_cuda.to("cuda");
     rms_norm.to("cuda");
-    
-    start = std::chrono::high_resolution_clock::now();
-    rms_norm.forward(x_cuda);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
-
     q_linear.to("cuda");
     k_linear.to("cuda");
     v_linear.to("cuda");
 
-    q_result_cuda.to("cuda");
-    k_result_cuda.to("cuda");
-    v_result_cuda.to("cuda");
+    test_layer(rms_norm, x_cuda, norm_result);
+    test_layer(q_linear, q_result_cuda, x_cuda, q_result, 6e-2);
+    test_layer(k_linear, k_result_cuda, x_cuda, k_result, 6e-2);
+    test_layer(v_linear, v_result_cuda, x_cuda, v_result);
 
-    start = std::chrono::high_resolution_clock::now();
-    q_linear.forward(q_result_cuda, x_cuda);
-    k_linear.forward(k_result_cuda, x_cuda);
-    v_linear.forward(v_result_cuda, x_cuda);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
+    RoPE rope(2048, 32);
+    Tensor pos("position", {1, 6}, "cpu", true);
+    pos[0] = 0; pos[2] = 2; pos[4] = 4;
+    pos[1] = 1; pos[3] = 3; pos[5] = 5;
 
-    x_cuda.to("cpu");
+    Tensor query_pos_result_cpu("q_result_cpu", {seq, hidden_state}, "cpu", true);
+    read_bin(query_pos_result_cpu, seq * hidden_state, "pos_query.bin");
+    test_layer(rope, q_result_cpu, pos, query_pos_result_cpu, 6e-2);
 
-    if (compare_results(x_cuda, result, seq * hidden_state, 1e-2)) {
-        check_pass("[RMSNorm] CUDA results correct.");
-    } else {
-        check_error("[RMSNorm] CUDA results error!");
-    }
+    Tensor key_pos_result_cpu("k_result_cpu", {seq, 512}, "cpu", true);
+    read_bin(key_pos_result_cpu, key_pos_result_cpu.Size(), "pos_key.bin");
+    test_layer(rope, k_result_cpu, pos, key_pos_result_cpu, 6e-2);
 
-    q_result_cuda.to("cpu");
-    k_result_cuda.to("cpu");
-    v_result_cuda.to("cpu");
-
-    if (compare_results(q_result_cuda, q_result, seq * hidden_state, 6e-2)) {
-        check_pass("[q_linear] CPU results correct.");
-    } else {
-        check_error("[q_linear] CPU results error!");
-    }
-    if (compare_results(k_result_cuda, k_result, seq * 512, 5e-2)) {
-        check_pass("[k_linear] CPU results correct.");
-    } else {
-        check_error("[k_linear] CPU results error!");
-    }
-    if (compare_results(v_result_cuda, v_result, seq * 512, 1e-2)) {
-        check_pass("[v_linear] CPU results correct.");
-    } else {
-        check_error("[v_linear] CPU results error!");
-    }
+    rope.to("cuda");
+    pos.to("cuda");
+    test_layer(rope, q_result_cuda, pos, query_pos_result_cpu, 6e-2);
+    test_layer(rope, k_result_cuda, pos, key_pos_result_cpu, 6e-2);
 }

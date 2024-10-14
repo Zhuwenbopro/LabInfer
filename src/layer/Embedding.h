@@ -32,8 +32,6 @@ Embedding::Embedding(const size_t _vocab_size, const size_t _hidden_size, const 
     params.emplace("weight", Parameter("weight",{_vocab_size, _hidden_size}, "cpu"));
 }
 
-// 这里写的代码很冗长 是因为 unordered_map 在调用 temps["output"] 时 会调用默认构造函数，
-// 但是Tensor和parameter没有默认构造函数 会报错
 void Embedding::forward(Tensor& y, Tensor& x)
 {
     Parameter& weight = params.at("weight");
