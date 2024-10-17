@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "Manager.h"
 
 
 /**
@@ -20,7 +21,6 @@ class Variable {
 public:
     // 虚析构函数，确保派生类的析构函数被调用
     virtual ~Variable();
-
 
     // 隐式转换 Variable 类和 float*
     operator float*() const { return value.get(); }
@@ -49,7 +49,8 @@ protected:
     std::string device;                          // 设备
 
     // 构造函数
-    Variable(const std::string& _name, const std::vector<size_t>& _shape, const std::string& _device, bool _malloc_mem);
+    Variable(const std::string& _name, const std::vector<size_t>& _shape, const std::string& _device) 
+                                            : shape(_shape), size(1), name(_name), device(_device) {  }
     
     // 深拷贝
     void _copy(const Variable& from);

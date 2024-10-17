@@ -12,7 +12,7 @@ public:
     // 删除默认构造函数
     RoPE() = delete;
     // Linear(const Config& config, const std::string& name = "Linear");
-    RoPE(const size_t vocab_size, const size_t hidden_size, const std::string& _name = "rotary positional embedding");
+    RoPE(const size_t _head_dim, const std::string& _name = "rotary_positional_embedding");
 
     // 覆盖基类的 forward 方法
     void forward(Tensor& x, Tensor& pos) override;
@@ -23,8 +23,7 @@ public:
 private:
     static bool init;
     size_t max_pos = 32;
-    size_t num_heads;
-    size_t hidden_size;
+    size_t head_dim;
     float rope_theta = 500000;
     int factor = 32;
     int low_freq_factor = 1;
@@ -34,11 +33,10 @@ private:
 
 bool RoPE::init = false;
 
-// 初始化不分配内存，等到load的时候再分配
-RoPE::RoPE(const size_t _hidden_size, const size_t _attn_head, const std::string& _name) : 
-        Layer("cpu", _name), hidden_size(_hidden_size), num_heads(_hidden_size / _attn_head)
+
+RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _name), head_dim(_head_dim)
 {
-    size_t dim = num_heads / 2;
+    size_t dim = head_dim / 2;
     Manager& manager = Manager::getInstance();
 
     if(!init) {
@@ -100,7 +98,7 @@ RoPE::RoPE(const size_t _hidden_size, const size_t _attn_head, const std::string
 
 void RoPE::forward(Tensor& x, Tensor& pos)
 {
-    F.get().apply_rope(x, pos, params.at("cos"), params.at("sin"), x.Size()/pos.Size(), num_heads/2, pos.Size());
+    F.get().apply_rope(x, pos, params.at("cos"), params.at("sin"), x.Size()/pos.Size(), head_dim/2, pos.Size());
 }
 
 

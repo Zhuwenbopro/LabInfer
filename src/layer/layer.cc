@@ -18,14 +18,15 @@ void Layer::to(const std::string& new_dev) {
 void Layer::load_state(std::unordered_map<std::string, std::shared_ptr<float []>>& state_map) {
     remove_prefix_from_keys(state_map, name + ".");
 
-    for (auto& [name, param] : params) {
+    for (auto& [_name, param] : params) {
+        if(param.Share()) continue;
         auto it = state_map.find(param.Name());
         if (it != state_map.end()) {
             param.setValue(it->second);
             state_map.erase(it);
         } else {
             // 这里到时候直接弹出来报错
-            std::cout << "Key not found!!!!" << std::endl;
+            std::cout << name << "  " << param.Name() << "Key not found!!!!" << std::endl;
         }
     }
 

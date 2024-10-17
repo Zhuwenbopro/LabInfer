@@ -51,6 +51,7 @@ std::shared_ptr<float[]> Manager::allocate(const size_t size, const std::string&
 
 std::shared_ptr<float[]> Manager::deepCopy(const std::shared_ptr<float[]>& ptr, size_t size, const std::string& deviceName) {
     if (!ptr) {
+        throw std::logic_error("ptr in Manager::deepCopy() is null");
         return nullptr;
     }
 

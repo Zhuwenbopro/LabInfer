@@ -60,6 +60,8 @@ public:
     */
     virtual void embedding(float* y, const float* x, const float* W, const int d, const int x_size) = 0;
 
+    virtual void maksed_attention(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos) = 0;
+
 };
 
 #endif // Function_H

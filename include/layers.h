@@ -9,5 +9,6 @@
 #include "../src/layer/Silu.h"
 #include "../src/layer/RMSNorm.h"
 #include "../src/layer/RoPE.h"
+#include "../src/layer/Attention.h"
 
 #endif
