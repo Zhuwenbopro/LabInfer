@@ -37,7 +37,7 @@ public:
             return it->second;
         } else {
             // 不存在，创建新实例并存储
-            std::cout << "unkown device " << deviceName << std::endl;
+            throw std::logic_error("UNKNOWN device " + deviceName);
             return nullptr;
         }
     }

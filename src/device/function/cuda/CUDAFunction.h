@@ -11,6 +11,8 @@
 #include "silu_cuda.h"
 #include "add_cuda.h"
 #include "embedding_cuda.h"
+#include "attention_cuda.h"
+
 // 如果有更多的头文件，继续添加
 // #include "another_function.h"
 
@@ -47,6 +49,11 @@ public:
     void embedding(float* y, const float* x, const float* W, const int d, const int x_size) override {
         embedding_cuda(y, x, W, d, x_size);
     }
+
+    void maksed_attention(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos) override {
+        maksed_attention_cuda(y, q, k, v, dim, q_head, kv_head, _pos);
+    }
+
 };
 
 #endif // CUDA_FUNCTION_H

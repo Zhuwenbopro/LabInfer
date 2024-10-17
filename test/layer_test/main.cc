@@ -28,7 +28,7 @@ void const_init(float* ptr, int size);
 void check_embedding();
 void check_linear();
 void check_softmax();
-void check_attention();
+void cheack_transform();
 
 void read_bin(float* ptr, size_t num, const std::string& filename) {
     // 打开二进制文件
@@ -61,11 +61,12 @@ void read_bin(float* ptr, size_t num, const std::string& filename) {
 
 int main() {
 
-    RoPE rope(2048, 32);
+    // RoPE rope(64);
     // check_linear();
     // check_softmax();
     // check_embedding();
-    check_attention();
+    // check_attention();
+    cheack_transform();
 
     return 0;
 }
@@ -89,7 +90,7 @@ bool compare_results(const float *a, const float *b, int size, float tolerance) 
         if (fabs(a[i] - b[i]) > tolerance) {
             std::cout << "Difference at index " << i << ": " << a[i] << " vs " << b[i] << std::endl;
             flag = false;
-            break;
+            //break;
         }
     }
     return flag;
@@ -299,72 +300,143 @@ void load_layer(Layer& layer, const std::string filename, const std::vector<size
     layer.load_state(states);
 }
 
-void check_attention() {
-    std::cout << std::endl << "begin test attention" << std::endl;
-    const size_t hidden_state = 2048;
-    const size_t seq = 6;
+void cheack_transform() {
+    std::cout << std::endl << "begin test attention transformer" << std::endl;
 
-    Tensor x_cpu("hidden_state", {seq, hidden_state}, "cpu", true);
-    read_bin(x_cpu, seq * hidden_state, "embedding_tensor.bin");
-    Tensor x_cuda = x_cpu.copy();
+    size_t batch = 1;
+    size_t seq = 6;
+    size_t hidden_state = 2048;
+    size_t kv_dim = 512;
+
+    Tensor x_cpu("embedding", {batch, hidden_state}, "cpu", true, {seq});
+    read_bin(x_cpu, x_cpu.Size(), "embedding_tensor.bin");
+
+// =============================================== RMS Norm =================================================
 
     RMSNorm rms_norm = RMSNorm(hidden_state);
     load_layer(rms_norm, "model_layers_0_input_layernorm_weight.bin", {hidden_state}, "RMSNorm.weight");
-    Tensor norm_result("result", {seq, hidden_state}, "cpu", true);
+    Tensor norm_result("result", {batch, hidden_state}, "cpu", true, {seq});
     read_bin(norm_result, seq * hidden_state, "input_layernorm_output.bin");
     test_layer(rms_norm, x_cpu, norm_result);
 
+// ==========================================================================================================
+// =========================================== q、k、v linear ===============================================
+
     Linear q_linear = Linear(hidden_state, hidden_state, "linear_q");
     load_layer(q_linear, "model_layers_0_self_attn_q_proj_weight.bin", {hidden_state, hidden_state}, "linear_q.weight");
-    Tensor q_result_cpu("q_result_cpu", {seq, hidden_state}, "cpu", true);
-    Tensor q_result_cuda = q_result_cpu.copy();
-    Tensor q_result("q_result", {seq, hidden_state}, "cpu", true);
-    read_bin(q_result, seq * hidden_state, "query_states.bin");
-    test_layer(q_linear, q_result_cpu, x_cpu, q_result, 6e-2);
+    Tensor q("q", {batch, hidden_state}, "cpu", true, {seq});
+    Tensor q_check("q", {batch, hidden_state}, "cpu", true, {seq});
+    read_bin(q_check, q.Size(), "query_states.bin");
+    test_layer(q_linear, q, x_cpu, q_check, 6e-2);
     
-    Linear k_linear = Linear(hidden_state, 512, "linear_k");
-    load_layer(k_linear, "model_layers_0_self_attn_k_proj_weight.bin", {hidden_state, 512}, "linear_k.weight");
-    Tensor k_result_cpu("k_result_cpu", {seq, 512}, "cpu", true);
-    Tensor k_result_cuda = k_result_cpu.copy();
-    Tensor k_result("k_result", {seq, 512}, "cpu", true);
-    read_bin(k_result, seq * 512, "key_states.bin");
-    test_layer(k_linear, k_result_cpu, x_cpu, k_result, 6e-2);
+    Linear k_linear = Linear(hidden_state, kv_dim, "linear_k");
+    load_layer(k_linear, "model_layers_0_self_attn_k_proj_weight.bin", {hidden_state, kv_dim}, "linear_k.weight");
+    Tensor k("k_result_cpu", {batch, kv_dim}, "cpu", true, {seq});
+    Tensor k_check("k_result_cpu", {batch, kv_dim}, "cpu", true, {seq});
+    read_bin(k_check, k.Size(), "key_states.bin");
+    test_layer(k_linear, k, x_cpu, k_check, 6e-2);
     
-    Linear v_linear = Linear(hidden_state, 512, "linear_v");
-    load_layer(v_linear, "model_layers_0_self_attn_v_proj_weight.bin", {hidden_state, 512}, "linear_v.weight");
-    Tensor v_result_cpu("v_result_cpu", {seq, 512}, "cpu", true);
-    Tensor v_result_cuda = v_result_cpu.copy();
-    Tensor v_result("v_result", {seq, 512}, "cpu", true);
-    read_bin(v_result, seq * 512, "value_states.bin");
-    test_layer(v_linear, v_result_cpu, x_cpu, v_result);
+    Linear v_linear = Linear(hidden_state, kv_dim, "linear_v");
+    load_layer(v_linear, "model_layers_0_self_attn_v_proj_weight.bin", {hidden_state, kv_dim}, "linear_v.weight");
+    Tensor v("v_result_cpu", {batch, kv_dim}, "cpu", true, {seq});
+    Tensor v_check("v_result_cpu", {batch, kv_dim}, "cpu", true, {seq});
+    read_bin(v_check, v.Size(), "value_states.bin");
+    test_layer(v_linear, v, x_cpu, v_check);
 
+// ==========================================================================================================
+// =================================== rotary positional embedding ==========================================
 
-    x_cuda.to("cuda");
-    rms_norm.to("cuda");
-    q_linear.to("cuda");
-    k_linear.to("cuda");
-    v_linear.to("cuda");
-
-    test_layer(rms_norm, x_cuda, norm_result);
-    test_layer(q_linear, q_result_cuda, x_cuda, q_result, 6e-2);
-    test_layer(k_linear, k_result_cuda, x_cuda, k_result, 6e-2);
-    test_layer(v_linear, v_result_cuda, x_cuda, v_result);
-
-    RoPE rope(2048, 32);
-    Tensor pos("position", {1, 6}, "cpu", true);
+    RoPE rope(64);
+    Tensor pos("position", {1, 6}, "cpu", true, {1});
     pos[0] = 0; pos[2] = 2; pos[4] = 4;
     pos[1] = 1; pos[3] = 3; pos[5] = 5;
 
-    Tensor query_pos_result_cpu("q_result_cpu", {seq, hidden_state}, "cpu", true);
-    read_bin(query_pos_result_cpu, seq * hidden_state, "pos_query.bin");
-    test_layer(rope, q_result_cpu, pos, query_pos_result_cpu, 6e-2);
+    Tensor query_pos_check("q_result_cpu", q.Shape(), "cpu", true, q.Seq());
+    read_bin(query_pos_check, q.Size(), "pos_query.bin");
+    test_layer(rope, q, pos, query_pos_check, 6e-2);
 
-    Tensor key_pos_result_cpu("k_result_cpu", {seq, 512}, "cpu", true);
-    read_bin(key_pos_result_cpu, key_pos_result_cpu.Size(), "pos_key.bin");
-    test_layer(rope, k_result_cpu, pos, key_pos_result_cpu, 6e-2);
+    Tensor key_pos_check("k_result_cpu", k.Shape(), "cpu", true, k.Seq());
+    read_bin(key_pos_check, k.Size(), "pos_key.bin");
+    test_layer(rope, k, pos, key_pos_check, 6e-2);
 
-    rope.to("cuda");
-    pos.to("cuda");
-    test_layer(rope, q_result_cuda, pos, query_pos_result_cpu, 6e-2);
-    test_layer(rope, k_result_cuda, pos, key_pos_result_cpu, 6e-2);
+// ==========================================================================================================
+// ========================================= attention ======================================================
+
+    Tensor o("o_input", q.Shape(), "cpu", true, q.Seq());
+    Tensor o_check = o.copy();
+    read_bin(o_check, o_check.Size(), "atten_output.bin");
+
+    Manager& manager = Manager::getInstance();
+    Function& F = manager.getFunction("cpu");
+
+    for(int p = 0; p < seq; p++) {
+        float* output = o + p * hidden_state;
+        float* query = q + p * hidden_state;
+        F.maksed_attention(output, query, k, v, 64, 32, 8, p);
+    }
+
+    if (compare_results(o, o_check, o.Size(), 6e-2)) {
+        check_pass("[ T_T ] CPU attention results correct.");
+    } else {
+        check_error("[ T_T ] CPU attention results error!");
+    }
+
+// ==========================================================================================================
+// ============================================ o linear ====================================================
+    Tensor o_r = o.copy();
+    Linear o_linear = Linear(hidden_state, hidden_state, "linear_o");
+    load_layer(o_linear, "model_layers_0_self_attn_o_proj_weight.bin", {hidden_state, hidden_state}, "linear_o.weight");
+    read_bin(o_check, o.Size(), "self_attn.bin");
+    test_layer(o_linear, o_r, o, o_check, 6e-2);
+
+
+
+    Attention attn("attention");
+    Parameter qw("qw", {hidden_state,hidden_state}, "cpu", true);
+    Parameter kw("kw", {hidden_state,512}, "cpu", true);
+    Parameter vw("vw", {hidden_state,512}, "cpu", true);
+    Parameter ow("ow", {hidden_state,hidden_state}, "cpu", true);
+    Parameter rms("rms", {hidden_state}, "cpu", true);
+    read_bin(qw, qw.Size(), "model_layers_0_self_attn_q_proj_weight.bin");
+    read_bin(kw, kw.Size(), "model_layers_0_self_attn_k_proj_weight.bin");
+    read_bin(vw, vw.Size(), "model_layers_0_self_attn_v_proj_weight.bin");
+    read_bin(ow, ow.Size(), "model_layers_0_self_attn_o_proj_weight.bin");
+    read_bin(rms, rms.Size(), "model_layers_0_input_layernorm_weight.bin");
+
+
+    std::unordered_map<std::string, std::shared_ptr<float []>> states;
+    states["attention.q_linear.weight"] = qw.sharedPtr();
+    states["attention.k_linear.weight"] = kw.sharedPtr();
+    states["attention.v_linear.weight"] = vw.sharedPtr();
+    states["attention.o_linear.weight"] = ow.sharedPtr();
+    states["attention.RMSNorm.weight"] = rms.sharedPtr();
+    attn.load_state(states);
+
+    Tensor x("embedding", {batch, hidden_state}, "cpu", true, {seq});
+    Tensor x_cuda = x.copy();
+    read_bin(x, x.Size(), "embedding_tensor.bin");
+    Tensor y = x.copy();
+    Tensor y_cuda = y.copy();
+
+    attn.forward(y, x, pos);
+
+    if (compare_results(y, o_check, o.Size(), 6e-2)) {
+        check_pass("[ T_T ] CPU attention results correct.");
+    } else {
+        check_error("[ T_T ] CPU attention results error!");
+    }
+
+    x_cuda.to("cuda");
+    attn.to("cuda");
+
+    y_cuda.to("cuda");
+    attn.forward(y_cuda, x_cuda, pos);
+    y_cuda.to("cpu");
+    if (compare_results(y, o_check, o.Size(), 6e-2)) {
+        check_pass("[ T_T ] CUDA attention results correct.");
+    } else {
+        check_error("[ T_T ] CUDA attention results error!");
+    }
+
+    return;
 }

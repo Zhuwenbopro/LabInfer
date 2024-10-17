@@ -93,10 +93,52 @@ void silu_cpu(float *x, const int n, int batch_size){
     }
 }
 
-void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_size){
+void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_size) {
     for(int b = 0; b < batch_size; b++){
         for(int i = 0; i < n; i++) {
             y[i + b*n] = x1[i + b*n] + x2[i + b*n];
         }
     }
+}
+
+// query        (1, dim*head_num)
+// key、value   (pos, dim*k_num)
+// y            (1, dim*head_num)
+// pos 是 query 的 position
+void maksed_attention_cpu(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos) {
+    int pos = _pos + 1;
+    float* score = new float[q_head * pos](); // 置初始值为0，列优先，pos行，q_head列
+
+    int rep = q_head / kv_head;
+    int kv_dim = kv_head * dim;
+
+    float scale = 1.0 / std::sqrt(static_cast<float>(dim));
+    for(int p = 0; p < pos; p++) {
+        for(int hq = 0; hq < q_head; hq++) {
+            const float* _q = q + hq * dim;
+            const float* _k = k + p * kv_dim + (hq / rep) * dim;
+            const int s_index = hq*pos + p;
+            for(int d = 0; d < dim; d++) {
+                score[s_index] += _q[d] * _k[d];
+            }
+            score[s_index] *= scale;
+        }
+    }
+
+    softmax_cpu(score, pos, q_head);
+
+    std::memset(y, 0, dim * q_head * sizeof(float));
+
+    for(int hq = 0; hq < q_head; hq++) {
+        float* _s = score + hq * pos;
+        float* _y = y + hq * dim;
+        for(int p = 0; p < pos; p++) {
+            const float* _v = v + p * kv_dim + (hq / rep) * dim;
+            for(int d = 0; d < dim; d++) {
+                _y[d] += _s[p] * _v[d];
+            }
+        }
+    }
+
+    delete score;
 }
