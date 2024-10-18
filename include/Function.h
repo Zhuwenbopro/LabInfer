@@ -28,17 +28,28 @@ public:
     *
     * 矩阵 W 是列优先写的，一条一条写
     *
-    * @param[out] y 指向用于存储结果矩阵的输出数组的指针。数组大小应至少为 `n * d`。
-    * @param[in] x 指向第一个输入向量的常量指针。矩阵的尺寸为 `1 x n`。
-    * @param[in] W 指向第二个输入矩阵的常量指针。矩阵的尺寸为 `n x d`。
+    * @param[out] y 指向用于存储结果矩阵的输出数组的指针。数组大小应至少为 `num * d`。
+    * @param[in] x 矩阵的尺寸为 `num x n`。
+    * @param[in] W 矩阵的尺寸为 `n x d`。
     * @param[in] n 输入向量 `x` 的维度。
     * @param[in] d 输入矩阵 `w` 的列数。
-    * @param[in] batch_size 输入批次。默认为 1。
+    * @param[in] num 有几个 x。
     */
-    virtual void matmul(float* y, const float *x, const float *W, const int n, const int d, const int batch_size = 1) = 0;
+    virtual void matmul(float* y, const float *x, const float *W, const int n, const int d, const int num) = 0;
 
     virtual void softmax(float* x, const int n, const int batch_size = 1) = 0;
 
+    /**
+    * @brief 对 x 做位置编码
+    *
+    *
+    * @param[out] x 一维向量 长度为 `n * num`。
+    * @param[in] pos x 的位置，长度为 `1 x num`。
+    * @param[in] cos 提前算好的位置余弦 `max_pos * dim`。
+    * @param[in] n 输入向量 `x` 的维度。
+    * @param[in] dim = head_dim/2
+    * @param[in] num 有多少个 pos
+    */
     virtual void apply_rope(float *x, const float *pos, const float *cos, const float *sin, const int n, int dim, const int num) = 0;
 
     virtual void silu(float* x, const int n, const int batch_size = 1) = 0;
@@ -60,8 +71,14 @@ public:
     */
     virtual void embedding(float* y, const float* x, const float* W, const int d, const int x_size) = 0;
 
+    /**
+     *  @brief 
+     * 
+     *  no matter which device it use, _pos in cpu
+     */
     virtual void maksed_attention(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos) = 0;
 
+    virtual void elem_multiply(float* y, const float* x1, const float* x2, const int size) = 0;
 };
 
 #endif // Function_H

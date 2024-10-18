@@ -23,8 +23,8 @@ void check_softmax(Device *cpu, Device *cuda);
 void check_silu(Device *cpu, Device *cuda);
 void check_add(Device *cpu, Device *cuda);
 void check_embedding(Device *cpu, Device *cuda);
-
-
+void check_elem_multiply(Device *cpu, Device *cuda);
+void check_masked_attention(Device *cpu, Device *cuda);
 int main() {
 
     DeviceManager& manager = DeviceManager::getInstance();
@@ -39,6 +39,8 @@ int main() {
     check_silu(cpu, cuda);
     check_add(cpu, cuda);
     check_embedding(cpu, cuda);
+    check_elem_multiply(cpu, cuda);
+    check_masked_attention(cpu, cuda);
     std::cout << "test finished ..." << std::endl;
 
     return 0;
@@ -303,3 +305,114 @@ void check_add(Device *cpu, Device *cuda){
     cuda->deallocate(x2_cuda);
     cuda->deallocate(y_cuda);
 }
+
+void check_elem_multiply(Device *cpu, Device *cuda) {
+    int size = 1024; // Define the size of the vectors
+
+    // Allocate host memory
+    float *x1_cpu = cpu->allocate(size);
+    float *x2_cpu = cpu->allocate(size);
+    float *y_cpu = cpu->allocate(size);
+    float *cuda_to_cpu = cpu->allocate(size);
+
+    // Allocate device memory
+    float *x1_cuda = cuda->allocate(size);
+    float *x2_cuda = cuda->allocate(size);
+    float *y_cuda = cuda->allocate(size);
+
+    // Initialize input data
+    rand_init(x1_cpu, size);
+    rand_init(x2_cpu, size);
+
+    // Move data to device
+    cuda->move_in(x1_cuda, x1_cpu, size);
+    cuda->move_in(x2_cuda, x2_cpu, size);
+
+    // Call the element-wise multiplication function on both devices
+    cuda->F->elem_multiply(y_cuda, x1_cuda, x2_cuda, size);
+    cpu->F->elem_multiply(y_cpu, x1_cpu, x2_cpu, size);
+
+    // Move result back to host
+    cuda->move_out(y_cuda, cuda_to_cpu, size);
+
+    // Compare results
+    if (compare_results(cuda_to_cpu, y_cpu, size)) {
+        check_pass("[elem_multiply] CUDA and CPU results match.");
+    } else {
+        check_error("[elem_multiply] CUDA and CPU results do not match!");
+    }
+
+    // Clean up
+    cpu->deallocate(x1_cpu);
+    cpu->deallocate(x2_cpu);
+    cpu->deallocate(y_cpu);
+    cpu->deallocate(cuda_to_cpu);
+    cuda->deallocate(x1_cuda);
+    cuda->deallocate(x2_cuda);
+    cuda->deallocate(y_cuda);
+}
+
+void check_masked_attention(Device *cpu, Device *cuda) {
+    // Define parameters
+    int dim = 64; // Dimension size
+    int q_head = 32; // Number of query heads
+    int kv_head = 8; // Number of key/value heads
+    int _pos = 10; // Position index
+
+    // Compute sizes
+    int q_size = q_head*dim;
+    int kv_size = kv_head*dim;
+
+    // Allocate host memory
+    float *q_cpu = cpu->allocate(q_size);
+    float *k_cpu = cpu->allocate(kv_size*(_pos+1));
+    float *v_cpu = cpu->allocate(kv_size*(_pos+1));
+    float *y_cpu = cpu->allocate(q_size);
+    float *cuda_to_cpu = cpu->allocate(q_size);
+
+    // Allocate device memory
+    float *q_cuda = cuda->allocate(q_size);
+    float *k_cuda = cuda->allocate(kv_size*(_pos+1));
+    float *v_cuda = cuda->allocate(kv_size*(_pos+1));
+    float *y_cuda = cuda->allocate(q_size);
+
+    // Initialize input data
+    rand_init(q_cpu, q_size);
+    rand_init(k_cpu, kv_size*(_pos+1));
+    rand_init(v_cpu, kv_size*(_pos+1));
+
+    // Move data to device
+    cuda->move_in(q_cuda, q_cpu, q_size);
+    cuda->move_in(k_cuda, k_cpu, kv_size*(_pos+1));
+    cuda->move_in(v_cuda, v_cpu, kv_size*(_pos+1));
+
+
+    cpu->F->maksed_attention(y_cpu, q_cpu, k_cpu, v_cpu, dim, q_head, kv_head, _pos);
+    cuda->F->maksed_attention(y_cuda, q_cuda, k_cuda, v_cuda, dim, q_head, kv_head, _pos);
+    // Call the masked attention function on both devices
+    //cuda->F->maksed_attention(y_cuda, q_cuda, k_cuda, v_cuda, dim, q_head, kv_head, _pos);
+    //cpu->F->masked_attention(y_cpu, q_cpu, k_cpu, v_cpu, dim, q_head, kv_head, _pos);
+
+    // Move result back to host
+    cuda->move_out(y_cuda, cuda_to_cpu, q_size);
+
+    // Compare results
+    if (compare_results(cuda_to_cpu, y_cpu, q_size)) {
+        check_pass("[masked_attention] CUDA and CPU results match.");
+    } else {
+        check_error("[masked_attention] CUDA and CPU results do not match!");
+    }
+
+    // Clean up
+    cpu->deallocate(q_cpu);
+    cpu->deallocate(k_cpu);
+    cpu->deallocate(v_cpu);
+    cpu->deallocate(y_cpu);
+    cpu->deallocate(cuda_to_cpu);
+    cuda->deallocate(q_cuda);
+    cuda->deallocate(k_cuda);
+    cuda->deallocate(v_cuda);
+    cuda->deallocate(y_cuda);
+}
+
+//TODO：写 rope 的测试程序

@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include "rope_cuda.h"
 #include "common.h"
+#include <stdio.h>
 
 __global__ void apply_rope_kernel_optimized(
     float *x, const float *pos, const float *cos, const float *sin,
@@ -59,10 +60,8 @@ void apply_rope_cuda(float *x, const float *pos, const float *cos, const float *
 
     // 计算共享内存的大小
     size_t sharedMemSize = 2 * dim * sizeof(float);
-
+    
     // 启动内核
-    apply_rope_kernel_optimized<<<gridDim, blockDim, sharedMemSize>>>(
-        x, pos, cos, sin, n, dim, num
-    );
+    apply_rope_kernel_optimized<<<gridDim, blockDim, sharedMemSize>>>( x, pos, cos, sin, n, dim, num);
     cudaDeviceSynchronize();
 }

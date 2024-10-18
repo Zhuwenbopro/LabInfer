@@ -3,14 +3,14 @@
 void Layer::to(const std::string& new_dev) {
     if(new_dev == device) return;
     
-    for (auto& [name, param] : params) {
+    for (auto& [_name, param] : params) {
         param.to(new_dev);
     }
     
     F = std::ref(Manager::getInstance().getFunction(new_dev));
     device = new_dev;
     
-    for (auto& [name, ptr_layer] : layers) {
+    for (auto& [_name, ptr_layer] : layers) {
         ptr_layer->to(new_dev);
     }
 }
@@ -20,13 +20,14 @@ void Layer::load_state(std::unordered_map<std::string, std::shared_ptr<float []>
 
     for (auto& [_name, param] : params) {
         if(param.Share()) continue;
+
         auto it = state_map.find(param.Name());
         if (it != state_map.end()) {
             param.setValue(it->second);
             state_map.erase(it);
         } else {
             // 这里到时候直接弹出来报错
-            std::cout << name << "  " << param.Name() << "Key not found!!!!" << std::endl;
+            std::cout << name << "  " << param.Name() << "  Key not found!!!!" << param.Share() << std::endl;
         }
     }
 

@@ -11,11 +11,11 @@ public:
         if(shape.size() > 2 && shape[0] != 1) {
             throw std::logic_error("this is not a param, but a tensor" + _name);
         }
-
+        
         for (const auto& dim : shape) {
             size *= dim;
         }
-
+        
         if(_malloc_mem) {
             Manager& manager = Manager::getInstance();
             value = manager.allocate(size, device);
@@ -51,7 +51,6 @@ public:
 
         device = new_dev;
     }
-
 private:
     bool shared = false;
 };

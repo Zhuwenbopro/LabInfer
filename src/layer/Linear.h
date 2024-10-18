@@ -36,14 +36,9 @@ Linear::Linear(const size_t size_in, const size_t size_out, const std::string& _
     if(bias) params.emplace("bias", Parameter("bias", {size_in}, "cpu"));
 }
 
-// 这里写的代码很冗长 是因为 unordered_map 在调用 temps["output"] 时 会调用默认构造函数，
-// 但是Tensor和parameter没有默认构造函数 会报错
 void Linear::forward(Tensor& y, Tensor& x)
 {
-    Parameter& weight = params.at("weight");
-    // 使用它们进行运算
-    F.get().matmul(y, x, weight, input_size, output_size, x.Size() / input_size);
-
+    F.get().matmul(y, x, params.at("weight"), input_size, output_size, x.elemNum());
 }
 
 #endif // LINEAR_H

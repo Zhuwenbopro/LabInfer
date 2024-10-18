@@ -26,15 +26,15 @@ public:
     Parameter& Param(const std::string& _name) { return params.at(_name); }
 
     virtual void forward(Tensor& x) {
-        throw std::logic_error("forward(Tensor& x) not implemented.");
+        throw std::logic_error(name + " forward(Tensor& x) not implemented.");
     }
 
     virtual void forward(Tensor& y, Tensor& x) {
-        throw std::logic_error("forward(Tensor& y, Tensor& x) not implemented.");
+        throw std::logic_error(name + " forward(Tensor& y, Tensor& x) not implemented.");
     }
 
     virtual void forward(Tensor& y, Tensor& x1, Tensor& x2) {
-        throw std::logic_error("forward(Tensor& y, Tensor& x1, Tensor& x2) not implemented.");
+        throw std::logic_error(name + " forward(Tensor& y, Tensor& x1, Tensor& x2) not implemented.");
     }
 
     // 虚析构函数，确保派生类的析构函数被调用

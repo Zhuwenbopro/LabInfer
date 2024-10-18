@@ -142,3 +142,9 @@ void maksed_attention_cpu(float* y, const float* q, const float* k, const float*
 
     delete score;
 }
+
+void elem_multiply_cpu(float* y, const float* x1, const float* x2, const int size) {
+    for(int i = 0; i < size; i++) {
+        y[i] = x1[i] * x2[i];
+    }
+}
