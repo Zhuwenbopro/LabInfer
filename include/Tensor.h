@@ -18,6 +18,8 @@ public:
             throw std::logic_error("tensor shape[0] batch != seq.size()");
         }
 
+        batch_size = shape[0];
+        
         for(int j = 1; j < _shape.size(); j++) {
             elem_size *= _shape[j];
         }
@@ -34,20 +36,6 @@ public:
         }
     }
 
-    // 拷贝构造函数（浅拷贝）
-    Tensor(const Tensor& other) : Variable(other) {
-        // 由于希望进行浅拷贝，仅复制指针和基本信息，不创建新的数据副本
-    }
-
-    // 拷贝赋值运算符（浅拷贝）
-    Tensor& operator=(const Tensor& other) {
-        if (this != &other) {
-            // 调用基类的赋值运算符，进行浅拷贝
-            Variable::operator=(other);
-        }
-        return *this;
-    }
-
     // 深拷贝函数
     Tensor copy() const {
         Tensor copy_tensor = Tensor(name, shape, device, false, seq);
@@ -60,9 +48,11 @@ public:
     ~Tensor() override { }
 
     const std::vector<size_t>& Seq() const { return seq; }
+    const size_t batchSize() { return batch_size; }
     const size_t elemNum() const { return elem_num; }
     const size_t elemLen() const { return elem_size; }
 private:
+    size_t batch_size;
     std::vector<size_t> seq;
     size_t elem_size;
     size_t elem_num;

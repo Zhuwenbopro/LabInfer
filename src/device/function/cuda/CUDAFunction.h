@@ -54,6 +54,10 @@ public:
         maksed_attention_cuda(y, q, k, v, dim, q_head, kv_head, _pos);
     }
 
+    void elem_multiply(float* y, const float* x1, const float* x2, const int size) override {
+        elem_multiply_cuda(y, x1, x2, size);
+    }
+
 };
 
 #endif // CUDA_FUNCTION_H

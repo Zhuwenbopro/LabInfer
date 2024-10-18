@@ -44,29 +44,30 @@ Attention::Attention(const std::string& _name) : Layer("cpu", _name)
     layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_linear"));
     layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_linear"));
     layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_linear"));
-    layers.emplace("rope", new RoPE(head_dim));
     layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_linear"));
+    layers.emplace("rope", new RoPE(head_dim));
+    
 }
 
+// 进去的 x 会变，y 可以等于 x
 void Attention::forward(Tensor& y, Tensor& x, Tensor& pos)
-{
-    Layer* rms_norm = layers.at("rms_norm");
-    rms_norm->forward(x);
-    
-    Layer* q_linear = layers.at("q_linear");
-    Layer* k_linear = layers.at("k_linear");
-    Layer* v_linear = layers.at("v_linear");
+{   
+
+    layers.at("rms_norm")->forward(x);
+
     Tensor q("query", x.Shape(), device, true, x.Seq());
-    Tensor k("key", {x.Shape()[0], kv_dim}, device, true, x.Seq());
-    Tensor v("query", {x.Shape()[0], kv_dim}, device, true, x.Seq());
+    Tensor k("key", {x.batchSize(), kv_dim}, device, true, x.Seq());
+    Tensor v("query", {x.batchSize(), kv_dim}, device, true, x.Seq());
 
-    q_linear->forward(q, x);
-    k_linear->forward(k, x);
-    v_linear->forward(v, x);
+    layers.at("q_linear")->forward(q, x);
+    layers.at("k_linear")->forward(k, x);
+    layers.at("v_linear")->forward(v, x);
 
-    Layer* rope = layers.at("rope");
-    rope->forward(q, pos);
-    rope->forward(k, pos);
+// FIXME: 这里的 pos 在 rope 里需要在 device 上，但在 attention 中需要在 CPU 里
+    pos.to(device);
+    layers.at("rope")->forward(q, pos);
+    layers.at("rope")->forward(k, pos);
+    pos.to("cpu");
 
     Tensor o("output", x.Shape(), device, true, x.Seq());
     for(int p = 0; p < pos.Size(); p++) {
@@ -75,9 +76,8 @@ void Attention::forward(Tensor& y, Tensor& x, Tensor& pos)
         // 这里的 k、v 从 cache 里搞
         F.get().maksed_attention(output, query, k, v, head_dim, attn_head, kv_head, pos[p]);
     }
-    std::cout << "masked attention finsihed" << std::endl;
-    Layer* o_linear = layers.at("o_linear");
-    o_linear->forward(y, o);
+
+    layers.at("o_linear")->forward(y, o);
 }
 
 #endif // ATTENTION_H

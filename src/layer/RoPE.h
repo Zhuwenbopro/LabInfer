@@ -40,12 +40,10 @@ RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _nam
     Manager& manager = Manager::getInstance();
 
     if(!init) {
-        Parameter _cos(device+":cos", {max_pos, dim}, "cpu", true);
-        Parameter _sin(device+":sin", {max_pos, dim}, "cpu", true);
-        params.emplace("cos", _cos);
-        params.emplace("sin", _sin);
-        _cos.setShared();
-        _sin.setShared();
+        params.emplace("cos", Parameter(device+":cos", {max_pos, dim}, "cpu", true));
+        params.emplace("sin", Parameter(device+":sin", {max_pos, dim}, "cpu", true));
+        Parameter& _cos = params.at("cos");
+        Parameter& _sin = params.at("sin");
 
         float inv_freq[dim];
         float inv_freq_div_factor[dim];
@@ -91,14 +89,15 @@ RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _nam
         params.emplace("sin", Parameter(device+":sin", {max_pos, dim}, "cpu"));
         params.at("cos").setValue(manager.GetMem(device+":cos"));
         params.at("sin").setValue(manager.GetMem(device+":sin"));
-        params.at("cos").setShared();
-        params.at("sin").setShared();
     }
+    
+    params.at("cos").setShared();
+    params.at("sin").setShared();
 }
 
 void RoPE::forward(Tensor& x, Tensor& pos)
 {
-    F.get().apply_rope(x, pos, params.at("cos"), params.at("sin"), x.Size()/pos.Size(), head_dim/2, pos.Size());
+    F.get().apply_rope(x, pos, params.at("cos"), params.at("sin"), x.elemLen(), head_dim/2, pos.Size());
 }
 
 

@@ -10,9 +10,9 @@ class Silu : public Layer {
 public:
     // 构造函数，初始化线性层的输入和输出尺寸
     // 删除默认构造函数
-    Silu() = delete;
+    Silu() : Layer("cpu", "Silu") {};
     // Softmax(const Config& config, const std::string& name = "Softmax");
-    Silu(const size_t _size_in, const std::string& _name = "Silu") : Layer("cpu", _name), size_in(_size_in) {};
+    Silu(const std::string& _name = "Silu") : Layer("cpu", _name) {};
 
     // 覆盖基类的 forward 方法
     void forward(Tensor& x) override;
@@ -21,13 +21,13 @@ public:
     virtual ~Silu() = default;
 
 private:
-    size_t size_in;
+
 };
 
 
 void Silu::forward(Tensor& x)
 {
-    F.get().silu(x, size_in);
+    F.get().silu(x, x.elemLen(), x.elemNum());
 }
 
 #endif
