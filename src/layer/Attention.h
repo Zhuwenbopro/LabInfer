@@ -40,11 +40,10 @@ Attention::Attention(const std::string& _name) : Layer("cpu", _name)
     q_dim = head_dim*attn_head;
     kv_dim = head_dim*kv_head;
     
-    layers.emplace("rms_norm", new RMSNorm(hidden_size));
-    layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_linear"));
-    layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_linear"));
-    layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_linear"));
-    layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_linear"));
+    layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_proj"));
+    layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_proj"));
+    layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_proj"));
+    layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_proj"));
     layers.emplace("rope", new RoPE(head_dim));
     
 }
@@ -52,9 +51,6 @@ Attention::Attention(const std::string& _name) : Layer("cpu", _name)
 // 进去的 x 会变，y 可以等于 x
 void Attention::forward(Tensor& y, Tensor& x, Tensor& pos)
 {   
-
-    layers.at("rms_norm")->forward(x);
-
     Tensor q("query", x.Shape(), device, true, x.Seq());
     Tensor k("key", {x.batchSize(), kv_dim}, device, true, x.Seq());
     Tensor v("query", {x.batchSize(), kv_dim}, device, true, x.Seq());

@@ -21,7 +21,7 @@ public:
 
     void to(const std::string& new_dev);
 
-    void load_state(std::unordered_map<std::string, std::shared_ptr<float []>>& state_map);
+    void load_state(char * filename);
 
     Parameter& Param(const std::string& _name) { return params.at(_name); }
 
@@ -50,6 +50,7 @@ protected:
 private:
     void remove_prefix_from_keys(std::unordered_map<std::string, std::shared_ptr<float []>>& state_map, const std::string& prefix);
 
+    void load_state(std::unordered_map<std::string, std::shared_ptr<float []>>& state_map);
 };
 
 #endif // LAYER_H
