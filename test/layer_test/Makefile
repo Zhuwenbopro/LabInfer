@@ -88,7 +88,7 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # 清理目标
 # =============================================================================
 clean:
-	mv *.bin ~/data
+	mv *.bin model.safetensors ~/data
 	rm -rf $(BUILD_DIR) $(TARGET)
 
 # =============================================================================

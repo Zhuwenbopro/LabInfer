@@ -31,10 +31,9 @@ Mlp::Mlp(const std::string& _name) : Layer("cpu", _name)
     middle_size = 8192;
     in_size = 2048;
     
-    layers.emplace("rms_norm", new RMSNorm(in_size, 1e-5, "rms_post"));
-    layers.emplace("gate_linear", new Linear(in_size, middle_size, "gate_linear"));
-    layers.emplace("up_linear", new Linear(in_size, middle_size, "up_linear"));
-    layers.emplace("down_linear", new Linear(middle_size, in_size, "down_linear"));
+    layers.emplace("gate_linear", new Linear(in_size, middle_size, "gate_proj"));
+    layers.emplace("up_linear", new Linear(in_size, middle_size, "up_proj"));
+    layers.emplace("down_linear", new Linear(middle_size, in_size, "down_proj"));
 }
 
 void Mlp::forward(Tensor& y, Tensor& x)
@@ -42,7 +41,6 @@ void Mlp::forward(Tensor& y, Tensor& x)
     Tensor gate("gate", {1, middle_size}, device, true, {x.elemNum()});
     Tensor up = gate.copy();
   
-    layers.at("rms_norm")->forward(x);
     layers.at("gate_linear")->forward(gate, x);
 
     F.get().silu(gate, gate.Size());
