@@ -10,6 +10,8 @@ public:
     // 删除默认构造函数
     Embedding() = delete;
     // Linear(const Config& config, const std::string& name = "Linear");
+    Embedding(Config& config);
+
     Embedding(const size_t vocab_size, const size_t hidden_size, const std::string& _name = "embed_tokens");
 
     // 覆盖基类的 forward 方法
@@ -23,7 +25,15 @@ private:
     size_t hidden_size;
 };
 
-// 初始化不分配内存，等到load的时候再分配
+Embedding::Embedding(Config& config) : Layer("cpu", "embed_tokens")
+{
+    vocab_size = config.get("vocab_size").get<size_t>();
+    hidden_size = config.get("hidden_size").get<size_t>();
+    
+    params.emplace("weight", Parameter("weight",{vocab_size, hidden_size}, "cpu"));
+}
+
+
 Embedding::Embedding(const size_t _vocab_size, const size_t _hidden_size, const std::string& _name) : Layer("cpu", _name)
 {
     vocab_size = _vocab_size;

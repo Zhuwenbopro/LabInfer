@@ -10,6 +10,7 @@ NVCC := nvcc
 SRC_DIR := ../../src
 DEVICE_DIR := $(SRC_DIR)/device
 BUILD_DIR := ../../build
+THIRD_PARTY_DIR := ./../../third_party
 
 INCLUDES := -I./../../include
 
@@ -31,7 +32,7 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # =============================================================================
 MACRO := -DUSE_CUDA
 CXXSTAND := -std=c++17
-CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO)
+CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -I$(THIRD_PARTY_DIR)
 NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO)
 
 # =============================================================================

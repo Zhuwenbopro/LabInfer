@@ -16,7 +16,7 @@ int main() {
     x[0] = 1; x[1] = 2;
     M[0] = 1; M[1] = 2; M[2] = 3; M[3] = 4; 
 
-    F.matmul(y.get(), x.get(), M.get(), size, size);
+    F.matmul(y.get(), x.get(), M.get(), size, size, 1);
 
     std::cout << "x:\t" << x[0] << "  " << x[1] << std::endl << std::endl;
     std::cout << "M:\t"<< M[0] << "  " << M[2] << std::endl

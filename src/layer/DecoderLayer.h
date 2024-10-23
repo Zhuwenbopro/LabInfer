@@ -10,11 +10,9 @@
 
 class DecoderLayer : public Layer {
 public:
-    // 构造函数，初始化线性层的输入和输出尺寸
-    // 删除默认构造函数
     DecoderLayer() = delete;
-    // Linear(const Config& config, const std::string& name = "Linear");
-    DecoderLayer(const std::string& _name="Decoder");
+
+    DecoderLayer(Config& config);
 
     // 覆盖基类的 forward 方法
     void forward(Tensor& y, Tensor& x, Tensor& pos) override;
@@ -23,15 +21,19 @@ public:
     virtual ~DecoderLayer() = default;
 };
 
-DecoderLayer::DecoderLayer(const std::string& _name) : Layer("cpu", _name) {
-    size_t hidden_size = 2048;
-    float epsilon = 1e-5;
+DecoderLayer::DecoderLayer(Config& config) : Layer("cpu", "Decoder") {
 
-    layers.emplace("input_layernorm", new RMSNorm(hidden_size, epsilon, "input_layernorm"));
-    layers.emplace("self_attn", new Attention("self_attn"));
-    layers.emplace("post_attention_layernorm", new RMSNorm(hidden_size, epsilon, "post_attention_layernorm"));
-    layers.emplace("mlp", new Mlp("mlp"));
+    size_t hidden_size = config.get("hidden_size").get<size_t>();
+    float epsilon = config.get("rms_norm_eps").get<float>();
+
+    layers.emplace("input_layernorm", new RMSNorm(config));
+    layers.at("input_layernorm")->setName("input_layernorm");
+    layers.emplace("self_attn", new Attention(config));
+    layers.emplace("post_attention_layernorm", new RMSNorm(config));
+    layers.at("post_attention_layernorm")->setName("post_attention_layernorm");
+    layers.emplace("mlp", new Mlp(config));
 }
+
 
 void DecoderLayer::forward(Tensor& y, Tensor& x, Tensor& pos)
 {

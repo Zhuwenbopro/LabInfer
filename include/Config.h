@@ -1,15 +1,47 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-class Config{
+#include <iostream>
+#include <fstream>
+#include <nlohmann/json.hpp>
+
+using Json = nlohmann::json;
+
+class Config {
+private:
+    Json config;
+
+    Config() = default;
+
 public:
-    int dim;            // 模型的维度 D
-    int hidden_dim;     // 隐藏层维度 DD
-    int n_layers;       // 层数 NL
-    int n_heads;        // 注意力头数 QHN, HN, HD = 48
-    int n_kv_heads;     // Key-Value头数 KVHN = 6
-    int vocab_size;     // 词汇表大小 VS
-    int max_seq_len;    // 最大序列长度 M
+    Config(const std::string& _config_path) {
+        std::ifstream inFile(_config_path);
+        if (inFile.is_open()) {
+            inFile >> config;
+            inFile.close();
+        } else {
+            std::cerr << "Could not open file for reading\n";
+            exit(-1);
+        }
+    }
+
+    Json get(const std::string& path) {
+        std::istringstream ss(path);
+        std::string token;
+        Json current = config;
+
+        // Split the string by '.' and navigate the JSON object
+        while (std::getline(ss, token, '.')) {
+            if (current.contains(token)) {
+                current = current[token];  // Move to the next nested object
+            } else {
+                throw std::invalid_argument("Invalid path: " + path);
+            }
+        }
+
+        return current;
+    }
+
 };
 
 #endif // CONFIG_H

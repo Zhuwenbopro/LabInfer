@@ -13,7 +13,7 @@ public:
     // 删除默认构造函数
     Attention() = delete;
     // Linear(const Config& config, const std::string& name = "Linear");
-    Attention(const std::string& _name = "self_attention");
+    Attention(Config& config);
 
     // 覆盖基类的 forward 方法
     void forward(Tensor& y, Tensor& x, Tensor& pos) override;
@@ -31,22 +31,22 @@ private:
 };
 
 // 初始化不分配内存，等到load的时候再分配
-Attention::Attention(const std::string& _name) : Layer("cpu", _name)
-{   
-    head_dim = 64;
-    attn_head = 32;
-    kv_head = 8;
-    hidden_size = 2048;
+Attention::Attention(Config& config) : Layer("cpu", "self_attn")
+{
+    head_dim = config.get("head_dim").get<size_t>();
+    attn_head = config.get("num_attention_heads").get<size_t>();
+    kv_head = config.get("num_key_value_heads").get<size_t>();
+    hidden_size = config.get("hidden_size").get<size_t>();
     q_dim = head_dim*attn_head;
     kv_dim = head_dim*kv_head;
-    
+
     layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_proj"));
     layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_proj"));
     layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_proj"));
     layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_proj"));
     layers.emplace("rope", new RoPE(head_dim));
-    
 }
+
 
 // 进去的 x 会变，y 可以等于 x
 void Attention::forward(Tensor& y, Tensor& x, Tensor& pos)

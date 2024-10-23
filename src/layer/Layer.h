@@ -6,6 +6,7 @@
 #include "Manager.h"
 #include "Parameter.h"
 #include "Tensor.h"
+#include "Config.h"
 #include <stdexcept>
 #include <vector>
 #include <unordered_map>
@@ -17,6 +18,7 @@ public:
             device(_device), name(_name), F(Manager::getInstance().getFunction(_device)) { }
 
     const std::string& Name() const { return name; }
+    void setName(const std::string& _name) { name = _name; }
     const std::string& Device() const { return device; }
 
     void to(const std::string& new_dev);
