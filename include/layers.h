@@ -5,7 +5,6 @@
 #include "../src/layer/Linear.h"
 #include "../src/layer/Softmax.h"
 #include "../src/layer/Embedding.h"
-#include "../src/layer/Silu.h"
 #include "../src/layer/RMSNorm.h"
 #include "../src/layer/RoPE.h"
 #include "../src/layer/Attention.h"

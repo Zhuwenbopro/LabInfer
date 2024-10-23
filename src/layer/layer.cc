@@ -74,8 +74,8 @@ void Layer::load_state(std::unordered_map<std::string, std::shared_ptr<float []>
             param.setValue(it->second);
             state_map.erase(it);
         } else {
-            // 这里到时候直接弹出来报错
             std::cout << name << "  " << param.Name() << "  Key not found!!!!" << param.Share() << std::endl;
+            exit(-1);
         }
     }
 

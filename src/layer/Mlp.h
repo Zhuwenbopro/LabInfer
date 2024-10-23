@@ -8,11 +8,9 @@
 
 class Mlp : public Layer {
 public:
-    // 构造函数，初始化线性层的输入和输出尺寸
-    // 删除默认构造函数
     Mlp() = delete;
-    // Linear(const Config& config, const std::string& name = "Linear");
-    Mlp(const std::string& _name = "mlp");
+
+    Mlp(Config& config);
 
     // 覆盖基类的 forward 方法
     void forward(Tensor& y, Tensor& x) override;
@@ -26,15 +24,17 @@ private:
 };
 
 // 初始化不分配内存，等到load的时候再分配
-Mlp::Mlp(const std::string& _name) : Layer("cpu", _name)
-{   
-    middle_size = 8192;
-    in_size = 2048;
-    
+
+Mlp::Mlp(Config& config) : Layer("cpu", "mlp")
+{
+    middle_size = config.get("intermediate_size").get<size_t>();
+    in_size = config.get("hidden_size").get<size_t>();
+
     layers.emplace("gate_linear", new Linear(in_size, middle_size, "gate_proj"));
     layers.emplace("up_linear", new Linear(in_size, middle_size, "up_proj"));
     layers.emplace("down_linear", new Linear(middle_size, in_size, "down_proj"));
 }
+
 
 void Mlp::forward(Tensor& y, Tensor& x)
 {

@@ -14,6 +14,8 @@ public:
     // Softmax(const Config& config, const std::string& name = "Softmax");
     RMSNorm(const size_t _dim, const float _epsilon = 1e-5, const std::string& _name = "RMSNorm");
 
+    RMSNorm(Config& config);
+
     // 覆盖基类的 forward 方法
     void forward(Tensor& x) override;
 
@@ -27,6 +29,14 @@ private:
 
 
 // 初始化不分配内存，等到load的时候再分配
+RMSNorm::RMSNorm(Config& config) : Layer("cpu", "RMSNorm") 
+{
+    dim = config.get("hidden_size").get<size_t>();
+    epsilon = config.get("rms_norm_eps").get<float>();
+
+    params.emplace("weight", Parameter("weight", {dim}, "cpu"));
+}
+
 RMSNorm::RMSNorm(const size_t _dim, const float _epsilon, const std::string& _name) : Layer("cpu", _name), dim(_dim), epsilon(_epsilon)
 {
     params.emplace("weight", Parameter("weight", {dim}, "cpu"));
