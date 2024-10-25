@@ -1,4 +1,5 @@
 #include "layers.h"
+#include "models.h"
 #include "Tensor.h"
 #include <fstream>
 #include <memory>
@@ -19,6 +20,8 @@
 
 std::unordered_map<std::string, std::shared_ptr<float []>> states;
 
+void check_tensor(Tensor& tensor);
+
 void check_pass(const std::string& message);
 void check_error(const std::string& message);
 bool compare_results(const float *a, const float *b, int size, float tolerance = 1e-3);
@@ -32,54 +35,65 @@ int main() {
 
     Config config("config.json");
 
-    const size_t batch = 1;
-    const size_t seq = 6;
-    const size_t vocab_size = 128256;
     const size_t hidden_state = 2048;
-    int output_size = 6 * hidden_state;
+    Llama llama = Llama(config);
+    std::cout << "loading model..." << std::endl;
+    llama.load_state("./model.safetensors");
+    std::cout << "loaded model" << std::endl;
 
-    Embedding embedding = Embedding(config);
-    embedding.setName("model.embed_tokens");
-    embedding.load_state("./model.safetensors");
 
-    Tensor x("embedding input", {batch, seq}, "cpu", true);
-    x[0] = 128000;  x[1] = 791;     x[2] = 1401;
-    x[3] = 311;     x[4] = 2324;    x[5] = 374;
-    Tensor embedding_tensor("embedding output", {batch, hidden_state}, "cpu", true, {seq});
+    std::vector<std::vector<size_t>> input_ids = {{128000, 791, 1401, 311, 2324, 374}};
+    Tensor x({input_ids});
+    x.setName("input_ids");
+    // check_tensor(x);
 
-    Tensor embedding_check("result", {batch, hidden_state}, "cpu", true, {seq});
-    read_bin(embedding_check, embedding_check.Size(), "embedding_tensor.bin");
+    Tensor y(x, hidden_state);
+    Tensor y_check = y.copy();
+    // read_bin(y_check, y_check.Size(), "embedding_tensor.bin");
+    read_bin(y_check, y_check.Size(), "llama_layer_15_output.bin");
 
-    embedding.forward(embedding_tensor, x);
 
-    if (compare_results(embedding_tensor, embedding_check, embedding_check.Size())) {
-        check_pass("[" + embedding.Name() +"] " + embedding.Device() + " results correct.");
+    llama.forward(y, x);
+
+
+    if (compare_results(y_check, y, y_check.Size(), 6e-2)) {
+        check_pass("[" + llama.Name() +"] " + llama.Device() + " results correct.");
     } else {
-        check_error("[" + embedding.Name() +"] " + embedding.Device() + " results error!");
+        check_error("[" + llama.Name() +"] " + llama.Device() + " results error!");
     }
     
+    std::cout << y_check[3000] << "end" << y[3000] << std::endl;
 
-
-    Tensor pos("position", {batch, seq}, "cpu", true);
-    pos[0] = 0; pos[1] = 1; pos[2] = 2;
-    pos[3] = 3; pos[4] = 4; pos[5] = 5;
-    DecoderLayer decoder_layer = DecoderLayer(config);
-    decoder_layer.setName("model.layers.0");
-    decoder_layer.load_state("./model.safetensors");
-    Tensor decoder_check("decoder_check", {batch, hidden_state}, "cpu", true, {seq});
-    read_bin(decoder_check, decoder_check.Size(), "layer0_output.bin");
-
-    decoder_layer.forward(embedding_tensor, embedding_tensor, pos);
-    
-    if (compare_results(embedding_tensor, decoder_check, decoder_check.Size(), 6e-2)) {
-        check_pass("[" + decoder_layer.Name() +"] " + decoder_layer.Device() + " results correct.");
-    } else {
-        check_error("[" + decoder_layer.Name() +"] " + decoder_layer.Device() + " results error!");
-    }
-
-    // Attention attention("atten");
-    // attention.load_state("./model.safetensors");
     return 0;
+}
+
+void check_tensor(Tensor& tensor) {
+
+    std::cout << std::endl << " check tensor:" << std::endl;
+    for(int i = 0; i < tensor.Size(); i++) {
+        std::cout << tensor[i] << std::endl;
+    }
+
+    std::cout << "Name:" << tensor.Name() << std::endl;
+    std::cout << "Device:" << tensor.Device() << std::endl;
+    std::cout << "elemLen:" << tensor.elemLen() << std::endl;
+    std::cout << "elemNum:" << tensor.elemNum() << std::endl;
+
+    std::cout << "batchSize:" << tensor.batchSize() << std::endl;
+
+    std::cout << "Uid:" << std::endl;
+    const std::vector<size_t>& uid = tensor.Uid();
+    for(int i = 0; i < uid.size(); i++) {
+        std::cout << uid[i] << std::endl;
+    }
+
+    std::cout << "Seq:" << std::endl;
+    const std::vector<size_t>& seq = tensor.Seq();
+    for(int i = 0; i < seq.size(); i++) {
+        std::cout << seq[i] << std::endl;
+    }
+
+    std::cout << "check tensor end" << std::endl;
 }
 
 void check_pass(const std::string&  message){
@@ -95,12 +109,13 @@ float fabs(float c){
 }
 
 bool compare_results(const float *a, const float *b, int size, float tolerance) {
+    std::cout << "Comparing results...   size:" << size << std::endl;
     bool flag = true;
     for (int i = 0; i < size; ++i) {
         if (fabs(a[i] - b[i]) > tolerance) {
             std::cout << "Difference at index " << i << ": " << a[i] << " vs " << b[i] << std::endl;
             flag = false;
-            // break;
+            //break;
         }
     }
     return flag;

@@ -38,7 +38,9 @@ public:
     bool FindMem(const std::string& name);
 
     // 分配 device 里大小为 size 的内存
-    std::shared_ptr<float[]> allocate(const size_t size, const std::string& device);
+    std::shared_ptr<float[]> allocateShared(const size_t size, const std::string& device);
+
+    float* allocateRaw(const size_t size, const std::string& device);
 
     void toDevice(std::shared_ptr<float[]>& ptr, const size_t size, 
                                     std::string& from_dev, const std::string& to_dev);

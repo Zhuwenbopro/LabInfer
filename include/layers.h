@@ -10,5 +10,6 @@
 #include "../src/layer/Attention.h"
 #include "../src/layer/Mlp.h"
 #include "../src/layer/DecoderLayer.h"
+#include "../src/layer/LayerList.h"
 
 #endif

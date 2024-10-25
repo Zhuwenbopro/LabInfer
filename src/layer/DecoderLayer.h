@@ -12,7 +12,7 @@ class DecoderLayer : public Layer {
 public:
     DecoderLayer() = delete;
 
-    DecoderLayer(Config& config);
+    DecoderLayer(Config& config, const std::string& name = "decoder_layer");
 
     // 覆盖基类的 forward 方法
     void forward(Tensor& y, Tensor& x, Tensor& pos) override;
@@ -21,7 +21,7 @@ public:
     virtual ~DecoderLayer() = default;
 };
 
-DecoderLayer::DecoderLayer(Config& config) : Layer("cpu", "Decoder") {
+DecoderLayer::DecoderLayer(Config& config, const std::string& _name) : Layer("cpu", _name) {
 
     size_t hidden_size = config.get("hidden_size").get<size_t>();
     float epsilon = config.get("rms_norm_eps").get<float>();
@@ -38,9 +38,9 @@ DecoderLayer::DecoderLayer(Config& config) : Layer("cpu", "Decoder") {
 void DecoderLayer::forward(Tensor& y, Tensor& x, Tensor& pos)
 {
     Tensor _x = x.copy();
-    
-    layers.at("input_layernorm")->forward(x);
 
+    layers.at("input_layernorm")->forward(x);
+    
     layers.at("self_attn")->forward(x, x, pos);
     F.get().add(x, x, _x, x.Size());
 

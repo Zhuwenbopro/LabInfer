@@ -9,9 +9,9 @@ int main() {
     Function& F = manager.getFunction("cpu");
 
     size_t size = 2;
-    std::shared_ptr<float[]> x = manager.allocate(size, "cpu");
-    std::shared_ptr<float[]> M = manager.allocate(size*size, "cpu");
-    std::shared_ptr<float[]> y = manager.allocate(size, "cpu");
+    std::shared_ptr<float[]> x = manager.allocateShared(size, "cpu");
+    std::shared_ptr<float[]> M = manager.allocateShared(size*size, "cpu");
+    std::shared_ptr<float[]> y = manager.allocateShared(size, "cpu");
 
     x[0] = 1; x[1] = 2;
     M[0] = 1; M[1] = 2; M[2] = 3; M[3] = 4; 

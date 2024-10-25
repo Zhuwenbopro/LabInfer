@@ -39,6 +39,10 @@ public:
         throw std::logic_error(name + " forward(Tensor& y, Tensor& x1, Tensor& x2) not implemented.");
     }
 
+    virtual void add_layer(Layer* layer, const std::string& name = "x") { 
+        throw std::logic_error(name + " add_layer(Layer* layer) not implemented."); 
+    }
+
     // 虚析构函数，确保派生类的析构函数被调用
     virtual ~Layer() = default;
 
