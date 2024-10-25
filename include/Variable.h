@@ -39,18 +39,27 @@ public:
     // 实现设备间传输方法
     virtual void to(const std::string& new_dev);
 
+    const size_t elemNum() const { return elem_num; }
+    const size_t elemLen() const { return elem_len; }
+
 protected:
     // value 是一个 std::shared_ptr<float[]> 对象，不是一个原始指针。
     // value 持有一个指向 float 类型对象的指针，即 float*。这个指针指向动态分配的内存空间。
     std::shared_ptr<float[]> value;           // 数据指针
-    std::vector<size_t> shape;                // 数据形状
-    size_t size;                              // 数据大小（元素个数）
+    std::vector<size_t> shape;                // 数据形状 to be deleted
     std::string name;                         // 变量名称
     std::string device;                          // 设备
+
+    size_t size;
+    size_t elem_len;
+    size_t elem_num;
 
     // 构造函数
     Variable(const std::string& _name, const std::vector<size_t>& _shape, const std::string& _device) 
                                             : shape(_shape), size(1), name(_name), device(_device) {  }
+    
+    Variable(const size_t _num, const size_t _len , const std::string& _device)
+                                            : size(_num * _len), device(_device), elem_len(_len), elem_num(_num) { }
     
     // 深拷贝
     void _copy(const Variable& from);

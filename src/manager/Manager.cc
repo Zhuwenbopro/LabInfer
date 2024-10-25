@@ -11,7 +11,7 @@ void Manager::toDevice(std::shared_ptr<float[]>& ptr, const size_t size,
     Device* fromDevice = deviceManager.getDevice(from_dev);
     Device* toDevice = deviceManager.getDevice(to_dev);
     
-    std::shared_ptr<float[]> to_value = allocate(size, to_dev);
+    std::shared_ptr<float[]> to_value = allocateShared(size, to_dev);
 
     if(from_dev != "cpu"){
         if(to_dev == "cpu") { // non-cpu to cpu
@@ -35,7 +35,7 @@ Function& Manager::getFunction(const std::string& deviceName) {
     return *(dev->F);
 }
 
-std::shared_ptr<float[]> Manager::allocate(const size_t size, const std::string& deviceName) {
+std::shared_ptr<float[]> Manager::allocateShared(const size_t size, const std::string& deviceName) {
     Device * dev = deviceManager.getDevice(deviceName);
     float* raw_ptr = dev->allocate(size);
 
@@ -49,13 +49,18 @@ std::shared_ptr<float[]> Manager::allocate(const size_t size, const std::string&
     return std::shared_ptr<float[]>(raw_ptr, deleter);
 }
 
+float* Manager::allocateRaw(const size_t size, const std::string& deviceName) {
+    Device * dev = deviceManager.getDevice(deviceName);
+    return dev->allocate(size);
+}
+
 std::shared_ptr<float[]> Manager::deepCopy(const std::shared_ptr<float[]>& ptr, size_t size, const std::string& deviceName) {
     if (!ptr) {
         throw std::logic_error("ptr in Manager::deepCopy() is null");
         return nullptr;
     }
 
-    std::shared_ptr<float[]> cptr = allocate(size, deviceName);
+    std::shared_ptr<float[]> cptr = allocateShared(size, deviceName);
 
     Device * dev = deviceManager.getDevice(deviceName);
     dev->copy(ptr.get(), cptr.get(), size);

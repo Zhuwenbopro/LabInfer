@@ -38,7 +38,7 @@ Mlp::Mlp(Config& config) : Layer("cpu", "mlp")
 
 void Mlp::forward(Tensor& y, Tensor& x)
 {
-    Tensor gate("gate", {1, middle_size}, device, true, {x.elemNum()});
+    Tensor gate(x, middle_size);
     Tensor up = gate.copy();
   
     layers.at("gate_linear")->forward(gate, x);

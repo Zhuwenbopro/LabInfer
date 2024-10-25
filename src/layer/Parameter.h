@@ -18,7 +18,7 @@ public:
         
         if(_malloc_mem) {
             Manager& manager = Manager::getInstance();
-            value = manager.allocate(size, device);
+            value = manager.allocateShared(size, device);
         }
     }
 

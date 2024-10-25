@@ -2,43 +2,47 @@
 #define TENSOR_H
 
 #include "Variable.h"
+#include <cassert>
+#include <numeric>
 
 
 class Tensor : public Variable {
 public:
-    // 构造函数
-    // Tensor 的 _shape 会略去 seq 这个维度，在 decode 时默认为1，prefill 时为 const std::vector<size_t>& _seq 不记录在 _shape 中
-    // [batch, seq, ...] 可能会在 seq 出现不同
-    Tensor(const std::string& _name, const std::vector<size_t>& _shape, 
-        const std::string& _device = "cpu", bool _malloc_mem = false, const std::vector<size_t>& _seq = {1}) 
-        : Variable(_name, _shape, _device), seq(_seq), elem_num(0), elem_size(1) {
+    // 给最开始的人用的, name 不需要，device 等到用到的时候手动.to() 
+    Tensor(std::vector<std::vector<size_t>> input_ids) : Variable(0, 1, "cpu") {
 
-        if(shape[0] != seq.size()) {
-            std::cout << "shape[0] = " << shape[0] << "  vs  seq.size() = " << seq.size() << std::endl;
-            throw std::logic_error("tensor shape[0] batch != seq.size()");
+        batch_size = input_ids.size();
+
+        static size_t guid = 0;
+        elem_num = 0;
+        for (const auto& vec : input_ids) {
+            elem_num += vec.size();
+            seq.push_back(vec.size());
+            uid.push_back(++guid);
         }
+        size = elem_num * elem_len;
 
-        batch_size = shape[0];
-        
-        for(int j = 1; j < _shape.size(); j++) {
-            elem_size *= _shape[j];
+        Manager& manager = Manager::getInstance();
+        value = manager.allocateShared(size, device);
+
+        int _index = 0;
+        for(int i = 0; i < input_ids.size(); i++) {
+            for(int j = 0; j < input_ids[i].size(); j++) {
+                value[_index++] = input_ids[i][j];
+            }
         }
+    }
 
-        for(int j = 0; j < _seq.size(); j++) {
-            elem_num += _seq[j];
-        }
-
-        size = elem_num * elem_size;
-
-        if(_malloc_mem) {
-            Manager& manager = Manager::getInstance();
-            value = manager.allocate(size, device);
-        }
+    // 给 layer 用的， _malloc_mem 就是 true？
+    Tensor(const Tensor& _t, const size_t elemLen) : Variable(_t.elemNum(), elemLen, _t.Device()), 
+                                            batch_size(_t.batchSize()), uid(_t.Uid()), seq(_t.Seq()) {
+        Manager& manager = Manager::getInstance();
+        value = manager.allocateShared(size, device);
     }
 
     // 深拷贝函数
     Tensor copy() const {
-        Tensor copy_tensor = Tensor(name, shape, device, false, seq);
+        Tensor copy_tensor(*this, elem_len);
         copy_tensor._copy(*this);
         
         return copy_tensor;
@@ -47,15 +51,14 @@ public:
     // 虚析构函数
     ~Tensor() override { }
 
-    const std::vector<size_t>& Seq() const { return seq; }
-    const size_t batchSize() { return batch_size; }
-    const size_t elemNum() const { return elem_num; }
-    const size_t elemLen() const { return elem_size; }
+    const std::vector<size_t>& Uid() const { return uid; }
+    const std::vector<size_t>& Seq() const { return seq; }  // to be deleted
+    const size_t batchSize() const { return batch_size; }         // to be deleted
+
 private:
     size_t batch_size;
     std::vector<size_t> seq;
-    size_t elem_size;
-    size_t elem_num;
+    std::vector<size_t> uid;
 };
 
 #endif

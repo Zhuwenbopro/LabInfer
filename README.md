@@ -7,8 +7,8 @@
 **TODO List**
 #### 第一阶段 v0.1
 分词器 tokenizer : encode、decode 暂时先用 [huggingface](https://github.com/huggingface/tokenizers) 的吧，之后再说
-- [ ] 各种 transformer 层 layers
-- [ ] state load -- [safetensor]([https://github.com/syoyo/safetensors-cpp)
+- [x] 各种 transformer 层 layers
+- [x] state load -- [safetensor]([https://github.com/syoyo/safetensors-cpp)
 - [ ] 每层采样计算时间，用于后续评估
 - [ ] 手工搭一个[模型测试推理](https://huggingface.co/meta-llama/Llama-3.2-1B/tree/main?library=transformers)
 - [ ] 支持 kv cache
@@ -36,7 +36,7 @@
 - [ ] 优化 RoPE
 
 **detail**
-- [ ] 使用智能指针解决variable和layer内存问题，防止内存泄漏
+- [x] 使用智能指针解决variable和layer内存问题，防止内存泄漏
 
 ## 设计
 * **设计目标**：异构的、可调度的、支持分布式的推理服务程序。

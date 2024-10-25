@@ -51,13 +51,17 @@ Attention::Attention(Config& config) : Layer("cpu", "self_attn")
 // 进去的 x 会变，y 可以等于 x
 void Attention::forward(Tensor& y, Tensor& x, Tensor& pos)
 {   
-    Tensor q("query", x.Shape(), device, true, x.Seq());
-    Tensor k("key", {x.batchSize(), kv_dim}, device, true, x.Seq());
-    Tensor v("query", {x.batchSize(), kv_dim}, device, true, x.Seq());
+    //Tensor q("query", x.Shape(), device, true, x.Seq());
+    Tensor q(x, x.elemLen());
+    Tensor k(x, kv_dim);
+    Tensor v(x, kv_dim);
+    //Tensor k("key", {x.batchSize(), kv_dim}, device, true, x.Seq());
+    //Tensor v("query", {x.batchSize(), kv_dim}, device, true, x.Seq());
 
     layers.at("q_linear")->forward(q, x);
     layers.at("k_linear")->forward(k, x);
     layers.at("v_linear")->forward(v, x);
+
 
 // FIXME: 这里的 pos 在 rope 里需要在 device 上，但在 attention 中需要在 CPU 里
     pos.to(device);
@@ -65,7 +69,8 @@ void Attention::forward(Tensor& y, Tensor& x, Tensor& pos)
     layers.at("rope")->forward(k, pos);
     pos.to("cpu");
 
-    Tensor o("output", x.Shape(), device, true, x.Seq());
+    //Tensor o("output", x.Shape(), device, true, x.Seq());
+    Tensor o(x, x.elemLen());
     for(int p = 0; p < pos.Size(); p++) {
         float* output = o + p * hidden_size;
         float* query = q + p * hidden_size;

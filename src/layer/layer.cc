@@ -74,7 +74,7 @@ void Layer::load_state(std::unordered_map<std::string, std::shared_ptr<float []>
             param.setValue(it->second);
             state_map.erase(it);
         } else {
-            std::cout << name << "  " << param.Name() << "  Key not found!!!!" << param.Share() << std::endl;
+            std::cout << name << "  " << param.Name() << "  Key not found!!!! " << param.Share() << std::endl;
             exit(-1);
         }
     }
@@ -125,13 +125,13 @@ void Layer::load_state(char * filename) {
         void *temp_buffer = malloc(size);
 	    if(!temp_buffer) die("Can't malloc %lli bytes", (long long) size);
         if(size != (int64_t)fread(temp_buffer, 1, size, file)) die("cant fread temp_buffer");
-        std::cout << t.dtype << "  " << tensor_name << "  " << size << std::endl;
+        //std::cout << t.dtype << "  " << tensor_name << "  " << size << std::endl;
 
         // FIXME:现在只能够暂时将float16转换成float32
         // 且只能读到 cpu 中
         if(t.dtype == SAFETENSORS_F16) {
             size /= 2;
-            std::shared_ptr<float []> mem = manager.allocate(size, device);     // FIXME: 这里的device必是cpu
+            std::shared_ptr<float []> mem = manager.allocateShared(size, device);     // FIXME: 这里的device必是cpu
             for(int j = 0; j < size; j++) {
                 uint16_t h = *(static_cast<uint16_t*>(temp_buffer) + j);
                 mem[j] = f16_to_f32(h);
@@ -139,7 +139,7 @@ void Layer::load_state(char * filename) {
             state_map.emplace(tensor_name, mem);
         } else if(t.dtype == SAFETENSORS_F32) {
             size /= 4;
-            std::shared_ptr<float []> mem = manager.allocate(size, device);     // FIXME: 这里的device必是cpu
+            std::shared_ptr<float []> mem = manager.allocateShared(size, device);     // FIXME: 这里的device必是cpu
             for(int j = 0; j < size; j++) {
                 mem[j] = *(static_cast<float*>(temp_buffer) + j);
             }
@@ -149,7 +149,7 @@ void Layer::load_state(char * filename) {
             exit(-1);
         } else if(t.dtype == SAFETENSORS_BF16) {    // FIXME: 这里能做大优化
             size /= 2;
-            std::shared_ptr<float []> mem = manager.allocate(size, device);     // FIXME: 这里的device必是cpu
+            std::shared_ptr<float []> mem = manager.allocateShared(size, device);     // FIXME: 这里的device必是cpu
             for(int j = 0; j < size; j++) {
                 uint16_t h = *(static_cast<uint16_t*>(temp_buffer) + j);
                 mem[j] = bf16_to_f32(h);
@@ -165,71 +165,6 @@ void Layer::load_state(char * filename) {
 
     load_state(state_map);
     return;
-
-/*
-
-    int64_t sz = 0;
-	void * file = read_file(filename, &sz);
-    
-    safetensors_File f = {0};
-
-    // file is memory, sz is file size, f is self-defined struct
-	char * result = safetensors_file_init(file, sz, &f); 
-	if(result) {
-		std::cerr << "Error: load_state safetensors_file_init failed!" << std::endl;
-        exit(-1);
-	}
-
-    // safetensors_MetadataEntry m = f.metadata[i];  format = pt
-    std::unordered_map<std::string, std::shared_ptr<float []>> state_map;
-    Manager& manager = Manager::getInstance();
-
-    for(int i = 0; i < f.num_tensors; i++) {
-        safetensors_TensorDescriptor t = f.tensors[i];
-        size_t size = t.end_offset_bytes - t.begin_offset_bytes;
-        std::string tensor_name(t.name.ptr, t.name.len);
-
-        std::cout << t.dtype << "  " << tensor_name << "  " << size << std::endl;
-
-        // FIXME:现在只能够暂时将float16转换成float32
-        // 且只能读到 cpu 中
-        if(t.dtype == SAFETENSORS_F16) {
-            size /= 2;
-            std::shared_ptr<float []> mem = manager.allocate(size, device);     // FIXME: 这里的device必是cpu
-            for(int j = 0; j < size; j++) {
-                uint16_t h = *(static_cast<uint16_t*>(t.ptr) + j);
-                mem[j] = f16_to_f32(h);
-            }
-            state_map.emplace(tensor_name, mem);
-        } else if(t.dtype == SAFETENSORS_F32) {
-            size /= 4;
-            std::shared_ptr<float []> mem = manager.allocate(size, device);     // FIXME: 这里的device必是cpu
-            for(int j = 0; j < size; j++) {
-                mem[j] = *(static_cast<float*>(t.ptr) + j);
-            }
-            state_map.emplace(tensor_name, mem);
-        } else if(t.dtype == SAFETENSORS_F64) {
-            std::cerr << "Error: not supported dtype: SAFETENSORS_F64" << std::endl;
-            exit(-1);
-        } else if(t.dtype == SAFETENSORS_BF16) {    // FIXME: 这里能做大优化
-            size /= 2;
-            std::shared_ptr<float []> mem = manager.allocate(size, device);     // FIXME: 这里的device必是cpu
-            for(int j = 0; j < size; j++) {
-                uint16_t h = *(static_cast<uint16_t*>(t.ptr) + j);
-                mem[j] = bf16_to_f32(h);
-            }
-            state_map.emplace(tensor_name, mem);
-        }
-	}
-
-    std::cout << "state_map size: " << state_map.size() << std::endl;
-
-    for (auto& [_name, _ptr] : state_map) {
-        std::cout << _name << std::endl;  // name 是从 state_map 中提取的键，应该能打印出 tensor_name
-    }
-
-    free(file);
-*/
 }
 
 void Layer::remove_prefix_from_keys(std::unordered_map<std::string, 
