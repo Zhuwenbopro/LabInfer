@@ -84,7 +84,7 @@ void Layer::load_state(std::unordered_map<std::string, std::shared_ptr<float []>
     }
 }
 
-void Layer::load_state(char * filename) {
+void Layer::load_state(char * filename, bool tie_weights) {
     if (!filename) {
         std::cerr << "Error: load_state filename is null!" << std::endl;
         exit(-1);
@@ -127,6 +127,7 @@ void Layer::load_state(char * filename) {
         if(size != (int64_t)fread(temp_buffer, 1, size, file)) die("cant fread temp_buffer");
         //std::cout << t.dtype << "  " << tensor_name << "  " << size << std::endl;
 
+
         // FIXME:现在只能够暂时将float16转换成float32
         // 且只能读到 cpu 中
         if(t.dtype == SAFETENSORS_F16) {
@@ -156,8 +157,13 @@ void Layer::load_state(char * filename) {
             }
             state_map.emplace(tensor_name, mem);
         }
-        
+
         free(temp_buffer);
+    }
+
+    // 共享 embedding 和 decoding lm_head 权重
+    if(tie_weights) {
+        state_map.emplace("model.lm_head.weight", state_map.at("model.embed_tokens.weight"));
     }
 
     free(head_buffer);

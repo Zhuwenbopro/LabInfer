@@ -12,6 +12,7 @@
 #include "add_cuda.h"
 #include "embedding_cuda.h"
 #include "attention_cuda.h"
+#include "max_index_cuda.h"
 
 // 如果有更多的头文件，继续添加
 // #include "another_function.h"
@@ -22,8 +23,12 @@ public:
         std::cout << "Function in CUDA" << std::endl;
     }
 
-    void matmul(float *y, const float *x, const float *w, const int n, const int d, const int batch_size = 1) override {
-        matmul_cuda(y, x, w, n, d, batch_size);
+    void matmul(float**y, float**x, float* W, int n, int d, int num) override {
+        matmul_cuda(y, x, W, n, d, num);
+    }
+
+    void matmul(float *y, const float *x, const float *w, const int n, const int d, const int num) override {
+        matmul_cuda(y, x, w, n, d, num);
     }
 
     void rmsnorm(float* x, const float* w, const int n, int batch_size = 1, const float epsilon=1e-5) override {
@@ -58,6 +63,9 @@ public:
         elem_multiply_cuda(y, x1, x2, size);
     }
 
+    void max_index(float* index, float* x, const int n, const int num) override {
+        max_index_cuda(index, x, n, num);
+    }
 };
 
 #endif // CUDA_FUNCTION_H

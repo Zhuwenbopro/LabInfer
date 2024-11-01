@@ -23,7 +23,7 @@ public:
 
     void to(const std::string& new_dev);
 
-    void load_state(char * filename);
+    void load_state(char * filename, bool tie_weights = false);
 
     Parameter& Param(const std::string& _name) { return params.at(_name); }
 

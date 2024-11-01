@@ -36,6 +36,7 @@ public:
     * @param[in] num 有几个 x。
     */
     virtual void matmul(float* y, const float *x, const float *W, const int n, const int d, const int num) = 0;
+    virtual void matmul(float**y, float**x, float* W, int n, int d, int num) = 0;
 
     virtual void softmax(float* x, const int n, const int batch_size = 1) = 0;
 
@@ -79,6 +80,8 @@ public:
     virtual void maksed_attention(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos) = 0;
 
     virtual void elem_multiply(float* y, const float* x1, const float* x2, const int size) = 0;
+
+    virtual void max_index(float* index, float* x, const int n, const int num) = 0;
 };
 
 #endif // Function_H

@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include "matmul_cuda.h"
 #include "common.h"
+#include <chrono>
 
 // CUDA 内核实现矩阵乘法
 __global__ void matmul_kernel(float *xout, const float *x, const float *w, int n, int d, int batch_size) {
@@ -17,17 +18,36 @@ __global__ void matmul_kernel(float *xout, const float *x, const float *w, int n
     xout[batch_idx * d + i] = sum;
 }
 
-void matmul_cuda(float *y, const float *x, const float *w, int n, int d, int batch_size) {
+
+void matmul_cuda(float**y, float**x, float *w, int n, int d, int num) {
+    int blockSize = num_threads_small;
+    int gridSizeX = (d + blockSize - 1) / blockSize;
+    auto start = std::chrono::high_resolution_clock::now();
+    for(int i = 0; i < num; i++) {
+        matmul_kernel<<<gridSizeX, blockSize>>>(y[i], x[i], w, n, d, 1);
+    }
+    cudaDeviceSynchronize();
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    std::cout << "耗时: " << duration.count() << " 微秒" << std::endl;
+    cudaDeviceSynchronize();
+}   
+
+void matmul_cuda(float *y, const float *x, const float *w, int n, int d, int num) {
 
     // 计算线程块和网格大小
     int blockSize = num_threads_small;
     int gridSizeX = (d + blockSize - 1) / blockSize;
-    int gridSizeY = batch_size;
+    int gridSizeY = num;
     dim3 gridSize(gridSizeX, gridSizeY);
 
-    // 调用 CUDA 内核
-    matmul_kernel<<<gridSize, blockSize>>>(y, x, w, n, d, batch_size);
-
+    auto start = std::chrono::high_resolution_clock::now();
+    matmul_kernel<<<gridSize, blockSize>>>(y, x, w, n, d, num);
+    cudaDeviceSynchronize();
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    std::cout << "-耗时: " << duration.count() << " 微秒" << std::endl;
+    
 }
 
 __global__ void elem_multiply_cuda_kernel(float* y, const float* x1, const float* x2, int size) {

@@ -27,9 +27,6 @@ void check_error(const std::string& message);
 bool compare_results(const float *a, const float *b, int size, float tolerance = 1e-3);
 
 void read_bin(float* ptr, size_t num, const std::string& filename);
-void test_layer(Layer& layer, Tensor& result, Tensor& x1, Tensor& x2, Tensor& real_result, float e = 1e-2);
-void test_layer(Layer& layer, Tensor& result, Tensor& x, Tensor& real_result, float e = 1e-2);
-void test_layer(Layer& layer, Tensor& result, Tensor& real_result, float e = 1e-2);
 
 int main() {
 
@@ -38,7 +35,7 @@ int main() {
     const size_t hidden_state = 2048;
     Llama llama = Llama(config);
     std::cout << "loading model..." << std::endl;
-    llama.load_state("./model.safetensors");
+    llama.load_state("./model.safetensors", true);
     std::cout << "loaded model" << std::endl;
 
 
@@ -50,7 +47,7 @@ int main() {
     Tensor y(x, hidden_state);
     Tensor y_check = y.copy();
     // read_bin(y_check, y_check.Size(), "embedding_tensor.bin");
-    read_bin(y_check, y_check.Size(), "llama_layer_15_output.bin");
+    read_bin(y_check, y_check.Size(), "norm.bin");
 
 
     llama.forward(y, x);
@@ -115,81 +112,12 @@ bool compare_results(const float *a, const float *b, int size, float tolerance) 
         if (fabs(a[i] - b[i]) > tolerance) {
             std::cout << "Difference at index " << i << ": " << a[i] << " vs " << b[i] << std::endl;
             flag = false;
-            //break;
+            break;
         }
     }
     return flag;
 }
 
-
-void test_layer(Layer& layer, Tensor& result, Tensor& x1, Tensor& x2, Tensor& real_result, float e) {
-    x1.to(layer.Device());
-    result.to(layer.Device());
-
-    auto start = std::chrono::high_resolution_clock::now();
-    layer.forward(result, x1, x2);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
-
-    if(layer.Device() != "cpu")
-        result.to("cpu");
-    
-    if (compare_results(result, real_result, result.Size(), e)) {
-        check_pass("[" + layer.Name() +"] " + layer.Device() + " results correct.");
-    } else {
-        check_error("[" + layer.Name() +"] " + layer.Device() + " results error!");
-    }
-}
-
-void test_layer(Layer& layer, Tensor& result, Tensor& x, Tensor& real_result, float e) {
-    x.to(layer.Device());
-    result.to(layer.Device());
-
-    auto start = std::chrono::high_resolution_clock::now();
-    layer.forward(result, x);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
-
-    if(layer.Device() != "cpu")
-        result.to("cpu");
-    
-    if (compare_results(result, real_result, result.Size(), e)) {
-        check_pass("[" + layer.Name() +"] " + layer.Device() + " results correct.");
-    } else {
-        check_error("[" + layer.Name() +"] " + layer.Device() + " results error!");
-    }
-}
-
-void test_layer(Layer& layer, Tensor& result, Tensor& real_result, float e) {
-    result.to(layer.Device());
-
-    auto start = std::chrono::high_resolution_clock::now();
-    layer.forward(result);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Execution time: " << duration << " microseconds" << std::endl;
-
-    if(layer.Device() != "cpu")
-        result.to("cpu");
-    
-    if (compare_results(result, real_result, result.Size(), e)) {
-        check_pass("[" + layer.Name() +"] " + layer.Device() + " results correct.");
-    } else {
-        check_error("[" + layer.Name() +"] " + layer.Device() + " results error!");
-    }
-}
-
-// void load_layer(Layer& layer, const std::string filename, const std::vector<size_t>& weight_shape, const std::string map_name) {
-//     if(layer.Device() != "cpu"){
-        
-//     }
-//     Parameter weight("weight", weight_shape, "cpu", true);
-//     read_bin(weight, weight.Size(), filename);
-//     states[map_name] = weight.sharedPtr();
-//     layer.load_state(states);
-// }
 
 void read_bin(float* ptr, size_t num, const std::string& filename) {
     // 打开二进制文件

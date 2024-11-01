@@ -5,7 +5,8 @@
 #include "Function.h"
 #include <cstring>
 
-void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int batch_size);
+void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int num);
+void matmul_cpu(float **y, float **x, float *W, int n, int d, int num);
 void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float epsilon);
 void softmax_cpu(float *x, int n, int batch_size);
 void apply_rope_cpu(float *_x, const float *pos, const float *_cos, const float *_sin, const int n, const int dim, const int num);
@@ -14,14 +15,19 @@ void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_
 void embedding_cpu(float* y, const float* x, const float* W, const int d, const int x_size);
 void maksed_attention_cpu(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos);
 void elem_multiply_cpu(float* y, const float* x1, const float* x2, const int size);
+void max_index_cpu(float* index, float* x, const int n, const int num);
 
 class CPUFunction : public Function {
     void whereami() override {
         std::cout << "Function in CPU" << std::endl;
     }
 
-    void matmul(float *y, const float *x, const float *w, const int n, const int d, const int batch_size = 1) override {
-        matmul_cpu(y, x, w, n, d, batch_size);
+    void matmul(float *y, const float *x, const float *w, const int n, const int d, const int num = 1) override {
+        matmul_cpu(y, x, w, n, d, num);
+    }
+
+    void matmul(float**y, float**x, float* W, int n, int d, int num) override {
+        matmul_cpu(y, x, W, n, d, num);
     }
 
     void rmsnorm(float* x, const float* w, const int n, const int batch_size = 1, const float epsilon=1e-5) override {
@@ -54,6 +60,10 @@ class CPUFunction : public Function {
 
     void elem_multiply(float* y, const float* x1, const float* x2, const int size) override {
         elem_multiply_cpu(y, x1, x2, size);
+    }
+
+    void max_index(float* index, float* x, const int n, const int num) override {
+        max_index_cpu(index, x, n, num);
     }
 };
 #endif // CPU_FUNCTION_H

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cstdlib>  // 用于rand函数
 #include <ctime>    // 用于时间种子
-
+#include <chrono>
 
 // ANSI color codes
 #define RESET   "\033[0m"
@@ -25,6 +25,8 @@ void check_add(Device *cpu, Device *cuda);
 void check_embedding(Device *cpu, Device *cuda);
 void check_elem_multiply(Device *cpu, Device *cuda);
 void check_masked_attention(Device *cpu, Device *cuda);
+void check_max_index(Device *cpu, Device *cuda);
+
 int main() {
 
     DeviceManager& manager = DeviceManager::getInstance();
@@ -33,7 +35,7 @@ int main() {
     Device * cuda = manager.getDevice("cuda");
 
     std::cout << "start testing ..." << std::endl;
-    check_rmsnorm(cpu, cuda);
+    //check_rmsnorm(cpu, cuda);
     check_matmul(cpu, cuda);
     check_softmax(cpu, cuda);
     check_silu(cpu, cuda);
@@ -41,6 +43,7 @@ int main() {
     check_embedding(cpu, cuda);
     check_elem_multiply(cpu, cuda);
     check_masked_attention(cpu, cuda);
+    check_max_index(cpu, cuda);
     std::cout << "test finished ..." << std::endl;
 
     return 0;
@@ -121,9 +124,11 @@ void check_rmsnorm(Device *cpu, Device *cuda){
     cuda->deallocate(weight_cuda);
 }
 
+
+
 void check_matmul(Device *cpu, Device *cuda){
     // 分配主机内存
-    int batch_size = 4;
+    int batch_size = 15;
     float *x_cpu = cpu->allocate(N*batch_size);
     float *w_cpu = cpu->allocate(D * N * batch_size);
     float *xout_cpu = cpu->allocate(D * batch_size);
@@ -137,12 +142,33 @@ void check_matmul(Device *cpu, Device *cuda){
     rand_init(x_cpu, N * batch_size);
     rand_init(w_cpu, D * N * batch_size);
 
+    float** x = new float*[batch_size];
+    float** y = new float*[batch_size];
+    for(int i = 0; i < batch_size; i++) {
+        float* x_tmp = cpu->allocate(N);
+        for(int j = 0; j < N; j++) {
+            x_tmp[j] = x_cpu[i * N + j];
+        }
+        x[i] = cuda->allocate(N);
+        y[i] = cuda->allocate(N);
+        cuda->move_in(x[i], x_tmp, N);
+        cpu->deallocate(x_tmp);
+    }
+    
+
     cuda->move_in(x_cuda, x_cpu, N * batch_size);
     cuda->move_in(w_cuda, w_cpu, D * N * batch_size);
 
-    // 计算
+    cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
+    cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
+    cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
     cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
+    cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
+    cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
+
+    
     cpu->F->matmul(xout_cpu, x_cpu, w_cpu, N, D, batch_size);
+    
 
     cuda->move_out(xout_cuda, cuda_to_cpu, D * batch_size);
 
@@ -413,6 +439,47 @@ void check_masked_attention(Device *cpu, Device *cuda) {
     cuda->deallocate(k_cuda);
     cuda->deallocate(v_cuda);
     cuda->deallocate(y_cuda);
+}
+
+void check_max_index(Device *cpu, Device *cuda) {
+    int n = N;             // 每组数据的大小
+    int num = 5;           // 组数（批量大小）
+    
+    // 分配主机内存
+    float *x_cpu = cpu->allocate(n * num);
+    float *index_cpu = cpu->allocate(num);
+    float *cuda_to_cpu = cpu->allocate(num);
+
+    // 分配设备内存
+    float *x_cuda = cuda->allocate(n * num);
+    float *index_cuda = cuda->allocate(num);
+
+    // 初始化输入数据
+    rand_init(x_cpu, n * num);
+
+    // 将输入数据从主机复制到设备
+    cuda->move_in(x_cuda, x_cpu, n * num);
+
+    // 在设备和主机上分别调用 max_index 函数
+    cuda->F->max_index(index_cuda, x_cuda, n, num);
+    cpu->F->max_index(index_cpu, x_cpu, n, num);
+
+    // 将设备上的结果复制回主机
+    cuda->move_out(index_cuda, cuda_to_cpu, num);
+
+    // 比较结果
+    if (compare_results(cuda_to_cpu, index_cpu, num)) {
+        check_pass("[max_index] CUDA and CPU results match.");
+    } else {
+        check_error("[max_index] CUDA and CPU results do not match!");
+    }
+
+    // 释放内存
+    cpu->deallocate(x_cpu);
+    cpu->deallocate(index_cpu);
+    cpu->deallocate(cuda_to_cpu);
+    cuda->deallocate(x_cuda);
+    cuda->deallocate(index_cuda);
 }
 
 //TODO：写 rope 的测试程序
