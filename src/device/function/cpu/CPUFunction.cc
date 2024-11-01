@@ -9,8 +9,22 @@ void embedding_cpu(float* y, const float* x, const float* W, const int d, const 
     }
 }
 
-void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int batch_size) {
-    for(int b = 0; b < batch_size; b++){
+void matmul_cpu(float **y, float **x, float *W, int n, int d, int num) {
+    for(int no = 0; no < num; no++) {
+        float *y_ptr = y[no];
+        const float *x_ptr = x[no];
+        for(int i = 0; i < d; i++) {
+            double sum = 0.0f;
+            for(int j = 0; j < n; j++) {
+                sum += W[i * n + j] * x_ptr[j];
+            }
+            y_ptr[i] = sum;
+        }
+    }
+}
+
+void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int num) {
+    for(int b = 0; b < num; b++){
         for (int i = 0; i < d; ++i) {
             double sum = 0.0f;
             for (int j = 0; j < n; ++j) {    
@@ -146,5 +160,19 @@ void maksed_attention_cpu(float* y, const float* q, const float* k, const float*
 void elem_multiply_cpu(float* y, const float* x1, const float* x2, const int size) {
     for(int i = 0; i < size; i++) {
         y[i] = x1[i] * x2[i];
+    }
+}
+
+void max_index_cpu(float* index, float* x, const int n, const int num) {
+    for (int i = 0; i < num; i++) {
+        int max_idx = 0;
+        float max_val = x[i * n];
+        for (int j = 1; j < n; j++) {
+            if (x[i * n + j] > max_val) {
+                max_val = x[i * n + j];
+                max_idx = j;
+            }
+        }
+        index[i] = (float)max_idx;
     }
 }

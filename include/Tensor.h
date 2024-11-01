@@ -40,6 +40,12 @@ public:
         value = manager.allocateShared(size, device);
     }
 
+    Tensor(const size_t _eleNum, const size_t _elemLen, const std::string& _device,  std::vector<size_t> _uid)
+                                     : Variable(_eleNum, _elemLen, _device), batch_size(_uid.size()), uid(_uid) {
+        Manager& manager = Manager::getInstance();
+        value = manager.allocateShared(size, device);
+    }
+
     // 深拷贝函数
     Tensor copy() const {
         Tensor copy_tensor(*this, elem_len);
