@@ -8,7 +8,7 @@ int main() {
     std::string msg;
 
     while(true) {
-        std::cout << "请输入request：" << std::endl;
+        std::cout << "请输入 request ：" << std::endl;
         std::cin >> msg;
         engine.add_request(msg);
         // engine.add_request(std::to_string(i++));

@@ -3,6 +3,8 @@
 
 #include "Worker.h"
 #include "SafeQueue.h"
+#include "layers/Layer.h"
+#include "layers/LayerList.h"
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -27,13 +29,8 @@ private:
     std::vector<std::shared_ptr<SafeQueue<std::string>>> queues;
     std::vector<std::unique_ptr<Worker>> workers;
 
-    void work(const std::string& name, SafeQueue<std::string>& inputQueue, SafeQueue<std::string>& outputQueue);
-
 public:
-    void init();
     void add_request(const std::string& msg);
-
-    void step();
 
     Engine(std::string model_file) {
         // 读模型配置文件 xxx.model
