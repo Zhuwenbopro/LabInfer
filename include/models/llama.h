@@ -39,11 +39,10 @@ Llama::Llama(Config& config) : Layer("cpu", "model") {
 Tensor Llama::forward(Tensor& x) {
     
     Tensor y = layers.at("embed_tokens")->forward(x);
-    
-    y = layers.at("layers")->forward(y);
-    
-    y = layers.at("norm")->forward(y);
 
+    y = layers.at("layers")->forward(y);
+
+    y = layers.at("norm")->forward(y);
     y = y.tail();
     y = layers.at("lm_head")->forward(y);
 
