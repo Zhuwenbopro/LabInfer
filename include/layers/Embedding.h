@@ -15,7 +15,7 @@ public:
     Embedding(const size_t vocab_size, const size_t hidden_size, const std::string& _name = "embed_tokens");
 
     // 覆盖基类的 forward 方法
-    void forward(Tensor& y, Tensor& x) override;
+    Tensor forward(Tensor& x) override;
 
     // 虚析构函数
     virtual ~Embedding() = default;
@@ -27,10 +27,10 @@ private:
 
 Embedding::Embedding(Config& config) : Layer("cpu", "embed_tokens")
 {
-    vocab_size = config.get("vocab_size").get<size_t>();
-    hidden_size = config.get("hidden_size").get<size_t>();
+    vocab_size = config.get<size_t>("vocab_size");
+    hidden_size = config.get<size_t>("hidden_size");
     
-    params.emplace("weight", Parameter("weight",{vocab_size, hidden_size}, "cpu"));
+    params.emplace("weight", Parameter("weight",vocab_size, hidden_size, "cpu"));
 }
 
 
@@ -39,14 +39,16 @@ Embedding::Embedding(const size_t _vocab_size, const size_t _hidden_size, const 
     vocab_size = _vocab_size;
     hidden_size = _hidden_size;
     
-    params.emplace("weight", Parameter("weight",{_vocab_size, _hidden_size}, "cpu"));
+    params.emplace("weight", Parameter("weight" ,_vocab_size, _hidden_size, "cpu"));
 }
 
-void Embedding::forward(Tensor& y, Tensor& x)
+Tensor Embedding::forward(Tensor& x)
 {
+    Tensor y(x, hidden_size);
     Parameter& weight = params.at("weight");
     // 使用它们进行运算
     F.get().embedding(y, x, weight, hidden_size, x.Size());
+    return y;
 }
 
 #endif // EMBEDDING_H

@@ -10,6 +10,7 @@ NVCC := nvcc
 SRC_DIR := ../../src
 DEVICE_DIR := $(SRC_DIR)/device
 BUILD_DIR := ../../build
+THIRD_PARTY_DIR := ./../../third_party
 
 INCLUDES := -I./../../include
 
@@ -30,8 +31,8 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # 编译标志
 # =============================================================================
 MACRO := -DUSE_CUDA
-CXXSTAND := -std=c++17
-CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO)
+CXXSTAND := -std=c++20
+CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -I$(THIRD_PARTY_DIR)
 NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO)
 
 # =============================================================================
@@ -88,7 +89,14 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # 清理目标
 # =============================================================================
 clean:
+	mv *.bin model.safetensors *.json ~/data
 	rm -rf $(BUILD_DIR) $(TARGET)
+
+# =============================================================================
+# 准备数据
+# =============================================================================
+data:
+	mv ~/data/* ./
 
 # =============================================================================
 # 声明伪目标

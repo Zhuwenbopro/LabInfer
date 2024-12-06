@@ -49,7 +49,8 @@ private:
     DeviceManager() {
         // cpu 是一定有的
         devices["cpu"] = new CPU();
-
+    
+    // TODO : add 'cuda:0', 'cuda:1'
 #ifdef USE_CUDA
         devices["cuda"] = new CUDA();
 #endif

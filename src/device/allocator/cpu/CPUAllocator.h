@@ -8,9 +8,7 @@
 // 基础款，你之后再搞什么内存池之类的优化吧
 class CPUAllocator : public Allocator {
 public:
-    CPUAllocator() {
-
-    }
+    CPUAllocator() { }
 
     void* allocate(size_t size) override {
         return malloc(size);

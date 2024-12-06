@@ -15,7 +15,7 @@ public:
     DecoderLayer(Config& config, const std::string& name = "decoder_layer");
 
     // 覆盖基类的 forward 方法
-    void forward(Tensor& y, Tensor& x, Tensor& pos) override;
+    Tensor forward(Tensor& x) override;
 
     // 虚析构函数
     virtual ~DecoderLayer() = default;
@@ -23,8 +23,8 @@ public:
 
 DecoderLayer::DecoderLayer(Config& config, const std::string& _name) : Layer("cpu", _name) {
 
-    size_t hidden_size = config.get("hidden_size").get<size_t>();
-    float epsilon = config.get("rms_norm_eps").get<float>();
+    size_t hidden_size = config.get<size_t>("hidden_size");
+    float epsilon = config.get<float>("rms_norm_eps");
 
     layers.emplace("input_layernorm", new RMSNorm(config));
     layers.at("input_layernorm")->setName("input_layernorm");
@@ -35,20 +35,22 @@ DecoderLayer::DecoderLayer(Config& config, const std::string& _name) : Layer("cp
 }
 
 
-void DecoderLayer::forward(Tensor& y, Tensor& x, Tensor& pos)
+Tensor DecoderLayer::forward(Tensor& x)
 {
-    Tensor _x = x.copy();
+    Tensor _x(x, x.elemLen());
+    _x.copy(x);
 
-    layers.at("input_layernorm")->forward(x);
+    x = layers.at("input_layernorm")->forward(x);
     
-    layers.at("self_attn")->forward(x, x, pos);
+    x = layers.at("self_attn")->forward(x);
     F.get().add(x, x, _x, x.Size());
 
-    _x = x.copy();
-    layers.at("post_attention_layernorm")->forward(x);
+    _x.copy(x);
+    x = layers.at("post_attention_layernorm")->forward(x);
 
-    layers.at("mlp")->forward(x, x);
-    F.get().add(y, x, _x, x.Size());
+    x = layers.at("mlp")->forward(x);
+    F.get().add(x, x, _x, x.Size());
+    return x;
 }
 
 #endif // DECODERLAYER_H

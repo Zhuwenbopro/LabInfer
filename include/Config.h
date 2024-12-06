@@ -25,12 +25,13 @@ public:
         }
     }
 
-    Json get(const std::string& path) {
+    template<typename T>
+    T get(const std::string& path) {
         std::istringstream ss(path);
         std::string token;
-        Json current = config;
-
+        
         // Split the string by '.' and navigate the JSON object
+        Json current = config;
         while (std::getline(ss, token, '.')) {
             if (current.contains(token)) {
                 current = current[token];  // Move to the next nested object
@@ -39,7 +40,7 @@ public:
             }
         }
 
-        return current;
+        return current.get<T>();
     }
 
 };

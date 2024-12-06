@@ -15,12 +15,13 @@ public:
     RoPE(const size_t _head_dim, const std::string& _name = "rotary_positional_embedding");
 
     // 覆盖基类的 forward 方法
-    void forward(Tensor& x, Tensor& pos) override;
+    Tensor forward(Tensor& x) override;
 
     // 虚析构函数
     virtual ~RoPE() = default;
 
 private:
+// FIXME : 这里应该是config里面带的，不能写死
     static bool init;
     size_t max_pos = 32;
     size_t head_dim;
@@ -40,8 +41,8 @@ RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _nam
     Manager& manager = Manager::getInstance();
 
     if(!init) {
-        params.emplace("cos", Parameter(device+":cos", {max_pos, dim}, "cpu", true));
-        params.emplace("sin", Parameter(device+":sin", {max_pos, dim}, "cpu", true));
+        params.emplace("cos", Parameter("cpu:cos", max_pos, dim, "cpu", true));
+        params.emplace("sin", Parameter("cpu:sin", max_pos, dim, "cpu", true));
         Parameter& _cos = params.at("cos");
         Parameter& _sin = params.at("sin");
 
@@ -85,8 +86,8 @@ RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _nam
 
         init = true;
     }else {
-        params.emplace("cos", Parameter(device+":cos", {max_pos, dim}, "cpu"));
-        params.emplace("sin", Parameter(device+":sin", {max_pos, dim}, "cpu"));
+        params.emplace("cos", Parameter(device+":cos", max_pos, dim, "cpu"));
+        params.emplace("sin", Parameter(device+":sin", max_pos, dim, "cpu"));
         params.at("cos").setValue(manager.GetMem(device+":cos"));
         params.at("sin").setValue(manager.GetMem(device+":sin"));
     }
@@ -95,9 +96,15 @@ RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _nam
     params.at("sin").setShared();
 }
 
-void RoPE::forward(Tensor& x, Tensor& pos)
+Tensor RoPE::forward(Tensor& x)
 {
-    F.get().apply_rope(x, pos, params.at("cos"), params.at("sin"), x.elemLen(), head_dim/2, pos.Size());
+    if(x.elemNum() != x.Pos().elemNum()) {
+        throw std::logic_error("pos num does not match x.elemNum()"); 
+    }
+
+    F.get().apply_rope(x, x.Pos(), params.at("cos"), params.at("sin"), x.elemLen(), head_dim/2, x.elemNum());
+
+    return x;
 }
 
 

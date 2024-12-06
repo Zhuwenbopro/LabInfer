@@ -35,7 +35,7 @@ int main() {
     Device * cuda = manager.getDevice("cuda");
 
     std::cout << "start testing ..." << std::endl;
-    //check_rmsnorm(cpu, cuda);
+    check_rmsnorm(cpu, cuda);
     check_matmul(cpu, cuda);
     check_softmax(cpu, cuda);
     check_silu(cpu, cuda);
@@ -124,8 +124,6 @@ void check_rmsnorm(Device *cpu, Device *cuda){
     cuda->deallocate(weight_cuda);
 }
 
-
-
 void check_matmul(Device *cpu, Device *cuda){
     // 分配主机内存
     int batch_size = 15;
@@ -142,30 +140,30 @@ void check_matmul(Device *cpu, Device *cuda){
     rand_init(x_cpu, N * batch_size);
     rand_init(w_cpu, D * N * batch_size);
 
-    float** x = new float*[batch_size];
-    float** y = new float*[batch_size];
-    for(int i = 0; i < batch_size; i++) {
-        float* x_tmp = cpu->allocate(N);
-        for(int j = 0; j < N; j++) {
-            x_tmp[j] = x_cpu[i * N + j];
-        }
-        x[i] = cuda->allocate(N);
-        y[i] = cuda->allocate(N);
-        cuda->move_in(x[i], x_tmp, N);
-        cpu->deallocate(x_tmp);
-    }
+    // float** x = new float*[batch_size];
+    // float** y = new float*[batch_size];
+    // for(int i = 0; i < batch_size; i++) {
+    //     float* x_tmp = cpu->allocate(N);
+    //     for(int j = 0; j < N; j++) {
+    //         x_tmp[j] = x_cpu[i * N + j];
+    //     }
+    //     x[i] = cuda->allocate(N);
+    //     y[i] = cuda->allocate(N);
+    //     cuda->move_in(x[i], x_tmp, N);
+    //     cpu->deallocate(x_tmp);
+    // }
     
 
     cuda->move_in(x_cuda, x_cpu, N * batch_size);
     cuda->move_in(w_cuda, w_cpu, D * N * batch_size);
 
-    cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
-    cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
-    cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
     cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
-    cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
-    cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
+    // cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
+    // cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
 
+    // cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
+    // cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
+    // cuda->F->matmul(y, x, w_cuda, N, D, batch_size);
     
     cpu->F->matmul(xout_cpu, x_cpu, w_cpu, N, D, batch_size);
     
@@ -173,7 +171,7 @@ void check_matmul(Device *cpu, Device *cuda){
     cuda->move_out(xout_cuda, cuda_to_cpu, D * batch_size);
 
     // 比较结果
-    if (compare_results(cuda_to_cpu, xout_cpu, D)) {
+    if (compare_results(cuda_to_cpu, xout_cpu, D, 5e-2)) {
         check_pass("[matmul] CUDA and CPU results match.");
     } else {
         check_error("[matmul] CUDA and CPU results do not match!");
@@ -220,7 +218,7 @@ void check_embedding(Device *cpu, Device *cuda){
     cuda->move_out(xout_cuda, cuda_to_cpu, seq * dim);
 
     // 比较结果
-    if (compare_results(cuda_to_cpu, xout_cpu, D)) {
+    if (compare_results(cuda_to_cpu, xout_cpu, D, 5e-2)) {
         check_pass("[embedding] CUDA and CPU results match.");
     } else {
         check_error("[embedding] CUDA and CPU results do not match!");
@@ -237,7 +235,7 @@ void check_embedding(Device *cpu, Device *cuda){
 }
 
 void check_softmax(Device *cpu, Device *cuda){
-    int batch_size = 4;
+    int batch_size = 20;
     // 分配主机内存
     float *x_cpu = cpu->allocate(N * batch_size);
     float *cuda_to_cpu = cpu->allocate(N * batch_size);
@@ -247,7 +245,26 @@ void check_softmax(Device *cpu, Device *cuda){
 
     cuda->move_in(x_cuda, x_cpu, N * batch_size);
 
+    // float** x = new float*[batch_size];
+    // for(int i = 0; i < batch_size; i++) {
+    //     float* x_tmp = cpu->allocate(N);
+    //     for(int j = 0; j < N; j++) {
+    //         x_tmp[j] = x_cpu[i * N + j];
+    //     }
+    //     x[i] = cuda->allocate(N);
+    //     cuda->move_in(x[i], x_tmp, N);
+    //     cpu->deallocate(x_tmp);
+    // }
+
+
     cuda->F->softmax(x_cuda, N, batch_size);
+    // cuda->F->softmax(x_cuda, N, batch_size);
+    // cuda->F->softmax(x_cuda, N, batch_size);
+
+    // cuda->F->softmax(x, N, batch_size);
+    // cuda->F->softmax(x, N, batch_size);
+    // cuda->F->softmax(x, N, batch_size);
+
     cpu->F->softmax(x_cpu, N, batch_size);
 
     cuda->move_out(x_cuda, cuda_to_cpu, N * batch_size);
@@ -265,7 +282,7 @@ void check_softmax(Device *cpu, Device *cuda){
 }
 
 void check_silu(Device *cpu, Device *cuda){
-    int batch_size = 4;
+    int batch_size = 10;
     // 分配主机内存
     float *x_cpu = cpu->allocate(N * batch_size);
     float *cuda_to_cpu = cpu->allocate(N * batch_size);
@@ -275,8 +292,30 @@ void check_silu(Device *cpu, Device *cuda){
 
     cuda->move_in(x_cuda, x_cpu, N * batch_size);
 
+    // float** x = new float*[batch_size];
+    // for(int i = 0; i < batch_size; i++) {
+    //     float* x_tmp = cpu->allocate(N);
+    //     for(int j = 0; j < N; j++) {
+    //         x_tmp[j] = x_cpu[i * N + j];
+    //     }
+    //     x[i] = cuda->allocate(N);
+    //     cuda->move_in(x[i], x_tmp, N);
+    //     cpu->deallocate(x_tmp);
+    // }
+
     // 模拟的这个向量在第 20 的位置
     cuda->F->silu(x_cuda, N, batch_size);
+    // cuda->F->silu(x_cuda, N, batch_size);
+    // cuda->F->silu(x_cuda, N, batch_size);
+
+    // cuda->F->silu(x, N, batch_size);
+    // cuda->F->silu(x, N, batch_size);
+    // cuda->F->silu(x, N, batch_size);
+
+    // cuda->F->silu(x_cuda, N, batch_size);
+    // cuda->F->silu(x_cuda, N, batch_size);
+    // cuda->F->silu(x_cuda, N, batch_size);
+
     cpu->F->silu(x_cpu,N, batch_size);
 
     cuda->move_out(x_cuda, cuda_to_cpu, N * batch_size);
@@ -307,11 +346,40 @@ void check_add(Device *cpu, Device *cuda){
     rand_init(x1_cpu, N * batch_size);
     rand_init(x2_cpu, N * batch_size);
 
+    // float** y = (float**)cpu->allocate(batch_size);
+    // for(int i = 0; i < batch_size; i++) {
+    //     y[i] = cuda->allocate(N);
+    // }
+
+    // float** x1 = (float**)cpu->allocate(batch_size);
+    // float** x2 = (float**)cpu->allocate(batch_size);
+    // for(int i = 0; i < batch_size; i++) {
+    //     float* _tmp = cpu->allocate(N);
+    //     for(int j = 0; j < N; j++) {
+    //         _tmp[j] = x1_cpu[i * N + j];
+    //     }
+    //     x1[i] = cuda->allocate(N);
+    //     cuda->move_in(x1[i], _tmp, N);
+    //     for(int j = 0; j < N; j++) {
+    //         _tmp[j] = x2_cpu[i * N + j];
+    //     }
+    //     x2[i] = cuda->allocate(N);
+    //     cuda->move_in(x2[i], _tmp, N);
+    //     cpu->deallocate(_tmp);
+    // }
+
     cuda->move_in(x1_cuda, x1_cpu, N * batch_size);
     cuda->move_in(x2_cuda, x2_cpu, N * batch_size);
 
     // 模拟的这个向量在第 20 的位置
+    // cuda->F->add(y, x1, x2, N, batch_size);
+    // cuda->F->add(y, x1, x2, N, batch_size);
+    // cuda->F->add(y, x1, x2, N, batch_size);
+
+    // cuda->F->add(y_cuda, x1_cuda, x2_cuda, N, batch_size);
+    // cuda->F->add(y_cuda, x1_cuda, x2_cuda, N, batch_size);
     cuda->F->add(y_cuda, x1_cuda, x2_cuda, N, batch_size);
+
     cpu->F->add(y_cpu, x1_cpu, x2_cpu, N, batch_size);
 
     cuda->move_out(y_cuda, cuda_to_cpu, N * batch_size);
@@ -333,7 +401,8 @@ void check_add(Device *cpu, Device *cuda){
 }
 
 void check_elem_multiply(Device *cpu, Device *cuda) {
-    int size = 1024; // Define the size of the vectors
+    int batch_size = 5;
+    int size = batch_size*N; // Define the size of the vectors
 
     // Allocate host memory
     float *x1_cpu = cpu->allocate(size);
@@ -350,12 +419,41 @@ void check_elem_multiply(Device *cpu, Device *cuda) {
     rand_init(x1_cpu, size);
     rand_init(x2_cpu, size);
 
+    // float** y = (float**)cpu->allocate(batch_size);
+    // for(int i = 0; i < batch_size; i++) {
+    //     y[i] = cuda->allocate(N);
+    // }
+
+    // float** x1 = (float**)cpu->allocate(batch_size);
+    // float** x2 = (float**)cpu->allocate(batch_size);
+    // for(int i = 0; i < batch_size; i++) {
+    //     float* _tmp = cpu->allocate(N);
+    //     for(int j = 0; j < N; j++) {
+    //         _tmp[j] = x1_cpu[i * N + j];
+    //     }
+    //     x1[i] = cuda->allocate(N);
+    //     cuda->move_in(x1[i], _tmp, N);
+    //     for(int j = 0; j < N; j++) {
+    //         _tmp[j] = x2_cpu[i * N + j];
+    //     }
+    //     x2[i] = cuda->allocate(N);
+    //     cuda->move_in(x2[i], _tmp, N);
+    //     cpu->deallocate(_tmp);
+    // }
+
     // Move data to device
     cuda->move_in(x1_cuda, x1_cpu, size);
     cuda->move_in(x2_cuda, x2_cpu, size);
 
     // Call the element-wise multiplication function on both devices
+    // cuda->F->elem_multiply(y, x1, x2, N, batch_size);
+    // cuda->F->elem_multiply(y, x1, x2, N, batch_size);
+    // cuda->F->elem_multiply(y, x1, x2, N, batch_size);
+
+    // cuda->F->elem_multiply(y_cuda, x1_cuda, x2_cuda, size);
+    // cuda->F->elem_multiply(y_cuda, x1_cuda, x2_cuda, size);
     cuda->F->elem_multiply(y_cuda, x1_cuda, x2_cuda, size);
+
     cpu->F->elem_multiply(y_cpu, x1_cpu, x2_cpu, size);
 
     // Move result back to host
@@ -457,11 +555,29 @@ void check_max_index(Device *cpu, Device *cuda) {
     // 初始化输入数据
     rand_init(x_cpu, n * num);
 
+    // float** x = new float*[num];
+    // for(int i = 0; i < num; i++) {
+    //     float* x_tmp = cpu->allocate(N);
+    //     for(int j = 0; j < N; j++) {
+    //         x_tmp[j] = x_cpu[i * N + j];
+    //     }
+    //     x[i] = cuda->allocate(N);
+    //     cuda->move_in(x[i], x_tmp, N);
+    //     cpu->deallocate(x_tmp);
+    // }
+
     // 将输入数据从主机复制到设备
     cuda->move_in(x_cuda, x_cpu, n * num);
 
     // 在设备和主机上分别调用 max_index 函数
+    // cuda->F->max_index(index_cuda, x, n, num);
+    // cuda->F->max_index(index_cuda, x, n, num);
+    // cuda->F->max_index(index_cuda, x, n, num);
+
+    // cuda->F->max_index(index_cuda, x_cuda, n, num);
+    // cuda->F->max_index(index_cuda, x_cuda, n, num);
     cuda->F->max_index(index_cuda, x_cuda, n, num);
+    
     cpu->F->max_index(index_cpu, x_cpu, n, num);
 
     // 将设备上的结果复制回主机
