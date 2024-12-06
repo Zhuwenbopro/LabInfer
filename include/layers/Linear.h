@@ -13,7 +13,7 @@ public:
     Linear(const size_t size_in, const size_t size_out, const std::string& _name = "Linear", bool _bias = false);
 
     // 覆盖基类的 forward 方法
-    void forward(Tensor& y, Tensor& x) override;
+    Tensor forward(Tensor& x) override;
 
     // 虚析构函数
     virtual ~Linear() = default;
@@ -31,14 +31,16 @@ Linear::Linear(const size_t size_in, const size_t size_out, const std::string& _
     output_size = size_out;
     bias = _bias;
     
-    params.emplace("weight", Parameter("weight", {size_in, size_out}, "cpu"));
+    params.emplace("weight", Parameter("weight", size_in, size_out, "cpu"));
 
-    if(bias) params.emplace("bias", Parameter("bias", {size_in}, "cpu"));
+    if(bias) params.emplace("bias", Parameter("bias", size_in, 1, "cpu"));
 }
 
-void Linear::forward(Tensor& y, Tensor& x)
-{
+Tensor Linear::forward(Tensor& x)
+{   
+    Tensor y(x, output_size);
     F.get().matmul(y, x, params.at("weight"), input_size, output_size, x.elemNum());
+    return y;
 }
 
 #endif // LINEAR_H

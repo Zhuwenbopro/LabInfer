@@ -66,6 +66,12 @@
         "shared_mutex": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "cassert": "cpp"
+        "cassert": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp",
+        "ranges": "cpp"
     }
 }

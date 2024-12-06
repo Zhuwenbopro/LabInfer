@@ -1,4 +1,4 @@
-#include "Layer.h"
+#include "layers/Layer.h"
 #include <stdint.h>
 #include <math.h>
 
@@ -63,12 +63,28 @@ void Layer::to(const std::string& new_dev) {
     }
 }
 
+Layer& Layer::load_weights(std::unordered_map<std::string, std::shared_ptr<float[]>>& weights) {
+    for (auto& [name, param] : params) {
+        auto it = weights.find(name);
+        if (it != weights.end()) {
+            param.setValue(it->second);
+            weights.erase(it);
+        } else {
+            std::cerr << "[Error] Key not found: " << name << ", Param: " << param.Name()
+                      << ", Shared: " << param.Share() << std::endl;
+            throw std::runtime_error("Key '" + name + "' not found in weights.");
+        }
+    }
+    return (*this);
+}
+
+
 void Layer::load_state(std::unordered_map<std::string, std::shared_ptr<float []>>& state_map) {
     remove_prefix_from_keys(state_map, name + ".");
 
     for (auto& [_name, param] : params) {
         if(param.Share()) continue;
-
+        
         auto it = state_map.find(param.Name());
         if (it != state_map.end()) {
             param.setValue(it->second);

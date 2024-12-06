@@ -17,7 +17,7 @@ public:
     RMSNorm(Config& config);
 
     // 覆盖基类的 forward 方法
-    void forward(Tensor& x) override;
+    Tensor forward(Tensor& x) override;
 
     // 虚析构函数
     virtual ~RMSNorm() = default;
@@ -31,23 +31,23 @@ private:
 // 初始化不分配内存，等到load的时候再分配
 RMSNorm::RMSNorm(Config& config) : Layer("cpu", "RMSNorm") 
 {
-    dim = config.get("hidden_size").get<size_t>();
-    epsilon = config.get("rms_norm_eps").get<float>();
+    dim = config.get<size_t>("hidden_size");
+    epsilon = config.get<float>("rms_norm_eps");
 
-    params.emplace("weight", Parameter("weight", {dim}, "cpu"));
+    params.emplace("weight", Parameter("weight", dim, 1, "cpu"));
 }
 
 RMSNorm::RMSNorm(const size_t _dim, const float _epsilon, const std::string& _name) : Layer("cpu", _name), dim(_dim), epsilon(_epsilon)
 {
-    params.emplace("weight", Parameter("weight", {dim}, "cpu"));
+    params.emplace("weight", Parameter("weight", dim, 1, "cpu"));
 }
 
-void RMSNorm::forward(Tensor& x)
+Tensor RMSNorm::forward(Tensor& x)
 {
     Parameter& W = params.at("weight");
     // 使用它们进行运算
-    F.get().rmsnorm(x, W, dim, x.Size()/dim, epsilon);
-
+    F.get().rmsnorm(x, W, dim, x.elemNum(), epsilon);
+    return x;
 }
 
 #endif

@@ -38,7 +38,8 @@ public:
     virtual void matmul(float* y, const float *x, const float *W, const int n, const int d, const int num) = 0;
     virtual void matmul(float**y, float**x, float* W, int n, int d, int num) = 0;
 
-    virtual void softmax(float* x, const int n, const int batch_size = 1) = 0;
+    virtual void softmax(float* x, const int n, const int num) = 0;
+    virtual void softmax(float**x, int n, int num) = 0;
 
     /**
     * @brief 对 x 做位置编码
@@ -54,8 +55,10 @@ public:
     virtual void apply_rope(float *x, const float *pos, const float *cos, const float *sin, const int n, int dim, const int num) = 0;
 
     virtual void silu(float* x, const int n, const int batch_size = 1) = 0;
+    virtual void silu(float**x, int n, int num) = 0;
 
     virtual void add(float* y, const float* x1, const float* x2, const int n, const int batch_size = 1) = 0;
+    virtual void add(float**y, float**x1, float**x2, int n, int num) = 0;
 
     /**
     * @brief [batch, seq] => [batch, seq, dim]
@@ -71,6 +74,7 @@ public:
     * @param[in] batch_size 输入批次。默认为 1。
     */
     virtual void embedding(float* y, const float* x, const float* W, const int d, const int x_size) = 0;
+    virtual void embedding(float**y, float* x, float* W, int num, int hidden_size) = 0;
 
     /**
      *  @brief 
@@ -80,8 +84,10 @@ public:
     virtual void maksed_attention(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos) = 0;
 
     virtual void elem_multiply(float* y, const float* x1, const float* x2, const int size) = 0;
+    virtual void elem_multiply(float**y, float**x1, float**x2, int n, int num) = 0;
 
     virtual void max_index(float* index, float* x, const int n, const int num) = 0;
+    virtual void max_index(float* index, float**x, int n, int num) = 0;
 };
 
 #endif // Function_H

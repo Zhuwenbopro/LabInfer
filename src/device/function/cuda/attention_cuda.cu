@@ -38,7 +38,7 @@ __global__ void compute_scores_kernel(float* score, const float* q, const float*
 }
 
 // Kernel to apply softmax to the scores
-__global__ void softmax_kernel(float* score, int pos) {
+__global__ void _softmax_kernel(float* score, int pos) {
     extern __shared__ float shared_data[];
     int hq = blockIdx.x; // Each block processes one query head
     int p = threadIdx.x; // Thread processes one position
@@ -130,15 +130,13 @@ void maksed_attention_cuda(float* y, const float* q, const float* k, const float
     // Launch kernel to apply softmax
     int softmaxBlockSize = nextPowerOfTwo(pos);
     size_t sharedMemSize = softmaxBlockSize * sizeof(float);
-    softmax_kernel<<<q_head, softmaxBlockSize, sharedMemSize>>>(d_score, pos);
+    _softmax_kernel<<<q_head, softmaxBlockSize, sharedMemSize>>>(d_score, pos);
     
     // Launch kernel to compute the output y
     dim3 blockDimOutput(32, 32);
     dim3 gridDimOutput((dim + blockDimOutput.x - 1) / blockDimOutput.x,
                        (q_head + blockDimOutput.y - 1) / blockDimOutput.y);
-    compute_output_kernel<<<gridDimOutput, blockDimOutput>>>(y, d_score, v, dim,
-                                                             q_head, kv_head, pos, rep, kv_dim);
-
+    compute_output_kernel<<<gridDimOutput, blockDimOutput>>>(y, d_score, v, dim, q_head, kv_head, pos, rep, kv_dim);
 
     // Free device memory
     cudaFree(d_score);

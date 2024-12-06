@@ -27,10 +27,10 @@ public:
     // 回收内存
     virtual void deallocate(float* ptr) = 0;
 
-    void whoami() { std::cout << "this is " << deviceName << std::endl; }
+    void whoami() { std::cout << "this is " << device << std::endl; }
 
     // 成员变量
-    std::string deviceName;
+    std::string device;
     Function* F;
     // 之所以还要设置allocator，是为了以后在内存管理上做文章，目前还用不到
     Allocator* allocator;

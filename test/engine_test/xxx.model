@@ -1,0 +1,5 @@
+[cpu]
+embed_tokens
+
+[cuda:0]
+layers 0-7

@@ -7,5 +7,6 @@
 void matmul_cuda(float *xout, const float *x, const float *w, int n, int d, int num);
 void matmul_cuda(float**xout, float**x, float *w, int n, int d, int num);
 void elem_multiply_cuda(float* y, const float* x1, const float* x2, const int size);
+void elem_multiply_cuda(float**y, float**x1, float**x2, int n, int num);
 
 #endif // MATMUL_CUDA_H

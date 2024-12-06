@@ -8,6 +8,12 @@ void embedding_cpu(float* y, const float* x, const float* W, const int d, const 
         memcpy(y + i * d, W + id * d, sizeof(float) * d);
     }
 }
+void embedding_cpu(float**y, float*x, float*W, int num, int hidden_size) {
+    for(int i = 0; i < num; i++) {
+        int id = (int)x[i];
+        memcpy(y[i], W + id * hidden_size, sizeof(float) * hidden_size);
+    }
+}
 
 void matmul_cpu(float **y, float **x, float *W, int n, int d, int num) {
     for(int no = 0; no < num; no++) {
@@ -22,7 +28,6 @@ void matmul_cpu(float **y, float **x, float *W, int n, int d, int num) {
         }
     }
 }
-
 void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int num) {
     for(int b = 0; b < num; b++){
         for (int i = 0; i < d; ++i) {
@@ -56,7 +61,7 @@ void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float ep
     }
 }
 
-void softmax_cpu(float *x, int n, int batch_size){
+void softmax_cpu(float *x, int n, int batch_size) {
     for(int b = 0; b < batch_size; b++) {
         // 找到输入数组中的最大值，以提高数值稳定性
         float* input = x + b * n;
@@ -80,13 +85,37 @@ void softmax_cpu(float *x, int n, int batch_size){
         }
     }
 }
+void softmax_cpu(float**x, int n, int num) {
+    for(int i = 0; i < num; i++) {
+        float* x_ptr = x[i];
+        float max_val = x_ptr[0];
+        for(int i = 1; i < n; ++i) {
+            if(x_ptr[i] > max_val){
+                max_val = x_ptr[i];
+            }
+        }
+
+        // 计算每个元素的指数值，并累加
+        float sum = 0.0f;
+        for(int i = 0; i < n; ++i) {
+            x_ptr[i] = std::exp(x_ptr[i] - max_val);
+            sum += x_ptr[i];
+        }
+
+        // 将每个指数值除以总和，得到概率分布
+        for(int i = 0; i < n; ++i) {
+            x_ptr[i] /= sum;
+        }
+    }
+}
+
 
 // dim = 32, num = 6
 void apply_rope_cpu(float *_x, const float *_pos, const float *_cos, const float *_sin, const int n, const int dim, const int num) {
     for(int p = 0; p < num; p++){   // 6
         const float* cos = _cos + (int)_pos[p] * dim;
         const float* sin = _sin + (int)_pos[p] * dim;
-        for(int i = 0; i < n/(dim*2); i++) {      
+        for(int i = 0; i < n/(dim*2); i++) {
             float* x = _x + p*n + i*dim*2; 
             for(int j = 0; j < dim; j++) {
                 float x1 = x[j];
@@ -106,11 +135,30 @@ void silu_cpu(float *x, const int n, int batch_size){
         }
     }
 }
+void silu_cpu(float **x, int n, int num){
+    for(int i = 0; i < num; i++){
+        float* x_ptr = x[i];
+        for(int i = 0; i < n; i++){
+            x_ptr[i] = x_ptr[i] / (1 + std::exp(-x_ptr[i]));
+        }
+    }
+}
+
 
 void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_size) {
     for(int b = 0; b < batch_size; b++){
         for(int i = 0; i < n; i++) {
             y[i + b*n] = x1[i + b*n] + x2[i + b*n];
+        }
+    }
+}
+void add_cpu(float**y, float**x1, float**x2, int n, int num) {
+    for(int i = 0; i < num; i++){
+        float* y_ptr = y[i];
+        float* x1_ptr = x1[i];
+        float* x2_ptr = x2[i];
+        for(int i = 0; i < n; i++){
+            y_ptr[i] = x1_ptr[i] + x2_ptr[i];
         }
     }
 }
@@ -162,6 +210,16 @@ void elem_multiply_cpu(float* y, const float* x1, const float* x2, const int siz
         y[i] = x1[i] * x2[i];
     }
 }
+void elem_multiply_cpu(float**y, float**x1, float**x2, int n, int num) {
+    for(int i = 0; i < num; i++){
+        float* y_ptr = y[i];
+        float* x1_ptr = x1[i];
+        float* x2_ptr = x2[i];
+        for(int i = 0; i < n; i++){
+            y_ptr[i] = x1_ptr[i] * x2_ptr[i];
+        }
+    }
+}
 
 void max_index_cpu(float* index, float* x, const int n, const int num) {
     for (int i = 0; i < num; i++) {
@@ -170,6 +228,19 @@ void max_index_cpu(float* index, float* x, const int n, const int num) {
         for (int j = 1; j < n; j++) {
             if (x[i * n + j] > max_val) {
                 max_val = x[i * n + j];
+                max_idx = j;
+            }
+        }
+        index[i] = (float)max_idx;
+    }
+}
+void max_index_cpu(float* index, float** x, int n, int num) {
+    for (int i = 0; i < num; i++) {
+        int max_idx = 0;
+        float max_val = x[i][0];
+        for (int j = 1; j < n; j++) {
+            if (x[i][j] > max_val) {
+                max_val = x[i][j];
                 max_idx = j;
             }
         }
