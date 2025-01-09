@@ -99,6 +99,25 @@ public:
             ptr_layer->load(state_map);
         }
     }
+
+    // FIXME : to be delete
+    void printParam() { 
+        for (auto& [_name, param] : params) {
+            std::cout << "\n\nthis is  Layer '" + name << "' in Param '" << _name << "' " << param << "\n\n";
+            param.to("cpu");
+            for(int i = 1; i <= param.Size(); i++) {
+                std::cout << param[i];
+                if(i%param.ElemLen() == 0) std::cout << "\n";
+                else std::cout << " ";
+                if(i > 100) break;
+            }
+            param.to(device);
+        }
+
+        for (auto& [_name, layer] : layers) {
+            layer->printParam();
+        }
+    }
 };
 
 

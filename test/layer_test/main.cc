@@ -30,37 +30,38 @@ void check_attention() {
     const size_t kv_head = 8;
     const size_t hidden_size = 2048;
     const size_t max_len = 250;
-    const size_t head_dim = hidden_size / hidden_size;
-    const size_t q_dim = head_dim*attn_head;
-    const size_t kv_dim = head_dim*kv_head;
+    const size_t head_dim = hidden_size / attn_head;
+    const size_t q_size  = head_dim * attn_head;
+    const size_t kv_size = head_dim * kv_head;
 
     std::unordered_map<std::string, std::shared_ptr<float>> weights;
-    weights["self_attn.q_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_dim]);
-    weights["self_attn.k_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_dim]);
-    weights["self_attn.v_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_dim]);
-    weights["self_attn.o_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_dim]);
-    rand_init(weights["self_attn.q_linear.weight"].get(), hidden_size*q_dim);
-    rand_init(weights["self_attn.k_linear.weight"].get(), hidden_size*kv_dim);
-    rand_init(weights["self_attn.v_linear.weight"].get(), hidden_size*kv_dim);
-    rand_init(weights["self_attn.o_linear.weight"].get(), hidden_size*q_dim);
+    weights["self_attn.q_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
+    weights["self_attn.k_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
+    weights["self_attn.v_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
+    weights["self_attn.o_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
+    rand_init(weights["self_attn.q_linear.weight"].get(), hidden_size*q_size);
+    rand_init(weights["self_attn.k_linear.weight"].get(), hidden_size*kv_size);
+    rand_init(weights["self_attn.v_linear.weight"].get(), hidden_size*kv_size);
+    rand_init(weights["self_attn.o_linear.weight"].get(), hidden_size*q_size);
 
     Attention attention(attn_head, kv_head, hidden_size, max_len);
     attention.load(weights);
 
+    // attention.printParam();
+
+
     attention.forward(inputWarp);
     Tensor<float> y1 = inputWarp.inter_value;
-    std::cout << y1[0] << " " << y1[1];
-    // inputWarp.inter_value.reset();
+    inputWarp.inter_value.reset();
 
-    // attention.to("cuda");
-    // inputWarp.to("cuda");
-    // x2.to("cuda");
-    // inputWarp.inter_value = x2;
-    // attention.forward(inputWarp);
-    // Tensor<float> y2 = inputWarp.inter_value;
-    // y2.to("cpu");
+    attention.to("cuda");
+    inputWarp.inter_value = x2;
+    inputWarp.to("cuda");
+    attention.forward(inputWarp);
+    Tensor<float> y2 = inputWarp.inter_value;
+    y2.to("cpu");
 
-    // check(y1, y2, batch_size*N, "ATTENTION");
+    check(y1, y2, batch_size*N, "ATTENTION");
 }
 
 

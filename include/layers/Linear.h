@@ -42,8 +42,6 @@ Tensor<float> Linear::forward(Tensor<float>& x)
         throw std::runtime_error("Layer " + name + "'s input len not match param len.");
     }
 
-    std::cout << x.ElemLen() << " " << input_size << " " << output_size << "\n";
-    std::cout << x.ElemNum() << " " << F << "\n";
     Tensor<float> y(x.ElemNum(), output_size, x.Device(), name + "_output");
     F->matmul(y, x, params.at("weight"), input_size, output_size, x.ElemNum());
     return y;

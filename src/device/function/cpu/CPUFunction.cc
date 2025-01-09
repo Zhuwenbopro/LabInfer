@@ -162,11 +162,15 @@ void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_
     }
 }
 
-void repeat_kv_cpu(float* o, float* in, int dim, int rep, int n) {
-    int o_index = 0;
-    for(int i_index = 0; i_index < n; i_index++) {
-        for(int j = 0; j < rep; j++) {
-            o[o_index++] = in[i_index];
+void repeat_kv_cpu(float* out, float* in, int dim, int rep, int n) {
+    int loop = n / dim;
+    for(int l = 0; l < loop; l++) {
+        float* in_base = in + l*dim;
+        float* out_base = out + l*dim*rep;
+        for(int r = 0; r < rep; r++) {
+            for(int d = 0; d < dim; d++) {
+                out_base[r*dim+ d] = in_base[d];
+            }
         }
     }
 }

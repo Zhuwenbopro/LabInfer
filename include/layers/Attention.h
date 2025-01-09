@@ -49,7 +49,6 @@ Attention::Attention(
 
     q_dim = head_dim*_attn_head; 
     kv_dim = head_dim*_kv_head;
-
     layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_linear"));
     layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_linear"));
     layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_linear"));
@@ -60,45 +59,60 @@ Attention::Attention(
 void Attention::forward(InputWarp& inputWarp) {
     size_t uid = inputWarp.uid;
     Tensor<float> x   = inputWarp.inter_value;
-    Tensor<int>   pos = inputWarp.pos;
-    std::cout << x << " : " << x[0] << " " << x[1] << std::endl;
+    
     Tensor<float> q = layers.at("q_linear")->forward(x);
-    std::cout << x << " : " << x[0] << " " << x[1] << std::endl;
-    std::cout << "-----------\n";
     Tensor<float> k = layers.at("k_linear")->forward(x);
-    std::cout << x << " : " << x[0] << " " << x[1] << std::endl;
-    std::cout << "-----------\n";
     Tensor<float> v = layers.at("v_linear")->forward(x);
 
-    std::cout << " k " << k[0] << " " << k[1] << std::endl;
-
-    q = layers.at("rope")->forward(q, pos);
-    k = layers.at("rope")->forward(k, pos);
-
-    std::cout << " k_rope " << k[0] << " " << k[1] << std::endl;
+    q = layers.at("rope")->forward(q, inputWarp.pos);
+    k = layers.at("rope")->forward(k, inputWarp.pos);
 
     int rep = attn_head/kv_head;
     if(rep != 1) {
-        Tensor<float> k_exp(x.ElemNum(), q_dim, x.Device(), "k_exp");
-        Tensor<float> v_exp(x.ElemNum(), q_dim, x.Device(), "v_exp");
+        Tensor<float> k_exp(x.ElemNum(), q.ElemLen(), x.Device(), "k_exp");
+        Tensor<float> v_exp(x.ElemNum(), q.ElemLen(), x.Device(), "v_exp");
         F->repeat_kv(k_exp, k, head_dim, attn_head/kv_head, kv_dim);
         F->repeat_kv(v_exp, v, head_dim, attn_head/kv_head, kv_dim);
         k = k_exp;
         v = v_exp;
     }
 
-    std::cout << " k_exp " << k[0] << " " << k[1] << std::endl;
-
-    k_cache.add(uid, k, pos[0]);
-    v_cache.add(uid, v, pos[0]);
-
-    std::cout << " k_cache " << k_cache.get(uid)[0] << " " << k_cache.get(uid)[1] << std::endl;
+    k_cache.add(uid, k, inputWarp.start_pos);
+    v_cache.add(uid, v, inputWarp.start_pos);
 
     Tensor<float> o(q.ElemNum(), q.ElemLen(), q.Device(), "attn_output");
 
-    F->masked_attention(o, q, k_cache.get(uid), v_cache.get(uid),nullptr, pos, head_dim, attn_head, q.ElemNum(), k_cache.Len(uid));
+    q.to("cpu");
+    k.to("cpu");
+    v.to("cpu");
+    std::cout << "\n\nq: " << q[0] << " " << q[1] << " " << q[2] << "\n";
+    std::cout << "k: " << k[0] << " " << k[1] << " " << k[2] << "\n";
+    std::cout << "v: " << v[0] << " " << v[1] << " " << v[2] << "\n";
+    
+        
+    std::cout << "\n";
+    q.to(x.Device());
+    k.to(x.Device());
+    v.to(x.Device());
+
+
+    F->masked_attention(o, q, k_cache.get(uid), v_cache.get(uid), nullptr, inputWarp.pos, head_dim, attn_head, q.ElemNum(), k_cache.Len(uid));
+
+    o.to("cpu");
+    std::cout << "o: " << o[0] << " " << o[1] << " " << o[2] << "\n";
+    for(int i = 0; i < 2500; i++) {
+        std::cout << o[i] << " ";
+    }
+    std::cout << "------\n";
+    o.to(x.Device());
 
     inputWarp.inter_value = layers.at("o_linear")->forward(o);
+
+    inputWarp.inter_value.to("cpu");
+    std::cout << "inputWarp.inter_value: " << inputWarp.inter_value[0] << " " << inputWarp.inter_value[1] << " " << inputWarp.inter_value[2] << "\n";
+
+    std::cout << "------\n";
+    inputWarp.inter_value.to(x.Device());
 }
 
 void Attention::to(const std::string& _device) {
