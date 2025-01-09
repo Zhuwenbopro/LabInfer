@@ -9,22 +9,27 @@ public:
     Tensor<int> output_ids;
     Tensor<float> inter_value;
     size_t uid;
+    size_t start_pos;
 
     InputWarp() = delete;
-    InputWarp(Tensor<int>& _input_ids) {
+    // FIXME : 未考虑当
+    InputWarp(Tensor<int>& _input_ids, const size_t _start_pos = 0) {
         static size_t guid = 0;
         uid = guid++;
-        input_ids = _input_ids;
-        pos = Tensor<int>(input_ids.ElemNum(), 1, input_ids.Device(), "position");
+        start_pos = _start_pos;
 
-        for(int i = 0; i < input_ids.ElemNum(); i++) pos[i] = i;
+        input_ids = _input_ids;
+        pos = Tensor<int>(input_ids.ElemNum(), 1, "cpu", "position");
+
+        for(int i = 0; i < input_ids.ElemNum(); i++) pos[i] = start_pos + i;
+        pos.to(input_ids.Device());
     }
 
     void to(const std::string& device) {
-        pos.to(device);
-        input_ids.to(device);
-        output_ids.to(device);
-        inter_value.to(device);
+        if(pos != nullptr) pos.to(device);
+        if(input_ids != nullptr) input_ids.to(device);
+        if(output_ids != nullptr) output_ids.to(device);
+        if(inter_value != nullptr) inter_value.to(device);
     }
 };
 

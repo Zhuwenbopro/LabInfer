@@ -39,6 +39,7 @@ public:
     }
 
     void add(const size_t uid, Tensor<float>& tensor, const int start_pos) {
+        
         if(tensor.ElemLen() != len) {
             throw std::logic_error("tensor " + std::to_string(uid) + " EleLen does not match cache len!\n"); 
         }
@@ -46,9 +47,10 @@ public:
         auto it = caches.find(uid);
         // 不存在
         if (it == caches.end()) {
-            caches[uid] = Parameter<float>(max_len, len, device, std::to_string(uid));
+            caches[uid] = Parameter<float>(max_len, len, device, std::to_string(uid), true);
             cache_lens[uid] = 0;
         }
+        
         caches[uid].copy(start_pos*len, tensor, 0, tensor.Size());
         cache_lens[uid] += tensor.ElemNum();
     }

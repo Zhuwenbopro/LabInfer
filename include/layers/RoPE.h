@@ -20,7 +20,8 @@ public:
     // 虚析构函数
     virtual ~RoPE() = default;
 
-    void load(std::unordered_map<std::string, std::shared_ptr<float>>& state_map) override {};
+    // 不需要 load weights
+    void load(std::unordered_map<std::string, std::shared_ptr<float>>& state_map) override { };
 
 private:
 // FIXME : 这里应该是config里面带的，不能写死
@@ -36,15 +37,15 @@ private:
 RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _name), head_dim(_head_dim)
 {
     size_t dim = head_dim / 2;
-    params.emplace("inv_freq", Parameter<float>(1, dim, "cpu", "inv"));
-
+    params.emplace("inv_freq", Parameter<float>(1, dim, "cpu", "inv", true));
+    
     float inv_freq[dim];
     float inv_freq_div_factor[dim];
     for (int k = 0; k < dim; k++) {
         inv_freq[k] = 1.0f / powf(rope_theta, k / (float)dim);
         inv_freq_div_factor[k] = inv_freq[k] / factor;
-    }            
-
+    }
+    
     float wavelen[dim];
     for (size_t i = 0; i < dim; ++i)
         wavelen[i] = 2.0f * M_PI / inv_freq[i];
@@ -52,8 +53,6 @@ RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _nam
     float low_freq_wavelen = old_context_len / low_freq_factor;
     float high_freq_wavelen = old_context_len / high_freq_factor;
 
-    float inv_freq_llama[dim];
-    
     for (size_t i = 0; i < dim; ++i) {
         if (wavelen[i] > low_freq_wavelen) {
             params.at("inv_freq")[i] = inv_freq_div_factor[i];
