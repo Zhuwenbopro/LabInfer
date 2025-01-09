@@ -78,10 +78,21 @@ void masked_attention_cuda(
     int seq_kv
 ) {
     float scale = 1.0f / std::sqrt(static_cast<float>(dim));
+    bool hasvalue = true;
+    if(scores == nullptr) {
+        hasvalue = false;
+        cudaError_t err = cudaMalloc((void**)&scores, seq_kv*head_num*dim*sizeof(float));
+        if (err != cudaSuccess) {
+            std::cerr << "cudaMalloc failed: " << cudaGetErrorString(err) << std::endl;
+            return;
+        }
+    }
 
     compute_masked_scores_kernel<<<dim3(seq_kv, head_num), dim3(seq_q)>>>(scores, q, k, pos, dim, scale);
 
     softmax_gpu<<<dim3(1, seq_q * head_num), dim3(num_threads_large)>>>(scores, seq_kv);
 
     compute_masked_output_kernel<<<dim3(seq_q), dim3(head_num)>>>(y, v, scores, seq_kv, dim);
+
+    if(!hasvalue) cudaFree(scores);
 }

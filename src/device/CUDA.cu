@@ -27,9 +27,29 @@ void CUDA::move_in(void* ptr_dev, void* ptr_cpu, size_t bytes) {
 
 // 从设备内存中取数据并传输到 CPU
 void CUDA::move_out(void* ptr_dev, void* ptr_cpu, size_t bytes) {
-    cudaError_t err = cudaMemcpy(ptr_cpu, ptr_dev, bytes, cudaMemcpyDeviceToHost);
+    // 检查指针有效性
+    if (ptr_dev == nullptr || ptr_cpu == nullptr) {
+        std::cerr << "Invalid pointer!" << std::endl;
+        exit(-1);
+    }
+
+    cudaError_t err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        std::cerr << "cudaDeviceSynchronize failed: " << cudaGetErrorString(err) << std::endl;
+        exit(-1);
+    }
+
+    // 调用 cudaMemcpy
+    err = cudaMemcpy(ptr_cpu, ptr_dev, bytes, cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
         std::cerr << "cudaMemcpy failed: " << cudaGetErrorString(err) << std::endl;
+        exit(-1);
+    }
+
+    // 检查最后的 CUDA 错误
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::cerr << "Last CUDA error: " << cudaGetErrorString(err) << std::endl;
         exit(-1);
     }
 }
