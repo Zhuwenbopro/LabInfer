@@ -16,29 +16,33 @@ public:
         F = new CPUFunction();
     }
 
+    ~CPU() {
+        delete allocator;
+        delete F;
+    }
+
     // 从 CPU 内存中取数据 (此处是个拷贝操作，因为数据已经在 CPU 中)
-    void move_in(float* ptr_dev, float* ptr_cpu, size_t bytes) override { 
+    void move_in(void* ptr_dev, void* ptr_cpu, size_t bytes) override { 
         throw std::logic_error("device cpu don't need to use move_in, but you used it.");
     }
 
     // 移除数据到 CPU (此处也是个拷贝操作)
-    void move_out(float* ptr_dev, float* ptr_cpu, size_t bytes) override {
+    void move_out(void* ptr_dev, void* ptr_cpu, size_t bytes) override {
         throw std::logic_error("device cpu don't need to use move_out, but you used it.");
     }
 
     // 分配内存
-    float* allocate(size_t size) override {
-        float* ptr = (float*)allocator->allocate(size*sizeof(float));
-        return ptr;
+    void* allocate(size_t bytes) override {
+        return allocator->allocate(bytes);
     }
 
     // 回收内存
-    void deallocate(float* ptr) override {
+    void deallocate(void* ptr) override {
         allocator->deallocate((void*)ptr);
     }
 
-    void copy(float* from, float* to, size_t size) override {
-        std::copy(from, from + size, to);
+    void copy(void* dst, void* src, size_t bytes) override {
+        std::memcpy(dst, src, bytes);
     }
 };
 

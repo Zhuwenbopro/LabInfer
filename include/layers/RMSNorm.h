@@ -12,41 +12,29 @@ public:
     // 删除默认构造函数
     RMSNorm() = delete;
     // Softmax(const Config& config, const std::string& name = "Softmax");
-    RMSNorm(const size_t _dim, const float _epsilon = 1e-5, const std::string& _name = "RMSNorm");
-
-    RMSNorm(Config& config);
+    RMSNorm(const size_t _hidden_size, const float _epsilon = 1e-5, const std::string& _name = "RMSNorm");
 
     // 覆盖基类的 forward 方法
-    Tensor forward(Tensor& x) override;
+    Tensor<float> forward(Tensor<float>& x) override;
 
     // 虚析构函数
     virtual ~RMSNorm() = default;
 
 private:
-    size_t dim;
+    size_t hidden_size;
     float epsilon = 1e-5;
 };
 
-
-// 初始化不分配内存，等到load的时候再分配
-RMSNorm::RMSNorm(Config& config) : Layer("cpu", "RMSNorm") 
+RMSNorm::RMSNorm(const size_t _hidden_size, const float _epsilon, const std::string& _name) : Layer("cpu", _name), hidden_size(_hidden_size), epsilon(_epsilon)
 {
-    dim = config.get<size_t>("hidden_size");
-    epsilon = config.get<float>("rms_norm_eps");
-
-    params.emplace("weight", Parameter("weight", dim, 1, "cpu"));
+    params.emplace("weight", Parameter<float>(1, hidden_size, "cpu", "weight"));
 }
 
-RMSNorm::RMSNorm(const size_t _dim, const float _epsilon, const std::string& _name) : Layer("cpu", _name), dim(_dim), epsilon(_epsilon)
+Tensor<float> RMSNorm::forward(Tensor<float>& x)
 {
-    params.emplace("weight", Parameter("weight", dim, 1, "cpu"));
-}
-
-Tensor RMSNorm::forward(Tensor& x)
-{
-    Parameter& W = params.at("weight");
+    Parameter<float>& W = params.at("weight");
     // 使用它们进行运算
-    F.get().rmsnorm(x, W, dim, x.elemNum(), epsilon);
+    F->rmsnorm(x, W, hidden_size, x.ElemNum(), epsilon);
     return x;
 }
 

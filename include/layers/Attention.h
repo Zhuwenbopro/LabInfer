@@ -10,19 +10,13 @@
 
 class Attention : public Layer {
 public:
-    // 构造函数，初始化线性层的输入和输出尺寸
-    // 删除默认构造函数
     Attention() = delete;
-    // Linear(const Config& config, const std::string& name = "Linear");
-    Attention(Config& config);
-    Attention(const size_t head_dim, const size_t attn_head, const size_t kv_head, const size_t hidden_size);
+    Attention(const size_t attn_head, const size_t kv_head, const size_t hidden_size, const size_t _max_len = 250);
 
-    // 覆盖基类的 forward 方法
-    Tensor forward(Tensor& x) override;
+    void forward(InputWarp& inputWarp) override;
 
-    void to(const std::string& new_dev) override;
+    void to(const std::string& _device) override;
 
-    // 虚析构函数
     virtual ~Attention() = default;
 
 private:
@@ -39,85 +33,91 @@ private:
     size_t max_len = 250;
 };
 
-// 初始化不分配内存，等到load的时候再分配
-Attention::Attention(Config& config) : Layer("cpu", "self_attn")
+Attention::Attention(
+    const size_t _attn_head, 
+    const size_t _kv_head, 
+    const size_t _hidden_size,
+    const size_t _max_len
+) : Layer("cpu", "self_attn"), 
+    head_dim(_hidden_size/_attn_head), 
+    attn_head(_attn_head), 
+    kv_head(_kv_head), 
+    hidden_size(_hidden_size), 
+    k_cache(Cache(_hidden_size, _max_len)),
+    v_cache(Cache(_hidden_size, _max_len))
 {
-    head_dim = config.get<size_t>("head_dim");
-    attn_head = config.get<size_t>("num_attention_heads");
-    kv_head = config.get<size_t>("num_key_value_heads");
-    hidden_size = config.get<size_t>("hidden_size");
-    q_dim = head_dim*attn_head;
-    kv_dim = head_dim*kv_head;
 
-    layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_proj"));
-    layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_proj"));
-    layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_proj"));
-    layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_proj"));
+    q_dim = head_dim*_attn_head; 
+    kv_dim = head_dim*_kv_head;
+
+    layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_linear"));
+    layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_linear"));
+    layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_linear"));
+    layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_linear"));
     layers.emplace("rope", new RoPE(head_dim));
-
-    k_cache = Cache(kv_dim, max_len, "cpu");
-    v_cache = Cache(kv_dim, max_len, "cpu");
 }
 
-Attention::Attention(const size_t _head_dim, const size_t _attn_head, const size_t _kv_head, const size_t _hidden_size) : Layer("cpu", "self_attn"), 
-    head_dim(_head_dim), attn_head(_attn_head), kv_head(_kv_head), hidden_size(_hidden_size), q_dim(head_dim*attn_head), kv_dim(head_dim*kv_head)
-{
-    layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_proj"));
-    layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_proj"));
-    layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_proj"));
-    layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_proj"));
-    layers.emplace("rope", new RoPE(head_dim));
+void Attention::forward(InputWarp& inputWarp) {
+    size_t uid = inputWarp.uid;
+    Tensor<float> x   = inputWarp.inter_value;
+    Tensor<int>   pos = inputWarp.pos;
+    std::cout << x << " : " << x[0] << " " << x[1] << std::endl;
+    Tensor<float> q = layers.at("q_linear")->forward(x);
+    std::cout << x << " : " << x[0] << " " << x[1] << std::endl;
+    std::cout << "-----------\n";
+    Tensor<float> k = layers.at("k_linear")->forward(x);
+    std::cout << x << " : " << x[0] << " " << x[1] << std::endl;
+    std::cout << "-----------\n";
+    Tensor<float> v = layers.at("v_linear")->forward(x);
 
-    k_cache = Cache(kv_dim, max_len, "cpu");
-    v_cache = Cache(kv_dim, max_len, "cpu");
-}
+    std::cout << " k " << k[0] << " " << k[1] << std::endl;
 
-// 进去的 x 会变，y 可以等于 x
-Tensor Attention::forward(Tensor& x)
-{   
-    Tensor q = layers.at("q_linear")->forward(x);
-    Tensor k = layers.at("k_linear")->forward(x);
-    Tensor v = layers.at("v_linear")->forward(x);
+    q = layers.at("rope")->forward(q, pos);
+    k = layers.at("rope")->forward(k, pos);
 
+    std::cout << " k_rope " << k[0] << " " << k[1] << std::endl;
 
-// FIXME: 这里的 pos 在 rope 里需要在 device 上，但在 attention 中需要在 CPU 里
-    q = layers.at("rope")->forward(q);
-    k = layers.at("rope")->forward(k);
-
-    k_cache.add(k);
-    v_cache.add(v);
-
-    //Tensor o("output", x.Shape(), device, true, x.Seq());
-    // prefill 阶段用的是 masked attention；decode 阶段用的是 kvcache
-    int offset = 0;
-    Tensor o(x, x.elemLen());
-    for(auto pos : x.Position()) {
-        for(int p = 0; p < pos.size(); p++) {
-            F.get().maksed_attention(o + offset*hidden_size, q + offset*q_dim, k, v, head_dim, attn_head, kv_head, pos[p]);
-            offset += 1;
-        }
+    int rep = attn_head/kv_head;
+    if(rep != 1) {
+        Tensor<float> k_exp(x.ElemNum(), q_dim, x.Device(), "k_exp");
+        Tensor<float> v_exp(x.ElemNum(), q_dim, x.Device(), "v_exp");
+        F->repeat_kv(k_exp, k, head_dim, attn_head/kv_head, kv_dim);
+        F->repeat_kv(v_exp, v, head_dim, attn_head/kv_head, kv_dim);
+        k = k_exp;
+        v = v_exp;
     }
 
-    Tensor y = layers.at("o_linear")->forward(o);
-    return y;
+    std::cout << " k_exp " << k[0] << " " << k[1] << std::endl;
+
+    k_cache.add(uid, k, pos[0]);
+    v_cache.add(uid, v, pos[0]);
+
+    std::cout << " k_cache " << k_cache.get(uid)[0] << " " << k_cache.get(uid)[1] << std::endl;
+
+    Tensor<float> o(q.ElemNum(), q.ElemLen(), q.Device(), "attn_output");
+
+    F->masked_attention(o, q, k_cache.get(uid), v_cache.get(uid),nullptr, pos, head_dim, attn_head, q.ElemNum(), k_cache.Len(uid));
+
+    inputWarp.inter_value = layers.at("o_linear")->forward(o);
 }
 
-void Attention::to(const std::string& new_dev) {
-    if(new_dev == device) return;
-    
+void Attention::to(const std::string& _device) {
+    if(device == _device) return;
+
     for (auto& [_name, param] : params) {
-        param.to(new_dev);
-    }
-    
-    F = std::ref(Manager::getInstance().getFunction(new_dev));
-    device = new_dev;
-    
-    for (auto& [_name, ptr_layer] : layers) {
-        ptr_layer->to(new_dev);
+        param.to(_device);
     }
 
-    k_cache.to(new_dev);
-    v_cache.to(new_dev);
+    F = DeviceManager::getInstance().getDevice(_device)->F;
+
+    for (auto& [_name, layer] : layers) {
+        layer->to(_device);
+    }
+
+    device = _device;
+
+    k_cache.to(_device);
+    v_cache.to(_device);
 }
 
 #endif // ATTENTION_H

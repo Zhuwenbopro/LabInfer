@@ -1,4 +1,5 @@
 #include "models/llama.h"
+#include <chrono>
 
 // ANSI color codes
 #define RESET   "\033[0m"
@@ -8,52 +9,52 @@
 #define N 4096  // 输入向量长度
 #define D 4096   // 输出向量长度
 
-void check_pass(const std::string& message);
-void check_error(const std::string& message);
-bool compare_results(const float *a, const float *b, int size, float tolerance = 1e-3);
+// void check_pass(const std::string& message);
+// void check_error(const std::string& message);
+// bool compare_results(const float *a, const float *b, int size, float tolerance = 1e-3);
 
-void read_bin(float* ptr, size_t num, const std::string& filename);
+// void read_bin(float* ptr, size_t num, const std::string& filename);
 
-void check_lm_head() {
-    size_t vocal_size = 128256;
-    size_t hidden_size = 2048;
+// void check_lm_head() {
+//     size_t vocal_size = 128256;
+//     size_t hidden_size = 2048;
 
-    std::vector<std::vector<size_t>> input_ids = {{128000, 791, 1401, 311, 2324, 374}};
-    std::vector<std::vector<size_t>> position = {{0, 1, 2, 3, 4, 5}};
-    std::vector<size_t> uid = {112358};
+//     std::vector<std::vector<size_t>> input_ids = {{128000, 791, 1401, 311, 2324, 374}};
+//     std::vector<std::vector<size_t>> position = {{0, 1, 2, 3, 4, 5}};
+//     std::vector<size_t> uid = {112358};
 
-    Linear linear(hidden_size, vocal_size, "model.embed_tokens");
-    linear.load_state("./model.safetensors", true);
+//     Linear linear(hidden_size, vocal_size, "model.embed_tokens");
+//     linear.load_state("./model.safetensors", true);
 
-    std::shared_ptr<float []> ptr(new float[6*hidden_size]);
-    read_bin(ptr.get(), 6 * hidden_size, "norm.bin");
+//     std::shared_ptr<float []> ptr(new float[6*hidden_size]);
+//     read_bin(ptr.get(), 6 * hidden_size, "norm.bin");
 
-    Tensor x(6, hidden_size, "cpu", uid, {6});
-    x.addPos(position);
-    x.setUid(uid);
-    x.setValue(ptr);
+//     Tensor x(6, hidden_size, "cpu", uid, {6});
+//     x.addPos(position);
+//     x.setUid(uid);
+//     x.setValue(ptr);
 
-    x = linear.forward(x);
-    x = x.tail();
+//     x = linear.forward(x);
+//     x = x.tail();
 
-    float* p = new float[x.elemLen()];
-    read_bin(p, x.elemLen(), "lm_head.bin");
+//     float* p = new float[x.elemLen()];
+//     read_bin(p, x.elemLen(), "lm_head.bin");
 
-    if(compare_results(p, x, x.elemLen(), 5e-2)) {
-        check_pass("lm_head check pass");
-    } else {
-        check_error("lm_head check not pass");
-    }
+//     if(compare_results(p, x, x.elemLen(), 5e-2)) {
+//         check_pass("lm_head check pass");
+//     } else {
+//         check_error("lm_head check not pass");
+//     }
 
-    float* logist = new float[x.elemLen()];
-    read_bin(logist, x.elemLen(), "logits.bin");
+//     float* logist = new float[x.elemLen()];
+//     read_bin(logist, x.elemLen(), "logits.bin");
 
-    if(compare_results(p, logist, x.elemLen(), 5e-3)) {
-        check_pass("logist check pass");
-    } else {
-        check_error("logist check not pass");
-    }
-}
+//     if(compare_results(p, logist, x.elemLen(), 5e-3)) {
+//         check_pass("logist check pass");
+//     } else {
+//         check_error("logist check not pass");
+//     }
+// }
 
 int main() {
 
@@ -75,33 +76,22 @@ int main() {
     x.addPos(position);
     x.setUid(uid);
 
-    Tensor y = model.forward(x);
+    // x.to("cuda");
+    // model.to("cuda");
+    auto start = std::chrono::high_resolution_clock::now();
+    for(int i = 0; i < 10; i++) {
+        //std::cout << i << std::endl;
+        x = model.forward(x);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
 
-    // size_t hidden_size = 2048;
-    // float* p = new float[6*hidden_size];
-    // read_bin(p, 6*hidden_size, "lm_head.bin");
-
-    // std::cout << y.Size() << std::endl;
-    
-    // if(compare_results(p, y, y.Size(), 6e-2)) {
-    //     check_pass("lm_head check pass");
-    // } else {
-    //     check_error("lm_head check not pass");
-    // }
+    std::chrono::duration<double, std::milli> elapsed = end - start;
+    std::cout << " executed in " << elapsed.count() << " ms.\n";
 
     // return -1;
-    std::cout << "生成结果：" << y[0] << std::endl;
+    
 }
 
-
-
-void check_pass(const std::string&  message){
-    std::cout << GREEN << message << RESET << std::endl;
-}
-
-void check_error(const std::string&  message){
-    std::cout << RED << message << RESET << std::endl;
-}
 
 float fabs(float c){
     return c >= 0 ?  c : -c;

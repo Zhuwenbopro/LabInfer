@@ -7,11 +7,12 @@
 class CUDA : public Device {
 public:
     CUDA();
-    void move_in(float* ptr_dev, float* ptr_cpu, size_t size) override;
-    void move_out(float* ptr_dev, float* ptr_cpu, size_t size) override;
-    float* allocate(size_t size) override;
-    void deallocate(float* ptr) override;
-    void copy(float* from, float* to, size_t size) override;
+    ~CUDA();
+    void move_in(void* ptr_dev, void* ptr_cpu, size_t bytes) override;
+    void move_out(void* ptr_dev, void* ptr_cpu, size_t bytes) override;
+    void* allocate(size_t bytes) override;
+    void deallocate(void* ptr) override;
+    void copy(void* dst, void* src, size_t bytes) override;
 };
 
 #endif // CUDA_H

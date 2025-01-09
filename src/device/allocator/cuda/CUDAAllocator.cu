@@ -4,8 +4,8 @@
 
 CUDAAllocator::CUDAAllocator(){ }
 
-void* CUDAAllocator::allocate(size_t size) {
-    if (size == 0) {
+void* CUDAAllocator::allocate(size_t bytes) {
+    if (bytes == 0) {
         std::cerr << "Invalid allocation size: 0 bytes." << std::endl;
         exit(-1);
     }
@@ -18,7 +18,7 @@ void* CUDAAllocator::allocate(size_t size) {
     }
 
     void* devPtr;
-    cudaError_t err = cudaMalloc((void **)&devPtr, size);
+    cudaError_t err = cudaMalloc((void **)&devPtr, bytes);
     if (err != cudaSuccess) {
         std::cerr << "cudaMalloc failed! Error: " << cudaGetErrorString(err) << std::endl;
         // Handle the error (e.g., return, exit, or clean up resources)
@@ -31,7 +31,7 @@ void CUDAAllocator::deallocate(void* ptr) {
     cudaError_t err = cudaFree(ptr);
     if (err != cudaSuccess) {
         std::cerr << "cudaFree failed! Error: " << cudaGetErrorString(err) << std::endl;
-        // 根据需求处理错误，例如退出程序或记录日志
+        std::cerr << "CUDA Error Code: " << err << std::endl;
         exit(EXIT_FAILURE);
     }
     ptr = nullptr;

@@ -12,12 +12,12 @@ DEVICE_DIR := $(SRC_DIR)/device
 BUILD_DIR := ../../build
 THIRD_PARTY_DIR := ./../../third_party
 
-INCLUDES := -I./../../include
+INCLUDES := -I./../../include -I$(DEVICE_DIR) -I$(THIRD_PARTY_DIR)
 
 # =============================================================================
 # 查找所有 .cc 和 .cu 文件
 # =============================================================================
-CPU_SRC := $(shell find $(SRC_DIR) -type f -name '*.cc')
+CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc ../../src/layer/layer.cc
 CPU_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CPU_SRC:.cc=.o)))
 
 CUDA_SRC := $(shell find $(SRC_DIR) -type f -name '*.cu')
@@ -31,9 +31,9 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # 编译标志
 # =============================================================================
 MACRO := -DUSE_CUDA
-CXXSTAND := -std=c++20
-CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -I$(THIRD_PARTY_DIR)
-NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO)
+CXXSTAND := -std=c++17
+CXXFLAGS := $(CXXSTAND) $(INCLUDES) $(MACRO) -O3 -fopenmp  # 添加 -fopenmp
+NVCCFLAGS := $(CXXSTAND) $(INCLUDES) $(MACRO) -O3 -Xcompiler -fopenmp # 使用 -Xcompiler 传递给 g++
 
 # =============================================================================
 # 最终目标
@@ -48,9 +48,10 @@ all: $(TARGET)
 # =============================================================================
 # 链接目标
 # =============================================================================
-$(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+LDFLAGS := -lopenblas
 
+$(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
+	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS)
 # =============================================================================
 # 编译规则
 # =============================================================================
@@ -89,14 +90,7 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # 清理目标
 # =============================================================================
 clean:
-	mv *.bin model.safetensors *.json ~/data
 	rm -rf $(BUILD_DIR) $(TARGET)
-
-# =============================================================================
-# 准备数据
-# =============================================================================
-data:
-	mv ~/data/* ./
 
 # =============================================================================
 # 声明伪目标

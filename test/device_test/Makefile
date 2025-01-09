@@ -30,9 +30,9 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # 编译标志
 # =============================================================================
 MACRO := -DUSE_CUDA
-CXXSTAND := -std=c++14
-CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO)
-NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO)
+CXXSTAND := -std=c++20 
+CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -mavx -O3 -fopenmp   # 添加 -fopenmp
+NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO) -Xcompiler -fopenmp    # 使用 -Xcompiler 传递给 g++
 
 # =============================================================================
 # 最终目标
@@ -47,8 +47,11 @@ all: $(TARGET)
 # =============================================================================
 # 链接目标
 # =============================================================================
+
+LDFLAGS := -lopenblas -lgomp  # 手动添加 OpenMP 库链接
+
 $(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS)
 
 # =============================================================================
 # 编译规则
@@ -73,7 +76,6 @@ define compile_cuda
 $(BUILD_DIR)/$(notdir $(1:.cu=.o)): $(1) | $(BUILD_DIR)
 	$(NVCC) $(NVCCFLAGS) -MMD -c $(1) -o $$@
 endef
-
 
 # 为每个 .cc 文件生成编译规则
 $(foreach src,$(CPU_SRC),$(eval $(call compile_cpu,$(src))))

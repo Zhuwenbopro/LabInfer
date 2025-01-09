@@ -3,67 +3,76 @@
 #include "common.h"
 #include <stdio.h>
 
-__global__ void apply_rope_kernel_optimized(
-    float *x, const float *pos, const float *cos, const float *sin,
-    int n, int dim, int num
-) {
-    // 计算p和i的索引
-    int p = blockIdx.y;
-    int i = blockIdx.x;
+__global__ void apply_rope_kernel_optimized(float *x, const int *pos, const float *inv_freq, const int n, int head_dim, const int num) {
 
-    if (p >= num || i >= n / (dim * 2))
-        return;
+    // 计算全局线程索引
+    int batch_idx = blockIdx.x; // 每个块处理一个batch
+    int thread_id = threadIdx.x; // 线程在块内的索引
 
-    // 线程索引对应j
-    int j = threadIdx.x;
+    if (batch_idx >= num) return;
 
-    if (j >= dim)
-        return;
+    // 获取当前batch的位置信息
+    int position = pos[batch_idx];
 
-    // 获取当前p对应的cos和sin的指针
-    int pos_p = static_cast<int>(pos[p]);
-    const float* cos_ptr = cos + pos_p * dim;
-    const float* sin_ptr = sin + pos_p * dim;
-
-    // 使用共享内存
+    // 计算每个head_dim的一对（sin, cos）值
+    // 预先计算sin和cos以提高性能
+    // head_dim 必须为偶数
     extern __shared__ float shared_mem[];
-    float* shared_cos = shared_mem;
-    float* shared_sin = shared_mem + dim;
+    float *sin_cache = shared_mem; // 大小 head_dim / 2
+    float *cos_cache = &shared_mem[head_dim / 2];
 
-    // 将cos和sin加载到共享内存
-    shared_cos[j] = cos_ptr[j];
-    shared_sin[j] = sin_ptr[j];
+    // 预计算 sin(theta) 和 cos(theta)
+    for (int i = thread_id; i < head_dim / 2; i += blockDim.x) {
+        float theta = position * inv_freq[i];
+        sin_cache[i] = __sinf(theta);
+        cos_cache[i] = __cosf(theta);
+    }
     __syncthreads();
 
-    // 计算x的起始位置
-    float* x_ptr = x + p * n + i * dim * 2;
+    int dim = head_dim >> 1;
 
-    // 读取当前值
-    float x1 = x_ptr[j];
-    float x2 = x_ptr[dim + j];
+    // 计算每个头的偏移
+    int num_heads = n / head_dim;
+    for (int head = thread_id; head < num_heads; head += blockDim.x) {
+        // 每个头的起始位置
+        int head_start = batch_idx * n + head * head_dim;
 
-    // 从共享内存中读取cos和sin
-    float c = shared_cos[j];
-    float s = shared_sin[j];
+        // 对每对维度应用旋转
+        for (int d = 0; d < dim; d++) {
+            // 由于 x 是列优先存储，批次为外层，位置和维度为内层
+            // x[batch][dim_idx] 对应的线性索引
+            int index1 = head_start + d;
+            int index2 = index1 + dim;
 
-    // 应用旋转
-    x_ptr[j]       = x1 * c - x2 * s;
-    x_ptr[dim + j] = x2 * c + x1 * s;
+            // 读取原始值
+            float x1 = x[index1];
+            float x2 = x[index2];
+
+            // 读取预计算的 sin 和 cos
+            float sin_theta = sin_cache[d];
+            float cos_theta = cos_cache[d];
+
+            // 应用ROPE旋转
+            float rotated_x1 = x1 * cos_theta - x2 * sin_theta;
+            float rotated_x2 = x1 * sin_theta + x2 * cos_theta;
+
+            // 写回
+            x[index1] = rotated_x1;
+            x[index2] = rotated_x2;
+        }
+    }
 }
 
 
 // 封装的函数，支持批处理
-void apply_rope_cuda(float *x, const float *pos, const float *cos, const float *sin, const int n, const int dim, const int num) {
-    // 计算网格和线程块的尺寸
-    dim3 blockDim(dim);
-    dim3 gridDim(n / (dim * 2), num);
+void apply_rope_cuda(float *x, const int *pos, const float *inv_freq, const int n, int head_dim, const int num) {
+   int threads_per_block = 256; // 根据具体 GPU 的计算能力调整
+    int blocks = num;
 
-    // 计算共享内存的大小
-    size_t sharedMemSize = 2 * dim * sizeof(float);
-    // printFromGPUToCPU(cos, num*dim);
-    // printFromGPUToCPU(sin, num*dim);
-    // 启动内核
-    apply_rope_kernel_optimized<<<gridDim, blockDim, sharedMemSize>>>( x, pos, cos, sin, n, dim, num);
-    // cudaDeviceSynchronize();
-    // printFromGPUToCPU(x, n*num);
+    size_t shared_mem_size = head_dim * sizeof(float);
+
+    // 启动核函数
+    apply_rope_kernel_optimized<<<blocks, threads_per_block, shared_mem_size>>>(
+        x, pos, inv_freq, n, head_dim, num
+    );
 }

@@ -10,17 +10,17 @@ NVCC := nvcc
 SRC_DIR := ../../src
 DEVICE_DIR := $(SRC_DIR)/device
 BUILD_DIR := ../../build
-THIRD_PARTY_DIR := ./../../third_party
 
-INCLUDES := -I./../../include
+INCLUDES := -I./../../include -I$(DEVICE_DIR)
 
 # =============================================================================
 # 查找所有 .cc 和 .cu 文件
 # =============================================================================
-CPU_SRC := $(shell find $(SRC_DIR) -type f -name '*.cc')
+CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc
 CPU_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CPU_SRC:.cc=.o)))
 
-CUDA_SRC := $(shell find $(SRC_DIR) -type f -name '*.cu')
+
+CUDA_SRC := $(shell find $(DEVICE_DIR) -type f -name '*.cu')
 CUDA_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CUDA_SRC:.cu=.o)))
 
 # 主程序源文件
@@ -32,24 +32,24 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # =============================================================================
 MACRO := -DUSE_CUDA
 CXXSTAND := -std=c++17
-CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -I$(THIRD_PARTY_DIR)
-NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO)
-
-# =============================================================================
-# 最终目标
-# =============================================================================
-TARGET := test
+CXXFLAGS := $(CXXSTAND) $(INCLUDES) $(MACRO) -O3 -fopenmp  # 添加 -fopenmp
+NVCCFLAGS := $(CXXSTAND) $(INCLUDES) $(MACRO) -O3 -Xcompiler -fopenmp # 使用 -Xcompiler 传递给 g++
 
 # =============================================================================
 # 默认目标
 # =============================================================================
+
+TARGET := test
+
 all: $(TARGET)
 
 # =============================================================================
 # 链接目标
 # =============================================================================
+LDFLAGS := -lopenblas
+
 $(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS) 
 
 # =============================================================================
 # 编译规则
@@ -64,6 +64,10 @@ $(MAIN_OBJ): $(MAIN_SRC) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
 
 # 定义编译 .cc 文件为 .o 文件的规则
+# $(1) 是 compile_cpu 函数的第一个参数
+# $(notdir $(1:.cc=.o)) 会将 .cc 文件的扩展名替换成 .o 文件名
+# $(1) | $(BUILD_DIR) 这是文件的依赖关系 
+# 	   | $(BUILD_DIR) 是一个特殊的依赖，表示 $(BUILD_DIR) 必须在生成 .o 文件之前存在。
 define compile_cpu
 $(BUILD_DIR)/$(notdir $(1:.cc=.o)): $(1) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -MMD -c $(1) -o $$@
@@ -75,9 +79,10 @@ $(BUILD_DIR)/$(notdir $(1:.cu=.o)): $(1) | $(BUILD_DIR)
 	$(NVCC) $(NVCCFLAGS) -MMD -c $(1) -o $$@
 endef
 
-
 # 为每个 .cc 文件生成编译规则
-$(foreach src,$(CPU_SRC),$(eval $(call compile_cpu,$(src))))
+# $(foreach var, list, command)
+# $(call compile_cpu, $(src))  用 compile_cpu 宏并传递 $(src)（即当前源文件）的参数。
+$(foreach src, $(CPU_SRC), $(eval $(call compile_cpu, $(src))))
 
 # 为每个 .cu 文件生成编译规则
 $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
@@ -91,7 +96,4 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 
-# =============================================================================
-# 声明伪目标
-# =============================================================================
 .PHONY: all clean

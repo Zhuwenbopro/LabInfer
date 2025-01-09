@@ -1,79 +1,83 @@
 #include "Tensor.h"
+#include "Parameter.h"
+#include "../test.h"
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
-int main() {
-    // 创建输入数据
-    std::vector<std::vector<size_t>> input_ids = {
-        {1, 2, 3},
-        {4, 5, 6, 7},
-        {8, 9}
-    };
-    std::vector<size_t> uid = {12231, 44223, 5555};
+#define N 8192  // 输入向量长度
+#define D 8192   // 输出向量长度
 
-    // 设备（假设 "cpu" 是有效的设备）
-    std::string device = "cpu";
+void check_add(){
+    Title("check_add");
+    DeviceManager& manager = DeviceManager::getInstance();
 
-    // 创建一个 Tensor 对象
-    Tensor tensor(input_ids, device);
-    tensor.setUid(uid);
-    tensor.addPos(input_ids);
+    Device * cpu = manager.getDevice("cpu");
+    Device * cuda = manager.getDevice("cuda");
 
-    // 输出一些信息
-    std::cout << "Tensor Size: " << tensor.Size() << std::endl;
-    std::cout << "Element Length: " << tensor.elemLen() << std::endl;
-    std::cout << "Element Number: " << tensor.elemNum() << std::endl;
-    std::cout << "Device: " << tensor.Device() << std::endl;
-    std::cout << "SeqLen : " << tensor.SeqLen()[0] << "  " << tensor.SeqLen()[1] << "  " << tensor.SeqLen()[2] << std::endl;
+    int batch_size = 5;
+    // 分配主机内存
+    Tensor<float> x1_cpu(batch_size, N, "cpu", "x1_cpu");
+    Tensor<float> x2_cpu(batch_size, N, "cpu", "x2_cpu");
 
-    Tensor t = tensor.tail();
-    std::cout << "tensor tail : ";
-    for(int i = 0; i < t.elemNum(); i++)
-        std::cout << t[i] << " ";
-    std::cout << std::endl;
+    rand_init(x1_cpu, N * batch_size);
+    rand_init(x2_cpu, N * batch_size);
 
-    std::cout << "tensor tail pos : ";
-    for(int i = 0; i < t.elemNum(); i++)
-        std::cout << t.Position()[i][0] << " ";
-    std::cout << std::endl;
+    Tensor<float> x1_cuda(x1_cpu);
+    Tensor<float> x2_cuda(x2_cpu);
 
-    // 访问原始数据
-    float* data = tensor.rawPtr();
+    x1_cuda.to("cuda");
+    x2_cuda.to("cuda");
 
-    // 打印数据
-    std::cout << "Tensor Data: ";
-    for (size_t i = 0; i < tensor.Size(); ++i) {
-        std::cout << data[i] << " ";
+    cpu->F->add(x2_cpu, x1_cpu, x2_cpu, N, batch_size);
+    cuda->F->add(x2_cuda, x1_cuda, x2_cuda, N, batch_size);
+
+    x2_cuda.to("cpu");
+
+    // 比较结果
+    check(x2_cuda, x2_cpu, N * batch_size, "add");
+}
+
+void check_parameter() {
+    Title("check_parameter");
+    size_t len = 10;
+    Parameter<int> param1(1, 10, "cpu", "param");
+    Parameter<int> param2(1, 10, "cpu", "param");
+
+    for(int i = 0; i < len; i++) {
+        param1[i] = i;
+        param2[i] = i + 10;
     }
+
+    param1.setShared();
+    param1.copy(3, param2, 2, 4);
+
+    
+    for(int i = 0; i < len; i++)
+        std::cout << param1[i] << " ";
     std::cout << std::endl;
 
-    // 创建另一个相同大小的 Tensor 用于复制
-    std::vector<std::vector<size_t>> input_ids2 = {
-        {10, 11, 12},
-        {13, 14, 15, 16},
-        {17, 18}
-    };
+    for(int i = 0; i < len; i++)
+        std::cout << param2[i] << " ";
+    std::cout << std::endl;
 
-    Tensor tensor2(input_ids2, device);
+    std::cout << param1 << " " << param1.Name() << std::endl;
+    param1.to("cuda");
+    std::cout << param1 << " " << param1.Name() << std::endl;
+    std::cout << param1.Device() << std::endl;
 
-    // 将 tensor2 复制到 tensor
     try {
-        tensor.copy(tensor2);
-
-        // 复制后打印数据
-        std::cout << "Tensor Data after copy: ";
-        data = tensor.rawPtr();
-        for (size_t i = 0; i < tensor.Size(); ++i) {
-            std::cout << data[i] << " ";
-        }
-        std::cout << std::endl;
+        param1.copy(3, param2, 2, 4);
     } catch (const std::logic_error& e) {
-        std::cerr << "复制失败: " << e.what() << std::endl;
+        // 异常处理代码
+        std::cout << "Caught exception: " << e.what() << std::endl;
     }
+}
 
-    // 测试 to() 函数，将设备转换为 "gpu"
-    tensor.to("cuda");
-    std::cout << "Tensor Device after to(): " << tensor.Device() << std::endl;
+int main() {
+
+    check_parameter();
+    check_add();
 
     return 0;
 }
