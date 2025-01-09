@@ -13,7 +13,7 @@ public:
     Linear(const size_t size_in, const size_t size_out, const std::string& _name = "Linear", bool _bias = false);
 
     // 覆盖基类的 forward 方法
-    Tensor forward(Tensor& x) override;
+    Tensor<float> forward(Tensor<float>& x) override;
 
     // 虚析构函数
     virtual ~Linear() = default;
@@ -24,22 +24,28 @@ private:
     bool bias;
 };
 
-// 初始化不分配内存，等到load的时候再分配
+
 Linear::Linear(const size_t size_in, const size_t size_out, const std::string& _name, bool _bias) : Layer("cpu", _name)
 {
     input_size = size_in;
     output_size = size_out;
     bias = _bias;
     
-    params.emplace("weight", Parameter("weight", size_in, size_out, "cpu"));
+    params.emplace("weight", Parameter<float>(size_out, size_in, "cpu", "weight"));
 
-    if(bias) params.emplace("bias", Parameter("bias", size_in, 1, "cpu"));
+    if(bias) params.emplace("bias", Parameter<float>(1, size_in, "cpu", "bias"));
 }
 
-Tensor Linear::forward(Tensor& x)
+Tensor<float> Linear::forward(Tensor<float>& x)
 {   
-    Tensor y(x, output_size);
-    F.get().matmul(y, x, params.at("weight"), input_size, output_size, x.elemNum());
+    if(x.ElemLen() != input_size) {
+        throw std::runtime_error("Layer " + name + "'s input len not match param len.");
+    }
+
+    std::cout << x.ElemLen() << " " << input_size << " " << output_size << "\n";
+    std::cout << x.ElemNum() << " " << F << "\n";
+    Tensor<float> y(x.ElemNum(), output_size, x.Device(), name + "_output");
+    F->matmul(y, x, params.at("weight"), input_size, output_size, x.ElemNum());
     return y;
 }
 

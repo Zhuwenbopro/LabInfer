@@ -36,10 +36,8 @@ public:
     * @param[in] num 有几个 x。
     */
     virtual void matmul(float* y, const float *x, const float *W, const int n, const int d, const int num) = 0;
-    virtual void matmul(float**y, float**x, float* W, int n, int d, int num) = 0;
 
     virtual void softmax(float* x, const int n, const int num) = 0;
-    virtual void softmax(float**x, int n, int num) = 0;
 
     /**
     * @brief 对 x 做位置编码
@@ -49,16 +47,14 @@ public:
     * @param[in] pos x 的位置，长度为 `1 x num`。
     * @param[in] cos 提前算好的位置余弦 `max_pos * dim`。
     * @param[in] n 输入向量 `x` 的维度。
-    * @param[in] dim = head_dim/2
+    * @param[in] head_dim = head_dim
     * @param[in] num 有多少个 pos
     */
-    virtual void apply_rope(float *x, const float *pos, const float *cos, const float *sin, const int n, int dim, const int num) = 0;
+    virtual void apply_rope(float *x, const int *pos, const float *inv_freq, const int n, int head_dim, const int num) = 0;
 
     virtual void silu(float* x, const int n, const int batch_size = 1) = 0;
-    virtual void silu(float**x, int n, int num) = 0;
 
     virtual void add(float* y, const float* x1, const float* x2, const int n, const int batch_size = 1) = 0;
-    virtual void add(float**y, float**x1, float**x2, int n, int num) = 0;
 
     /**
     * @brief [batch, seq] => [batch, seq, dim]
@@ -73,21 +69,21 @@ public:
     * @param[in] x_size x 输入 token 数。
     * @param[in] batch_size 输入批次。默认为 1。
     */
-    virtual void embedding(float* y, const float* x, const float* W, const int d, const int x_size) = 0;
-    virtual void embedding(float**y, float* x, float* W, int num, int hidden_size) = 0;
+    virtual void embedding(float* y, const int* x, const float* W, const int d, const int x_size) = 0;
 
     /**
      *  @brief 
      * 
      *  no matter which device it use, _pos in cpu
      */
-    virtual void maksed_attention(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos) = 0;
+    virtual void masked_attention(float* y, float* q, float* k, float* v, float* scores, int* pos, int dim, int head_num, int seq_q, int seq_kv) = 0;
 
     virtual void elem_multiply(float* y, const float* x1, const float* x2, const int size) = 0;
-    virtual void elem_multiply(float**y, float**x1, float**x2, int n, int num) = 0;
 
     virtual void max_index(float* index, float* x, const int n, const int num) = 0;
-    virtual void max_index(float* index, float**x, int n, int num) = 0;
+    
+    // n 是 in 的元素长度
+    virtual void repeat_kv(float* o, float* in, int dim, int rep, int n) = 0;
 };
 
 #endif // Function_H

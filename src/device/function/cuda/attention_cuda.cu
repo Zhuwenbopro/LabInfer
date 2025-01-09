@@ -1,143 +1,87 @@
 #include "attention_cuda.h"
 #include "common.h"
+#include "softmax_cuda.h"
 #include <cuda_runtime.h>
 #include <cmath>
 #include <algorithm>
 
-// Helper function to compute the next power of two
-unsigned int nextPowerOfTwo(unsigned int x) {
-    if (x == 0)
-        return 1;
-    x--;
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-    x++;
-    return x;
-}
+// q [seq_q,  head_num, dim]
+// k [seq_kv, head_num, dim]
+// kernel<<<(seq_kv, head_num), (seq_q)>>>
+// scores [seq_q, head_num, seq_kv]
+__global__ void compute_masked_scores_kernel(
+    float* scores,
+    float* __restrict__ q,
+    float* __restrict__ k_cache,
+    int* q_pos,
+    int dim,
+    float  scale
+) {
+    int kv_id = blockIdx.x;      // gridDim.x = seq_kv
+    int head_id = blockIdx.y;    // gridDim.y = head_num
+    int q_id = threadIdx.x;      // blockDim.x = seq_q
 
-// Kernel to compute attention scores
-__global__ void compute_scores_kernel(float* score, const float* q, const float* k,
-                                      int dim, int q_head, int kv_head, int pos,
-                                      int rep, int kv_dim, float scale) {
-    int hq = blockIdx.y * blockDim.y + threadIdx.y; // Query head index
-    int p = blockIdx.x * blockDim.x + threadIdx.x;  // Position index
+    int kv_num = gridDim.x;      // seq_kv
+    int head_num = gridDim.y;    // head_num
 
-    if (hq < q_head && p < pos) {
-        const float* _q = q + hq * dim;
-        const float* _k = k + p * kv_dim + (hq / rep) * dim;
-        float dot = 0.0f;
-        for(int d = 0; d < dim; d++) {
-            dot += _q[d] * _k[d];
-        }
-        int s_index = hq * pos + p;
-        score[s_index] = dot * scale;
+    int pos = q_pos[q_id];
+
+    float sum = 0.0f;
+    #pragma unroll
+    for(int i = 0; i < dim; i++) {
+        sum += q[q_id * head_num * dim + head_id*dim + i] * k_cache[kv_id*head_num*dim + head_id*dim + i];
     }
-}
 
-// Kernel to apply softmax to the scores
-__global__ void _softmax_kernel(float* score, int pos) {
-    extern __shared__ float shared_data[];
-    int hq = blockIdx.x; // Each block processes one query head
-    int p = threadIdx.x; // Thread processes one position
-
-    float val = -INFINITY;
-    if (p < pos) {
-        val = score[hq * pos + p];
-    }
-    shared_data[p] = val;
-    __syncthreads();
-
-    // Compute max value for numerical stability
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
-        if (p < stride && (p + stride) < pos) {
-            shared_data[p] = fmaxf(shared_data[p], shared_data[p + stride]);
-        }
-        __syncthreads();
-    }
-    float max_val = shared_data[0];
-    __syncthreads();
-
-    // Compute exponentials and sum
-    if (p < pos) {
-        val = expf(val - max_val);
-        score[hq * pos + p] = val;
-        shared_data[p] = val;
+    if(kv_id <= pos) {
+        scores[q_id*head_num*kv_num + head_id*kv_num + kv_id] = sum * scale;
     } else {
-        shared_data[p] = 0.0f;
-    }
-    __syncthreads();
-
-    // Compute sum of exponentials
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
-        if (p < stride && (p + stride) < pos) {
-            shared_data[p] += shared_data[p + stride];
-        }
-        __syncthreads();
-    }
-    float sum = shared_data[0];
-    __syncthreads();
-
-    // Normalize the scores
-    if (p < pos) {
-        score[hq * pos + p] /= sum;
+        scores[q_id*head_num*kv_num + head_id*kv_num + kv_id] = -INFINITY;
     }
 }
 
-// Kernel to compute the output y
-__global__ void compute_output_kernel(float* y, const float* score, const float* v,
-                                      int dim, int q_head, int kv_head, int pos,
-                                      int rep, int kv_dim) {
-    int hq = blockIdx.y * blockDim.y + threadIdx.y; // Query head index
-    int d = blockIdx.x * blockDim.x + threadIdx.x;  // Dimension index
+// o      [seq_q, head_num, dim]
+// scores [seq_q, head_num, seq_kv]
+// kernel<<<(seq_q), (head_num)>>>
+__global__ void compute_masked_output_kernel(
+    float* o,
+    float* v_cache,
+    float* scores,
+    int kv_num,
+    int dim
+) {
+    int head_num = blockDim.x;
 
-    if (hq < q_head && d < dim) {
-        float sum = 0.0f;
-        int s_index = hq * pos;
-        int v_offset = (hq / rep) * dim + d;
-        for(int p = 0; p < pos; p++) {
-            float s = score[s_index + p];
-            float v_val = v[p * kv_dim + v_offset];
-            sum += s * v_val;
-        }
-        y[hq * dim + d] = sum;
-    }
-}
-
-// Main function to perform masked attention using CUDA
-void maksed_attention_cuda(float* y, const float* q, const float* k, const float* v,
-                           const int dim, const int q_head, const int kv_head, const int _pos) {
+    int h_id = threadIdx.x;
+    int q_id = blockIdx.x;
     
-    int pos = _pos + 1;
-    int rep = q_head / kv_head;
-    int kv_dim = kv_head * dim;
+
+    for(int i = 0; i < kv_num; i++) {
+        float s = scores[q_id*head_num*kv_num + h_id*kv_num + i];
+        #pragma unroll
+        for(int d = 0; d < dim; d++) {
+            o[q_id*head_num*dim + h_id*dim + d] += s * v_cache[i*head_num*dim + h_id*dim + d];
+        }
+    }
+
+}
+
+void masked_attention_cuda(
+    float* y, 
+    float* q, 
+    float* k, 
+    float* v, 
+    float* scores, 
+    int* pos, 
+    int dim, 
+    int head_num,
+    int seq_q,
+    int seq_kv
+) {
     float scale = 1.0f / std::sqrt(static_cast<float>(dim));
 
-    // Allocate device memory
-    float *d_score;
-    cudaMalloc((void**)&d_score, q_head * pos * sizeof(float));
-    cudaMemset(d_score, 0, q_head * pos * sizeof(float));
+    compute_masked_scores_kernel<<<dim3(seq_kv, head_num), dim3(seq_q)>>>(scores, q, k, pos, dim, scale);
 
-    // Launch kernel to compute scores
-    dim3 blockDimScore(16, 16);
-    dim3 gridDimScore((pos + blockDimScore.x - 1) / blockDimScore.x,
-                      (q_head + blockDimScore.y - 1) / blockDimScore.y);
-    compute_scores_kernel<<<gridDimScore, blockDimScore>>>(d_score, q, k, dim,
-                                                           q_head, kv_head, pos, rep, kv_dim, scale);
+    softmax_gpu<<<dim3(1, seq_q * head_num), dim3(num_threads_large)>>>(scores, seq_kv);
 
-    // Launch kernel to apply softmax
-    int softmaxBlockSize = nextPowerOfTwo(pos);
-    size_t sharedMemSize = softmaxBlockSize * sizeof(float);
-    _softmax_kernel<<<q_head, softmaxBlockSize, sharedMemSize>>>(d_score, pos);
-    
-    // Launch kernel to compute the output y
-    dim3 blockDimOutput(32, 32);
-    dim3 gridDimOutput((dim + blockDimOutput.x - 1) / blockDimOutput.x,
-                       (q_head + blockDimOutput.y - 1) / blockDimOutput.y);
-    compute_output_kernel<<<gridDimOutput, blockDimOutput>>>(y, d_score, v, dim, q_head, kv_head, pos, rep, kv_dim);
-
-    // Free device memory
-    cudaFree(d_score);
+    compute_masked_output_kernel<<<dim3(seq_q), dim3(head_num)>>>(y, v, scores, seq_kv, dim);
 }

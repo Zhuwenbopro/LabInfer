@@ -30,10 +30,21 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # =============================================================================
 # 编译标志
 # =============================================================================
-MACRO := -DUSE_CUDA
-CXXSTAND := -std=c++20
-CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -I$(THIRD_PARTY_DIR)
-NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO)
+USE_CUDA ?= 1
+
+ifeq ($(USE_CUDA),1)
+    MACRO := -DUSE_CUDA
+    OPTFLAGS := -O3 -fopenmp -march=native
+    CXXFLAGS := -std=c++20 -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -I$(THIRD_PARTY_DIR) $(OPTFLAGS)
+    NVCCFLAGS := -O3 -Xcompiler -fPIC $(INCLUDES) -std=c++20 $(MACRO) -Xcompiler -fopenmp -Xcompiler -march=native
+    LDFLAGS := -lopenblas
+else
+    MACRO :=
+    OPTFLAGS := -O3 -fopenmp -march=native
+    CXXFLAGS := -std=c++20 -I$(DEVICE_DIR) $(INCLUDES) -I$(THIRD_PARTY_DIR) $(OPTFLAGS)
+    NVCCFLAGS := -O3 -Xcompiler -fPIC $(INCLUDES) -std=c++20 -Xcompiler -fopenmp -Xcompiler -march=native
+    LDFLAGS := -lopenblas
+endif
 
 # =============================================================================
 # 最终目标
@@ -48,8 +59,9 @@ all: $(TARGET)
 # =============================================================================
 # 链接目标
 # =============================================================================
+
 $(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
-	$(NVCC) $(NVCCFLAGS) -o $@ $^
+	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS)
 
 # =============================================================================
 # 编译规则
@@ -75,7 +87,6 @@ $(BUILD_DIR)/$(notdir $(1:.cu=.o)): $(1) | $(BUILD_DIR)
 	$(NVCC) $(NVCCFLAGS) -MMD -c $(1) -o $$@
 endef
 
-
 # 为每个 .cc 文件生成编译规则
 $(foreach src,$(CPU_SRC),$(eval $(call compile_cpu,$(src))))
 
@@ -89,16 +100,18 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # 清理目标
 # =============================================================================
 clean:
-	mv *.bin model.safetensors *.json ~/data
 	rm -rf $(BUILD_DIR) $(TARGET)
 
 # =============================================================================
-# 准备数据
+# 备份和恢复数据
 # =============================================================================
-data:
+backup:
+	mv model.safetensors *.json ~/data
+
+restore:
 	mv ~/data/* ./
 
 # =============================================================================
 # 声明伪目标
 # =============================================================================
-.PHONY: all clean
+.PHONY: all clean backup restore

@@ -9,13 +9,10 @@ public:
     // 构造函数，初始化线性层的输入和输出尺寸
     // 删除默认构造函数
     Embedding() = delete;
-    // Linear(const Config& config, const std::string& name = "Linear");
-    Embedding(Config& config);
-
     Embedding(const size_t vocab_size, const size_t hidden_size, const std::string& _name = "embed_tokens");
 
     // 覆盖基类的 forward 方法
-    Tensor forward(Tensor& x) override;
+    Tensor<float> forward(Tensor<int>& x) override;
 
     // 虚析构函数
     virtual ~Embedding() = default;
@@ -25,29 +22,19 @@ private:
     size_t hidden_size;
 };
 
-Embedding::Embedding(Config& config) : Layer("cpu", "embed_tokens")
-{
-    vocab_size = config.get<size_t>("vocab_size");
-    hidden_size = config.get<size_t>("hidden_size");
-    
-    params.emplace("weight", Parameter("weight",vocab_size, hidden_size, "cpu"));
-}
-
 
 Embedding::Embedding(const size_t _vocab_size, const size_t _hidden_size, const std::string& _name) : Layer("cpu", _name)
 {
     vocab_size = _vocab_size;
     hidden_size = _hidden_size;
     
-    params.emplace("weight", Parameter("weight" ,_vocab_size, _hidden_size, "cpu"));
+    params.emplace("weight", Parameter<float>(_vocab_size, _hidden_size, "cpu", "weight"));
 }
 
-Tensor Embedding::forward(Tensor& x)
+Tensor<float> Embedding::forward(Tensor<int>& x)
 {
-    Tensor y(x, hidden_size);
-    Parameter& weight = params.at("weight");
-    // 使用它们进行运算
-    F.get().embedding(y, x, weight, hidden_size, x.Size());
+    Tensor<float> y(x.ElemNum(), hidden_size, x.Device(), name + "_output");
+    F->embedding(y, x, params.at("weight"), hidden_size, x.Size());
     return y;
 }
 

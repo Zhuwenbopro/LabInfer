@@ -4,62 +4,74 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <memory>
-#include "Manager.h"
+#include <typeinfo>
+#include "DeviceManager.h"
 
-
-/**
-    1. value、shape、device 初始化
-    2. to 设备传输功能，当前仅实现单机多卡之间的设备传输
- */
-
+template <typename T>
 class Variable {
 public:
-    // 虚析构函数，确保派生类的析构函数被调用
-    virtual ~Variable() { }
+    virtual ~Variable() { value.reset(); }
 
-    // 隐式转换 Variable 类和 float*
-    operator float*() const { return value.get(); }
-    float* rawPtr() const { return value.get(); }
-    std::shared_ptr<float[]> sharedPtr() const { return value; }
+    // Value() 是原始的指针
+    operator T*() const { return (T*)value.get(); }
+    // T* Value() { return (T*)value.get(); }
+    // std::shared_ptr<void> SharedPtr() { return value; }
 
-    void setValue(const std::shared_ptr<float[]>& val) { value = val; }
-    void setName(const std::string& _name){ name = _name; }
-
-    virtual void to(const std::string& new_dev) {
-        throw std::logic_error(name + " to(const std::string& new_dev) not implemented."); 
-    }
-    
-    size_t Size() const { return size; }
+    size_t Size() const { return elem_num * elem_len; }
+    size_t Bytes() const { return elem_num * elem_len * sizeof(T); }
     const std::string& Device() const { return device; }
     const std::string& Name() const { return name; }
 
-    const size_t elemNum() const { return elem_num; }
-    const size_t elemLen() const { return elem_len; }
+    const size_t ElemNum() const { return elem_num; }
+    const size_t ElemLen() const { return elem_len; }
+
+    
+
+    void setValue(const std::shared_ptr<T>& _value) { value = _value; }
+    void setName(const std::string& _name){ name = _name; }
+    void reset() {
+        value.reset();
+        name = "";
+        elem_len = 0;
+        elem_num = 0;
+    }
+
+    virtual void to(const std::string& new_dev) {
+        throw std::logic_error(name + " to(const std::string& new_dev) not implemented. (This is Variable)\n"); 
+    }
+
+    Variable(
+        const size_t _num, 
+        const size_t _len , 
+        const std::string& _device, 
+        const std::string& _name,
+        bool automalloc = true
+    ) : device(_device), elem_len(_len), elem_num(_num), value(nullptr), name(_name) {
+        if(_num != 0 && _len != 0 && automalloc) {
+            value = deviceManager.allocate(Bytes(), device);
+        }
+    }
+
+    // dst 就是自己呀!!!
+    void copy(const size_t dst_offset, const Variable& src, const size_t src_offset, const size_t size) {
+        if(device != src.Device()) {
+            throw std::logic_error(name + " copy device does not match!\n"); 
+        }
+        // 不用做类型测试
+        deviceManager.copy((void*)((T*)value.get() + dst_offset), (void*)(src + src_offset), size * sizeof(T), device);
+    }
 
 protected:
-    // value 是一个 std::shared_ptr<float[]> 对象，不是一个原始指针。
-    // value 持有一个指向 float 类型对象的指针，即 float*。这个指针指向动态分配的内存空间。
-    std::shared_ptr<float[]> value;           // 数据指针
-    std::string name;                         // 变量名称
-    std::string device;                          // 设备
-
-    size_t size;
+    std::shared_ptr<void> value;
+    std::string name;
+    std::string device;
     size_t elem_len;
     size_t elem_num;
 
-    static Manager& manager;
-
-    // TODO : 将size与elem_len、elem_num解耦，可预先分配
-    // 构造函数
-    Variable(const size_t _num, const size_t _len , const std::string& _device, const std::string& _name) : size(_num * _len), 
-                                                device(_device), elem_len(_len), elem_num(_num), value(nullptr), name(_name) { }
-    
-    // 深拷贝
-    // FIXME : to be delete
-    void _copy(const Variable& from) {
-        value = manager.deepCopy(from.sharedPtr(), size, device);
-    }
+    static DeviceManager& deviceManager;
 };
+
+template <typename T>
+DeviceManager& Variable<T>::deviceManager = DeviceManager::getInstance();
 
 #endif // VARIABLE_H

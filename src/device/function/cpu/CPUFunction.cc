@@ -1,44 +1,48 @@
 #include "CPUFunction.h"
 #include <cmath>
 #include <string.h>
+#include <omp.h>
+#include <cblas.h>
+#include <vector>
 
-void embedding_cpu(float* y, const float* x, const float* W, const int d, const int x_size) {
+inline float dot(float* a, float* b, size_t size) {
+    return cblas_sdot(size, a, 1, b, 1);
+}
+
+inline void scale(float* a, float alpha, size_t size) {
+    cblas_sscal(size, alpha, a, 1);
+}
+
+// Y = alpha * X + Y
+inline void add(float* y, float* x, size_t size, float alpha = 1) {
+    cblas_saxpy(size, alpha, x, 1, y, 1);
+}
+
+
+void embedding_cpu(float* y, const int* x, const float* W, const int d, const int x_size) {
+    #pragma omp parallel for
     for(int i = 0; i < x_size; i++) {
-        int id = (int)x[i];
+        int id = x[i];
         memcpy(y + i * d, W + id * d, sizeof(float) * d);
     }
 }
-void embedding_cpu(float**y, float*x, float*W, int num, int hidden_size) {
-    for(int i = 0; i < num; i++) {
-        int id = (int)x[i];
-        memcpy(y[i], W + id * hidden_size, sizeof(float) * hidden_size);
-    }
+
+// y = WX     W(W_in*W_out), X(W_in*num), C(W_out*num)  
+void matmul_cpu(float *y, const float *X, const float *W, int W_in, int W_out, int num) {
+    // 缩放因子
+    float alpha = 1.0;
+    float beta = 0.0;  // C 的初始权重
+    // 调用 OpenBLAS 的 SGEMM 函数
+    cblas_sgemm(CblasColMajor, CblasTrans, CblasNoTrans,
+                W_out, num, W_in,         // 矩阵维度
+                alpha,           // alpha
+                W, W_in,            // 矩阵 W 和列主布局步长
+                X, W_in,            // 矩阵 X 和列主布局步长
+                beta,            // beta
+                y, W_out);           // 结果矩阵 C 和列主布局步长
 }
 
-void matmul_cpu(float **y, float **x, float *W, int n, int d, int num) {
-    for(int no = 0; no < num; no++) {
-        float *y_ptr = y[no];
-        const float *x_ptr = x[no];
-        for(int i = 0; i < d; i++) {
-            double sum = 0.0f;
-            for(int j = 0; j < n; j++) {
-                sum += W[i * n + j] * x_ptr[j];
-            }
-            y_ptr[i] = sum;
-        }
-    }
-}
-void matmul_cpu(float *y, const float *x, const float *w, int n, int d, int num) {
-    for(int b = 0; b < num; b++){
-        for (int i = 0; i < d; ++i) {
-            double sum = 0.0f;
-            for (int j = 0; j < n; ++j) {    
-                sum += w[i * n + j] * x[b * n + j];
-            }
-            y[b*d + i] = sum;
-        }
-    }
-}
+
 
 void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float epsilon) {
     for(int b = 0; b < batch_size; b++) {
@@ -62,66 +66,81 @@ void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float ep
 }
 
 void softmax_cpu(float *x, int n, int batch_size) {
-    for(int b = 0; b < batch_size; b++) {
-        // 找到输入数组中的最大值，以提高数值稳定性
-        float* input = x + b * n;
-        float max_val = input[0];
-        for(int i = 1; i < n; ++i){
-            if(input[i] > max_val){
-                max_val = input[i];
-            }
+    // Step 1: Subtract max value from each column (vector) for numerical stability
+    #pragma omp parallel for
+    for (int i = 0; i < batch_size; ++i) {
+        // Find the maximum element in the column
+        float max_val = -MAXFLOAT;
+        for (int j = 0; j < n; ++j) {
+            int idx = i * n + j; // Column-major index calculation
+            max_val = std::max(max_val, x[idx]);
         }
+        
+        // Subtract the max from each element in the column
+        for (int j = 0; j < n; ++j) {
+            int idx = i * n + j; // Column-major index calculation
+            x[idx] -= max_val;
+        }
+    }
 
-        // 计算每个元素的指数值，并累加
+    // Step 2: Compute the exponential of each element
+    #pragma omp parallel for
+    for (int i = 0; i < batch_size; ++i) {
+        for (int j = 0; j < n; ++j) {
+            int idx = i * n + j;
+            x[idx] = std::exp(x[idx]); // Element-wise exp
+        }
+    }
+
+    // Step 3: Compute the sum of exponentials for each column
+    std::vector<float> row_sums(batch_size, 0.0f);
+    #pragma omp parallel for
+    for (int i = 0; i < batch_size; ++i) {
         float sum = 0.0f;
-        for(int i = 0; i < n; ++i){
-            input[i] = std::exp(input[i] - max_val);
-            sum += input[i];
+        for (int j = 0; j < n; ++j) {
+            int idx = i * n + j;
+            sum += x[idx];
         }
+        row_sums[i] = sum;
+    }
 
-        // 将每个指数值除以总和，得到概率分布
-        for(int i = 0; i < n; ++i){
-            input[i] /= sum;
+    // Step 4: Normalize each element by the column sum
+    #pragma omp parallel for
+    for (int i = 0; i < batch_size; ++i) {
+        float row_sum = row_sums[i];
+        for (int j = 0; j < n; ++j) {
+            int idx = i * n + j;
+            x[idx] /= row_sum;
         }
     }
 }
-void softmax_cpu(float**x, int n, int num) {
-    for(int i = 0; i < num; i++) {
-        float* x_ptr = x[i];
-        float max_val = x_ptr[0];
-        for(int i = 1; i < n; ++i) {
-            if(x_ptr[i] > max_val){
-                max_val = x_ptr[i];
-            }
-        }
-
-        // 计算每个元素的指数值，并累加
-        float sum = 0.0f;
-        for(int i = 0; i < n; ++i) {
-            x_ptr[i] = std::exp(x_ptr[i] - max_val);
-            sum += x_ptr[i];
-        }
-
-        // 将每个指数值除以总和，得到概率分布
-        for(int i = 0; i < n; ++i) {
-            x_ptr[i] /= sum;
-        }
-    }
-}
-
 
 // dim = 32, num = 6
-void apply_rope_cpu(float *_x, const float *_pos, const float *_cos, const float *_sin, const int n, const int dim, const int num) {
-    for(int p = 0; p < num; p++){   // 6
-        const float* cos = _cos + (int)_pos[p] * dim;
-        const float* sin = _sin + (int)_pos[p] * dim;
-        for(int i = 0; i < n/(dim*2); i++) {
-            float* x = _x + p*n + i*dim*2; 
-            for(int j = 0; j < dim; j++) {
-                float x1 = x[j];
-                float x2 = x[dim + j];
-                x[j]       = x1 * cos[j] - x2 * sin[j];
-                x[dim + j] = x2 * cos[j] + x1 * sin[j];
+void apply_rope_cpu(
+    float *x, 
+    const int *pos, 
+    const float *inv_freq, 
+    const int n,            // x 有 n 维
+    int head_dim,           // x 每一小段有 head_dim 维
+    const int num           // x 有 num 个
+) {
+    const int loop_count = n / head_dim;
+    int dim = head_dim / 2;
+
+    #pragma omp parallel for
+    for(int p = 0; p < num; p++) {
+
+        int pos_idx = pos[p];
+        float* xBase = x + p*n;
+
+        for(int j = 0; j < dim; j++) {
+            float c = cosf(pos_idx*inv_freq[j]);
+            float s = sinf(pos_idx*inv_freq[j]);
+            for(int i = 0; i < loop_count; i++) {
+                float x1 = xBase[i*head_dim + j];
+                float x2 = xBase[i*head_dim + j + dim];
+                xBase[i*head_dim + j]       = x1 * c - x2 * s;
+                xBase[i*head_dim + j + dim] = x2 * c + x1 * s;
             }
         }
     }
@@ -135,30 +154,19 @@ void silu_cpu(float *x, const int n, int batch_size){
         }
     }
 }
-void silu_cpu(float **x, int n, int num){
-    for(int i = 0; i < num; i++){
-        float* x_ptr = x[i];
-        for(int i = 0; i < n; i++){
-            x_ptr[i] = x_ptr[i] / (1 + std::exp(-x_ptr[i]));
-        }
-    }
-}
-
 
 void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_size) {
-    for(int b = 0; b < batch_size; b++){
-        for(int i = 0; i < n; i++) {
-            y[i + b*n] = x1[i + b*n] + x2[i + b*n];
-        }
+    size_t total = n*batch_size;
+    for(int i = 0; i < total; i++) {
+        y[i] = x1[i] + x2[i];
     }
 }
-void add_cpu(float**y, float**x1, float**x2, int n, int num) {
-    for(int i = 0; i < num; i++){
-        float* y_ptr = y[i];
-        float* x1_ptr = x1[i];
-        float* x2_ptr = x2[i];
-        for(int i = 0; i < n; i++){
-            y_ptr[i] = x1_ptr[i] + x2_ptr[i];
+
+void repeat_kv_cpu(float* o, float* in, int dim, int rep, int n) {
+    int o_index = 0;
+    for(int i_index = 0; i_index < n; i_index++) {
+        for(int j = 0; j < rep; j++) {
+            o[o_index++] = in[i_index];
         }
     }
 }
@@ -167,57 +175,46 @@ void add_cpu(float**y, float**x1, float**x2, int n, int num) {
 // key、value   (pos, dim*k_num)
 // y            (1, dim*head_num)
 // pos 是 query 的 position
-void maksed_attention_cpu(float* y, const float* q, const float* k, const float* v, const int dim, const int q_head, const int kv_head, const int _pos) {
-    int pos = _pos + 1;
-    float* score = new float[q_head * pos](); // 置初始值为0，列优先，pos行，q_head列
+// (float* y, float* q, float* k, float* v, float* scores, int* pos, int dim, int head_num, int seq_q, int seq_kv) = 0;
+void masked_attention_cpu(float* y, float* q, float* k, float* v, float* scores, int* pos, int dim, int head_num, int seq_q, int seq_kv) {
+    bool hasvalue = true;
+    if(scores == nullptr) {
+        scores = new float[seq_kv * head_num];
+        hasvalue = false;
+    }
 
-    int rep = q_head / kv_head;
-    int kv_dim = kv_head * dim;
+    std::memset(y, 0, dim * head_num * seq_q * sizeof(float));
 
-    float scale = 1.0 / std::sqrt(static_cast<float>(dim));
-    for(int p = 0; p < pos; p++) {
-        for(int hq = 0; hq < q_head; hq++) {
-            const float* _q = q + hq * dim;
-            const float* _k = k + p * kv_dim + (hq / rep) * dim;
-            const int s_index = hq*pos + p;
-            for(int d = 0; d < dim; d++) {
-                score[s_index] += _q[d] * _k[d];
+    float scale_ = 1.0 / std::sqrt(static_cast<float>(dim));
+
+    int kv_num_ = seq_kv - seq_q;
+    for(int i_q = 0; i_q < seq_q; i_q++) {
+        kv_num_++;
+        float* q_ = q + i_q * dim * head_num;
+        float* y_ = y + i_q * dim * head_num;
+        for(int i_kv = 0; i_kv < kv_num_; i_kv++) {
+            float* k_ = k + i_kv * dim * head_num;
+            for(int h = 0; h < head_num; h++) {
+                scores[i_kv + h*kv_num_] = dot(q_ + h*dim, k_ + h*dim, dim);
             }
-            score[s_index] *= scale;
+        }
+        scale(scores, scale_, kv_num_*head_num);
+        softmax_cpu(scores, kv_num_, head_num);
+
+        for(int i_kv = 0; i_kv < kv_num_; i_kv++) {
+            float* v_ = v + i_kv * dim * head_num;
+            for(int h = 0; h < head_num; h++) {
+                add(y_ + h*dim, v_ + h*dim, dim, scores[i_kv + h*kv_num_]);
+            }
         }
     }
 
-    softmax_cpu(score, pos, q_head);
-
-    std::memset(y, 0, dim * q_head * sizeof(float));
-
-    for(int hq = 0; hq < q_head; hq++) {
-        float* _s = score + hq * pos;
-        float* _y = y + hq * dim;
-        for(int p = 0; p < pos; p++) {
-            const float* _v = v + p * kv_dim + (hq / rep) * dim;
-            for(int d = 0; d < dim; d++) {
-                _y[d] += _s[p] * _v[d];
-            }
-        }
-    }
-
-    delete score;
+    if(!hasvalue) delete scores;
 }
 
 void elem_multiply_cpu(float* y, const float* x1, const float* x2, const int size) {
     for(int i = 0; i < size; i++) {
         y[i] = x1[i] * x2[i];
-    }
-}
-void elem_multiply_cpu(float**y, float**x1, float**x2, int n, int num) {
-    for(int i = 0; i < num; i++){
-        float* y_ptr = y[i];
-        float* x1_ptr = x1[i];
-        float* x2_ptr = x2[i];
-        for(int i = 0; i < n; i++){
-            y_ptr[i] = x1_ptr[i] * x2_ptr[i];
-        }
     }
 }
 
@@ -228,19 +225,6 @@ void max_index_cpu(float* index, float* x, const int n, const int num) {
         for (int j = 1; j < n; j++) {
             if (x[i * n + j] > max_val) {
                 max_val = x[i * n + j];
-                max_idx = j;
-            }
-        }
-        index[i] = (float)max_idx;
-    }
-}
-void max_index_cpu(float* index, float** x, int n, int num) {
-    for (int i = 0; i < num; i++) {
-        int max_idx = 0;
-        float max_val = x[i][0];
-        for (int j = 1; j < n; j++) {
-            if (x[i][j] > max_val) {
-                max_val = x[i][j];
                 max_idx = j;
             }
         }

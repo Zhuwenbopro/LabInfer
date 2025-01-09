@@ -17,15 +17,15 @@ public:
     Device& operator=(const Device&) = delete;
 
     // 从 CPU 内存中取数据
-    virtual void move_in(float* ptr_dev, float* ptr_cpu, size_t size) = 0;
+    virtual void move_in(void* ptr_dev, void* ptr_cpu, size_t bytes) = 0;
     // 移除数据到 CPU
-    virtual void move_out(float* ptr_dev, float* ptr_cpu, size_t size) = 0;
+    virtual void move_out(void* ptr_dev, void* ptr_cpu, size_t bytes) = 0;
 
-    virtual void copy(float* from, float* to, size_t size) = 0;
+    virtual void copy(void* dst, void* src, size_t bytes) = 0;
     // 分配内存
-    virtual float* allocate(size_t size) = 0;
+    virtual void* allocate(size_t bytes) = 0;
     // 回收内存
-    virtual void deallocate(float* ptr) = 0;
+    virtual void deallocate(void* ptr) = 0;
 
     void whoami() { std::cout << "this is " << device << std::endl; }
 

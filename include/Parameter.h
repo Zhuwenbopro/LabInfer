@@ -3,50 +3,66 @@
 
 #include "Variable.h"
 
-class Parameter : public Variable {
+template <typename T>
+class Parameter : public Variable<T> {
 public:
     // 构造函数
-    Parameter(const std::string& _name, const size_t _eleNum, const size_t _elemLen, const std::string& _device,
-                                            bool _malloc_mem = false) : Variable(_eleNum, _elemLen, _device, _name) {
-        if(_malloc_mem) {
-            // std::cout << " this is param  name is _ " << _name << std::endl;
-            value = manager.allocateShared(size, device, _name);
-        }
-    }
+    Parameter(
+        const size_t _eleNum = 0, 
+        const size_t _elemLen = 0, 
+        const std::string& _device = "cpu", 
+        const std::string& _name = "name",
+        bool _automalloc = false
+    ) : Variable<T>(_eleNum, _elemLen, _device, _name, _automalloc) { }
 
     // 虚析构函数
-    ~Parameter() override { value.reset(); }
+    ~Parameter() override {
+        if(shared) {
+            if(this->value.use_count() == 2) {
+                this->deviceManager.FreeMem(this->name);
+            }
+        }
+    }
 
-    void setShared(){ shared = true; }
+    // 不可逆的操作
+    void setShared(){
+        if(shared) return;
+
+        shared = true;
+        this->name = this->device + ":" + this->name;
+        if(this->deviceManager.FindMem(this->name)) {
+            this->value = this->deviceManager.GetMem(this->name);
+        } else {
+            this->deviceManager.RegisteMem(this->name, this->value);
+        }
+    }
+
     bool Share() { return shared; }
 
-    // 给 cache 准备的
-    void copy(float* from, const size_t length, const size_t from_offset, const size_t to_offset) {
-        manager.copy(from + from_offset, value.get() + to_offset, length, device);
-    }
+    void to(const std::string& _device) override {
+        if (_device == this->device) return;
 
-    void to(const std::string& new_dev) override {
-        if (new_dev == device) return;
-
-        if(new_dev == "")
-            throw std::logic_error("there is no device " + new_dev);
+        if(_device == "")
+            throw std::logic_error("there is no device " + _device);
         
         if(shared) {
-            name.replace(0, device.length(), new_dev);
-            if(manager.FindMem(name)) {
-                value = manager.GetMem(name);
+            this->name.replace(0, this->device.length(), _device);
+
+            if(this->deviceManager.FindMem(this->name)) {
+                this->value = this->deviceManager.GetMem(this->name);
             } else {
-                std::shared_ptr<float []> val = manager.deepCopy(value, size, device);
-                manager.toDevice(val, size, device, new_dev, name);
-                manager.RegisteMem(name, val);
-                value = val;
+                if(this->value.use_count() == 2)
+                    this->deviceManager.FreeMem(this->name);
+                this->deviceManager.toDevice(this->value, this->Bytes(), this->device, _device);
+                this->deviceManager.RegisteMem(this->name, this->value);
             }
         }else{
-            manager.toDevice(value, size, device, new_dev, name);
+            this->deviceManager.toDevice(this->value, this->Bytes(), this->device, _device);
         }
 
-        device = new_dev;
+        this->device = _device;
     }
+
 private:
     bool shared = false;
 };
