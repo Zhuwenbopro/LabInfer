@@ -14,7 +14,7 @@ inline void scale(float* a, float alpha, size_t size) {
 }
 
 // Y = alpha * X + Y
-inline void add(float* y, float* x, size_t size, float alpha = 1) {
+inline void _add(float* y, float* x, size_t size, float alpha = 1) {
     cblas_saxpy(size, alpha, x, 1, y, 1);
 }
 
@@ -180,10 +180,10 @@ void repeat_kv_cpu(float* out, float* in, int dim, int rep, int n) {
 // y            (1, dim*head_num)
 // pos 是 query 的 position
 // (float* y, float* q, float* k, float* v, float* scores, int* pos, int dim, int head_num, int seq_q, int seq_kv) = 0;
-void masked_attention_cpu(float* y, float* q, float* k, float* v, float* scores, int* pos, int dim, int head_num, int seq_q, int seq_kv) {
+void CPUFunction::masked_attention(float* y, float* q, float* k, float* v, float* scores, int* pos, int dim, int head_num, int seq_q, int seq_kv) {
     bool hasvalue = true;
     if(scores == nullptr) {
-        scores = new float[seq_kv * head_num];
+        scores = new float[seq_kv * head_num * seq_q];
         hasvalue = false;
     }
 
@@ -208,7 +208,7 @@ void masked_attention_cpu(float* y, float* q, float* k, float* v, float* scores,
         for(int i_kv = 0; i_kv < kv_num_; i_kv++) {
             float* v_ = v + i_kv * dim * head_num;
             for(int h = 0; h < head_num; h++) {
-                add(y_ + h*dim, v_ + h*dim, dim, scores[i_kv + h*kv_num_]);
+                _add(y_ + h*dim, v_ + h*dim, dim, scores[i_kv + h*kv_num_]);
             }
         }
     }

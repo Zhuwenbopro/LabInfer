@@ -61,6 +61,13 @@ public:
         deviceManager.copy((void*)((T*)value.get() + dst_offset), (void*)(src + src_offset), size * sizeof(T), device);
     }
 
+    inline long use_count() const {
+        if(value == nullptr) {
+            throw std::logic_error(name + " value don't have value!\n"); 
+        }
+        return value.use_count();
+    }
+
 protected:
     std::shared_ptr<void> value;
     std::string name;

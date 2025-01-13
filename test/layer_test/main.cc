@@ -4,7 +4,7 @@
 
 #define N 2048          // 输入向量长度
 #define M 8192          // midddle
-#define batch_size 5
+#define batch_size 6
 #define vocab_size 12800
 
 void check_embedding();
@@ -13,18 +13,10 @@ void check_rmsnorm();
 void check_mlp();
 void check_RoPE();
 
+
+
 void check_attention() {
     Title("check_attention");
-
-    Tensor<int> input_ids(batch_size, 1);
-    input_ids[0] = 0; input_ids[1] = 3324; input_ids[2] = 34; input_ids[3] = 731; input_ids[4] = 7734;
-
-    Tensor<float> x1(batch_size, N);
-    rand_init(x1, batch_size*N);
-    Tensor<float> x2(x1);
-
-    InputWarp inputWarp(input_ids);
-    inputWarp.inter_value = x1;
 
     const size_t attn_head = 32;
     const size_t kv_head = 8;
@@ -34,53 +26,57 @@ void check_attention() {
     const size_t q_size  = head_dim * attn_head;
     const size_t kv_size = head_dim * kv_head;
 
+    Tensor<int> input_ids(batch_size, 1);
+    input_ids[0] = 0; input_ids[1] = 3324; input_ids[2] = 34; input_ids[3] = 731; input_ids[4] = 7734; input_ids[5] = 455;
+
+    Tensor<float> x1(batch_size, hidden_size);
+    read_bin("hidden_size.bin", x1, x1.Size());
+    InputWarp inputWarp(input_ids);
+    inputWarp.inter_value = x1;
+
     std::unordered_map<std::string, std::shared_ptr<float>> weights;
     weights["self_attn.q_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
     weights["self_attn.k_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
     weights["self_attn.v_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
     weights["self_attn.o_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
-    rand_init(weights["self_attn.q_linear.weight"].get(), hidden_size*q_size);
-    rand_init(weights["self_attn.k_linear.weight"].get(), hidden_size*kv_size);
-    rand_init(weights["self_attn.v_linear.weight"].get(), hidden_size*kv_size);
-    rand_init(weights["self_attn.o_linear.weight"].get(), hidden_size*q_size);
+    read_bin("w_q.bin", weights["self_attn.q_linear.weight"].get(), hidden_size * q_size);
+    read_bin("w_k.bin", weights["self_attn.k_linear.weight"].get(), hidden_size * kv_size);
+    read_bin("w_v.bin", weights["self_attn.v_linear.weight"].get(), hidden_size * kv_size);
+    read_bin("w_o.bin", weights["self_attn.o_linear.weight"].get(), hidden_size * q_size);
 
     Attention attention(attn_head, kv_head, hidden_size, max_len);
     attention.load(weights);
 
-    // attention.printParam();
-
-
-    attention.forward(inputWarp);
-    Tensor<float> y1 = inputWarp.inter_value;
-    inputWarp.inter_value.reset();
-
     attention.to("cuda");
-    inputWarp.inter_value = x2;
+    inputWarp.inter_value = x1;
     inputWarp.to("cuda");
     attention.forward(inputWarp);
     Tensor<float> y2 = inputWarp.inter_value;
     y2.to("cpu");
+    inputWarp.inter_value.reset();
+
+    attention.to("cpu");
+    inputWarp.inter_value = x1;
+    inputWarp.to("cpu");
+    attention.forward(inputWarp);
+    Tensor<float> y1 = inputWarp.inter_value;
 
     check(y1, y2, batch_size*N, "ATTENTION");
 }
 
 
+
 int main() {
-    // check_linear();
+    check_linear();
     // check_rmsnorm();
     
     // check_embedding();
     // check_RoPE();
-    check_attention();
-
     // check_mlp();
 
-
+    check_attention();
 
 }
-
-
-
 
 void check_RoPE() {
     Title("check_RoPE");
@@ -184,36 +180,27 @@ void check_rmsnorm() {
 
 void check_linear() {
     Title("check_linear");
-    size_t size_in = 2;
-    size_t size_out = 3;
+    size_t hidden_size = 2048;
 
     std::unordered_map<std::string, std::shared_ptr<float>> weights;
-    weights.emplace("weight", std::shared_ptr<float>(new float[size_in*size_out]));
+    weights.emplace("weight", std::shared_ptr<float>(new float[hidden_size*hidden_size]));
+    read_bin("w_q.bin", weights["weight"].get(), hidden_size * hidden_size);
 
-    for(int i = 0; i < size_in * size_out; i++) {
-        weights["weight"].get()[i] = i;
-    }
-
-    Linear linear(size_in, size_out);
+    Linear linear(hidden_size, hidden_size);
     linear.load(weights);
 
-    size_t num = 2;
-    Tensor<float> x(num, size_in);
-    x[0] = 1; x[1] = 2; x[2] = 1; x[3] = 3;
+    Tensor<float> x(batch_size, hidden_size);
+    read_bin("hidden_size.bin", x, x.Size());
     Tensor<float> y = linear.forward(x);
 
-    // 2 8 14 3 11 19
-    // for(int i = 0; i < size_out * num; i++)
-    //     std::cout << y[i] << " ";
-    // std::cout << std::endl;
+    Tensor<float> q(batch_size, hidden_size);
+    read_bin("Q.bin", q, q.Size());
+    check(q, y, q.Size(), "Linear");
 
     x.to("cuda");
     linear.to("cuda");
     Tensor<float> y_cuda = linear.forward(x);
     y_cuda.to("cpu");
 
-    // for(int i = 0; i < size_out * num; i++)
-    //     std::cout << y_cuda[i] << " ";
-    // std::cout << std::endl;
-    check(y_cuda, y, size_out*num, "Linear");
+    check(y_cuda, q, y.Size(), "Linear");
 }

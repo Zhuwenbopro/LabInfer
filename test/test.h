@@ -1,11 +1,18 @@
+#ifndef TEST_DEBUG
+#define TEST_DEBUG
+
 #include <iostream>
 #include <cstdlib>  // 用于rand函数
 #include <ctime>    // 用于时间种子
+#include <random>
+#include <fstream>
+
 
 // ANSI color codes
 #define RESET   "\033[0m"
 #define RED     "\033[31m"      // Red
 #define GREEN   "\033[32m"      // Green
+#define die(...) do{printf(__VA_ARGS__); fputc('\n',stdout); exit(EXIT_FAILURE);}while(0);
 
 #include <iomanip> // 用于设置输出格式
 
@@ -27,6 +34,43 @@ void Title(const std::string &title) {
     std::cout << decoration << std::endl;
 }
 
+
+void write_bin(const std::string& filename, float* ptr, size_t size) {
+    std::ofstream outFile(filename, std::ios::binary);
+
+    if (!outFile) {
+        std::cerr << "无法打开文件 " + filename << std::endl;
+        return ;
+    }
+
+    // 写入数组数据到文件
+    outFile.write(reinterpret_cast<char*>(ptr), size * sizeof(float));
+    
+    // 关闭文件
+    outFile.close();
+
+    std::cout << "数据已存储到文件 " + filename << std::endl;
+}
+
+void read_bin(const std::string& filename, float* ptr, size_t size) {
+    std::ifstream inFile(filename, std::ios::binary);
+
+    if (!inFile) {
+        std::cerr << "无法打开文件" << std::endl;
+        return ;
+    }
+    // 获取文件大小
+    inFile.seekg(0, std::ios::end);  // 移动到文件末尾
+    std::streampos fileSize = inFile.tellg();  // 获取文件大小
+    inFile.seekg(0, std::ios::beg);  // 回到文件开始
+    if(fileSize / sizeof(float) != size) {
+        std::cerr << "文件尺寸对不上" << std::endl;
+        return ;
+    }
+    inFile.read(reinterpret_cast<char*>(ptr), fileSize);
+
+    inFile.close();
+}
 
 void check_pass(const char* message);
 void check_error(const char* message);
@@ -55,13 +99,9 @@ void check_error(const char*  message){
     std::cout << RED << message << RESET << std::endl;
 }
 
-float fabs(float c){
-    return c >= 0 ?  c : -c;
-}
-
 bool compare_results(const float *a, const float *b, int size, float tolerance) {
     for (int i = 0; i < size; ++i) {
-        if (fabs(a[i] - b[i]) > tolerance) {
+        if (std::fabs(a[i] - b[i]) > tolerance) {
             std::cout << "Difference at index " << i << ": " << a[i] << " vs " << b[i] << std::endl;
             return false;
         }
@@ -69,11 +109,15 @@ bool compare_results(const float *a, const float *b, int size, float tolerance) 
     return true;
 }
 
-void rand_init(float* ptr, int size){
-    // 设置随机数种子
-    std::srand(static_cast<unsigned int>(std::time(0)));
+// 随机数生成器
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
 
+void rand_init(float* ptr, int size){
     for (int i = 0; i < size; ++i) {
-        ptr[i] = static_cast<float>(rand()) / RAND_MAX;
+        ptr[i] = dist(gen);
     }    
 }
+
+#endif

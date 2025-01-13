@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <math.h>
 
-#define SAFETENSORS_IMPLEMENTATION
-#include "safetensors.h"
+// #define SAFETENSORS_IMPLEMENTATION
+// #include "safetensors.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

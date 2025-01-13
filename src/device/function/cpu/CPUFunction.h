@@ -62,9 +62,7 @@ class CPUFunction : public Function {
     }
 
 
-    void masked_attention(float* y, float* q, float* k, float* v, float* scores, int* pos, int dim, int head_num, int seq_q, int seq_kv) override {
-        masked_attention_cpu(y, q, k, v, scores, pos, dim, head_num, seq_q, seq_kv);
-    }
+    void masked_attention(float* y, float* q, float* k, float* v, float* scores, int* pos, int dim, int head_num, int seq_q, int seq_kv) override;
 
     void elem_multiply(float* y, const float* x1, const float* x2, const int size) override {
         elem_multiply_cpu(y, x1, x2, size);

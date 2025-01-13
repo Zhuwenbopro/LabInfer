@@ -10,16 +10,17 @@ NVCC := nvcc
 SRC_DIR := ../../src
 DEVICE_DIR := $(SRC_DIR)/device
 BUILD_DIR := ../../build
+THIRD_PARTY_DIR := ./../../third_party
 
-INCLUDES := -I./../../include
+INCLUDES := -I./../../include -I$(DEVICE_DIR) -I$(THIRD_PARTY_DIR)
 
 # =============================================================================
 # 查找所有 .cc 和 .cu 文件
 # =============================================================================
-CPU_SRC := $(shell find $(DEVICE_DIR) -type f -name '*.cc')
+CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc ../../src/layer/layer.cc
 CPU_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CPU_SRC:.cc=.o)))
 
-CUDA_SRC := $(shell find $(DEVICE_DIR) -type f -name '*.cu')
+CUDA_SRC := $(shell find $(SRC_DIR) -type f -name '*.cu')
 CUDA_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CUDA_SRC:.cu=.o)))
 
 # 主程序源文件
@@ -30,9 +31,9 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # 编译标志
 # =============================================================================
 MACRO := -DUSE_CUDA
-CXXSTAND := -std=c++20 
-CXXFLAGS := $(CXXSTAND) -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -mavx -O3 -fopenmp   # 添加 -fopenmp
-NVCCFLAGS := -O2 -Xcompiler -fPIC $(INCLUDES) $(CXXSTAND) $(MACRO) -Xcompiler -fopenmp    # 使用 -Xcompiler 传递给 g++
+CXXSTAND := -std=c++17
+CXXFLAGS := $(CXXSTAND) $(INCLUDES) $(MACRO) -O3 -fopenmp  # 添加 -fopenmp
+NVCCFLAGS := $(CXXSTAND) $(INCLUDES) $(MACRO) -O3 -Xcompiler -fopenmp # 使用 -Xcompiler 传递给 g++
 
 # =============================================================================
 # 最终目标
@@ -47,12 +48,10 @@ all: $(TARGET)
 # =============================================================================
 # 链接目标
 # =============================================================================
-
-LDFLAGS := -lopenblas -lgomp  # 手动添加 OpenMP 库链接
+LDFLAGS := -lopenblas -lcublas
 
 $(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
 	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS)
-
 # =============================================================================
 # 编译规则
 # =============================================================================

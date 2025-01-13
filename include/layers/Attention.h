@@ -56,10 +56,65 @@ Attention::Attention(
     layers.emplace("rope", new RoPE(head_dim));
 }
 
+
+void _read_bin(const std::string& filename, float* ptr, size_t size) {
+    std::ifstream inFile(filename, std::ios::binary);
+
+    if (!inFile) {
+        std::cerr << "无法打开文件" << std::endl;
+        return ;
+    }
+    // 获取文件大小
+    inFile.seekg(0, std::ios::end);  // 移动到文件末尾
+    std::streampos fileSize = inFile.tellg();  // 获取文件大小
+    inFile.seekg(0, std::ios::beg);  // 回到文件开始
+    if(fileSize / sizeof(float) != size) {
+        std::cerr << "文件尺寸对不上" << std::endl;
+        return ;
+    }
+    inFile.read(reinterpret_cast<char*>(ptr), fileSize);
+
+    inFile.close();
+}
+
+
+
+void _check_pass(const char*  message){
+    std::cout << "\033[32m" << message << "\033[0m" << std::endl;
+}
+
+void _check_error(const char*  message){
+    std::cout << "\033[31m" << message << "\033[0m" << std::endl;
+}
+
+bool _compare_results(const float *a, const float *b, int size, float tolerance) {
+    for (int i = 0; i < size; ++i) {
+        if (std::fabs(a[i] - b[i]) > tolerance) {
+            std::cout << "Difference at index " << i << ": " << a[i] << " vs " << b[i] << std::endl;
+            return false;
+        }
+    }
+    return true;
+}
+
+void _check(const float *a, const float *b, int size, const std::string& item, float tolerance=1e-2f) {
+    if (_compare_results(a, b, size, 5e-5)) {
+        _check_pass(("[" + item + "] CUDA and CPU results match.").c_str());
+    } else {
+        _check_error(("[" + item + "] CUDA and CPU results do not match!").c_str());
+    }
+
+    for(int i = 0; i < 5; i++) {
+        if(i >= size) break;
+        std::cout << a[i] << " vs " << b[i] << std::endl;
+    }
+}
+
+
 void Attention::forward(InputWarp& inputWarp) {
     size_t uid = inputWarp.uid;
     Tensor<float> x   = inputWarp.inter_value;
-    
+
     Tensor<float> q = layers.at("q_linear")->forward(x);
     Tensor<float> k = layers.at("k_linear")->forward(x);
     Tensor<float> v = layers.at("v_linear")->forward(x);
@@ -69,49 +124,22 @@ void Attention::forward(InputWarp& inputWarp) {
 
     int rep = attn_head/kv_head;
     if(rep != 1) {
-        Tensor<float> k_exp(x.ElemNum(), q.ElemLen(), x.Device(), "k_exp");
-        Tensor<float> v_exp(x.ElemNum(), q.ElemLen(), x.Device(), "v_exp");
-        F->repeat_kv(k_exp, k, head_dim, attn_head/kv_head, kv_dim);
-        F->repeat_kv(v_exp, v, head_dim, attn_head/kv_head, kv_dim);
+        Tensor<float> k_exp(x.ElemNum(), q.ElemLen(), device, "k_exp");
+        Tensor<float> v_exp(x.ElemNum(), q.ElemLen(), device, "v_exp");
+        F->repeat_kv(k_exp, k, head_dim, attn_head/kv_head, k.Size());
+        F->repeat_kv(v_exp, v, head_dim, attn_head/kv_head, k.Size());
         k = k_exp;
         v = v_exp;
     }
-
     k_cache.add(uid, k, inputWarp.start_pos);
     v_cache.add(uid, v, inputWarp.start_pos);
 
     Tensor<float> o(q.ElemNum(), q.ElemLen(), q.Device(), "attn_output");
 
-    q.to("cpu");
-    k.to("cpu");
-    v.to("cpu");
-    std::cout << "\n\nq: " << q[0] << " " << q[1] << " " << q[2] << "\n";
-    std::cout << "k: " << k[0] << " " << k[1] << " " << k[2] << "\n";
-    std::cout << "v: " << v[0] << " " << v[1] << " " << v[2] << "\n";
-    
-        
-    std::cout << "\n";
-    q.to(x.Device());
-    k.to(x.Device());
-    v.to(x.Device());
-
-
     F->masked_attention(o, q, k_cache.get(uid), v_cache.get(uid), nullptr, inputWarp.pos, head_dim, attn_head, q.ElemNum(), k_cache.Len(uid));
-
-    o.to("cpu");
-    std::cout << "o: " << o[0] << " " << o[1] << " " << o[2] << "\n";
-    for(int i = 0; i < 2500; i++) {
-        std::cout << o[i] << " ";
-    }
-    std::cout << "------\n";
-    o.to(x.Device());
 
     inputWarp.inter_value = layers.at("o_linear")->forward(o);
 
-    inputWarp.inter_value.to("cpu");
-    std::cout << "inputWarp.inter_value: " << inputWarp.inter_value[0] << " " << inputWarp.inter_value[1] << " " << inputWarp.inter_value[2] << "\n";
-
-    std::cout << "------\n";
     inputWarp.inter_value.to(x.Device());
 }
 
