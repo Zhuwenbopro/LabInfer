@@ -39,13 +39,13 @@ int main() {
     return 0;
 }
 
-void const_init(float* ptr, int size, const float cst = 1.0f){
+void const_init(float* ptr, int size, const float cst = 1.0f) {
     for (int i = 0; i < size; ++i) {
         ptr[i] = cst;
     }    
 }
 
-void check_rmsnorm(Device *cpu, Device *cuda){
+void check_rmsnorm(Device *cpu, Device *cuda) {
     Title("check_rmsnorm");
     int batch_size = 5;
     // 分配主机内存
@@ -117,7 +117,6 @@ void check_matmul(Device *cpu, Device *cuda){
     cuda->move_in(x_cuda, x_cpu, N * batch_size * sizeof(float));
     cuda->move_in(w_cuda, w_cpu, D * N * batch_size * sizeof(float));
 
-    cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
     cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
     // cuda->F->matmul(xout_cuda, x_cuda, w_cuda, N, D, batch_size);
 
@@ -441,59 +440,70 @@ void check_elem_multiply(Device *cpu, Device *cuda) {
     cuda->deallocate(y_cuda);
 }
 
-void check_masked_attention(Device *cpu, Device *cuda) {
-    Title("check_masked_attention");
-    // Define parameters
-    int dim = 64; // Dimension size
-    int q_head = 32; // Number of query heads
-    int kv_head = 32; // Number of key/value heads
-    int position = 10; // Position index
 
-    // Compute sizes
-    int q_size  = q_head  * dim;
-    int kv_size = kv_head * dim;
+// FIXME : [masked_multihead_attention] CUDA and CPU results do not match!
+void check_masked_attention(Device *cpu, Device *cuda) {
+    Title("masked_multihead_attention");
+    size_t pos = 6;
+    size_t hidden_size = 2048;
+    size_t head_dim = 64;
+    size_t head_num = 32;
+
 
     // Allocate host memory
-    float *q_cpu  =  (float*)cpu->allocate(q_size * position * sizeof(float));
-    float *q_cuda = (float*)cuda->allocate(q_size * position * sizeof(float));
+    float *q_cpu  =  (float*)cpu->allocate(hidden_size * pos * sizeof(float));
+    float *q_cuda = (float*)cuda->allocate(hidden_size * pos * sizeof(float));
 
-    float *k_cpu  =  (float*)cpu->allocate(kv_size* position * sizeof(float));
-    float *k_cuda = (float*)cuda->allocate(kv_size* position * sizeof(float));
+    float *k_cpu  =  (float*)cpu->allocate(hidden_size * pos * sizeof(float));
+    float *k_cuda = (float*)cuda->allocate(hidden_size * pos * sizeof(float));
 
-    float *v_cpu  =  (float*)cpu->allocate(kv_size* position * sizeof(float));
-    float *v_cuda = (float*)cuda->allocate(kv_size* position * sizeof(float));
+    float *v_cpu  =  (float*)cpu->allocate(hidden_size * pos * sizeof(float));
+    float *v_cuda = (float*)cuda->allocate(hidden_size * pos * sizeof(float));
 
-    float *y_cpu       =  (float*)cpu->allocate(q_size * position * sizeof(float));
-    float *y_cuda      = (float*)cuda->allocate(q_size * position * sizeof(float));
-    float *cuda_to_cpu =  (float*)cpu->allocate(q_size * position * sizeof(float));
+    float *y_cpu       =  (float*)cpu->allocate(hidden_size * pos * sizeof(float));
+    float *y_cuda      = (float*)cuda->allocate(hidden_size * pos * sizeof(float));
+    float *cuda_to_cpu =  (float*)cpu->allocate(hidden_size * pos * sizeof(float));
 
-    int *pos_cpu  =  (int*)cpu->allocate(position * sizeof(int));
-    int *pos_cuda = (int*)cuda->allocate(position * sizeof(int));
-    for(int i = 0; i < position; i++) pos_cpu[i] = i;
+    int *pos_cpu  =  (int*)cpu->allocate(pos * sizeof(int));
+    int *pos_cuda = (int*)cuda->allocate(pos * sizeof(int));
+    for(int i = 0; i < pos; i++) pos_cpu[i] = i;
 
+    read_bin("q.bin", q_cpu, hidden_size * pos);
+    read_bin("k.bin", k_cpu, hidden_size * pos);
+    read_bin("v.bin", v_cpu, hidden_size * pos);
+    // // Initialize input data
+    // rand_init(q_cpu, q_size  * position);
+    // rand_init(k_cpu, kv_size * position);
+    // rand_init(v_cpu, kv_size * position);
 
-    // Initialize input data
-    rand_init(q_cpu, q_size  * position);
-    rand_init(k_cpu, kv_size * position);
-    rand_init(v_cpu, kv_size * position);
+    
+    float *tmp  =  (float*)cpu->allocate(hidden_size * pos * sizeof(float));
+    read_bin("o.bin", tmp, hidden_size * pos);
 
     // Move data to device
-    cuda->move_in(q_cuda, q_cpu, q_size * position * sizeof(float));
-    cuda->move_in(k_cuda, k_cpu, kv_size* position * sizeof(float));
-    cuda->move_in(v_cuda, v_cpu, kv_size* position * sizeof(float));
-    cuda->move_in(pos_cuda, pos_cpu, position * sizeof(int));
+    cuda->move_in(q_cuda, q_cpu, hidden_size * pos * sizeof(float));
+    cuda->move_in(k_cuda, k_cpu, hidden_size * pos * sizeof(float));
+    cuda->move_in(v_cuda, v_cpu, hidden_size * pos * sizeof(float));
+
+    cuda->move_in(pos_cuda, pos_cpu, pos * sizeof(int));
 
 
-    cpu->F->masked_attention(y_cpu, q_cpu, k_cpu, v_cpu, nullptr, pos_cpu, dim, q_head, position, position);
-    cuda->F->masked_attention(y_cuda, q_cuda, k_cuda, v_cuda, nullptr, pos_cuda, dim, q_head, position, position);
+     cpu->F->masked_attention(y_cpu,  q_cpu,  k_cpu,  v_cpu,  nullptr, pos_cpu,  head_dim, head_num, pos, pos);
+    cuda->F->masked_attention(y_cuda, q_cuda, k_cuda, v_cuda, nullptr, pos_cuda, head_dim, head_num, pos, pos);
 
-    cuda->move_out(y_cuda, cuda_to_cpu, q_size * position * sizeof(float));
+    cuda->move_out(y_cuda, cuda_to_cpu, hidden_size * pos * sizeof(float));
 
     // Compare results
-    if (compare_results(cuda_to_cpu, y_cpu, q_size  * position)) {
-        check_pass("[masked_attention] CUDA and CPU results match.");
+    if (compare_results(cuda_to_cpu, y_cpu, hidden_size * pos)) {
+        check_pass("[masked_multihead_attention] CUDA and CPU results match.");
     } else {
-        check_error("[masked_attention] CUDA and CPU results do not match!");
+        check_error("[masked_multihead_attention] CUDA and CPU results do not match!");
+    }
+
+    if (compare_results(tmp, y_cpu, hidden_size * pos)) {
+        check_pass("[masked_multihead_attention] CUDA and CPU results match.");
+    } else {
+        check_error("[masked_multihead_attention] CUDA and CPU results do not match!");
     }
 
     // Clean up

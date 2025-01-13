@@ -48,7 +48,7 @@ all: $(TARGET)
 # =============================================================================
 # 链接目标
 # =============================================================================
-LDFLAGS := -lopenblas
+LDFLAGS := -lopenblas -lcublas
 
 $(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
 	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS)
@@ -75,7 +75,6 @@ define compile_cuda
 $(BUILD_DIR)/$(notdir $(1:.cu=.o)): $(1) | $(BUILD_DIR)
 	$(NVCC) $(NVCCFLAGS) -MMD -c $(1) -o $$@
 endef
-
 
 # 为每个 .cc 文件生成编译规则
 $(foreach src,$(CPU_SRC),$(eval $(call compile_cpu,$(src))))

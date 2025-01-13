@@ -4,6 +4,7 @@
 #define COMMON_H
 
 #include <cuda_runtime.h>
+#include <cublas_v2.h>
 #include <iostream>
 #include <chrono>
 
@@ -16,6 +17,22 @@ inline int divUp(int a, int b) {
 const int num_threads_large = 1024; // 根据硬件规格调整
 const int num_threads_small = 256;
 
+
+#define CHECK_CUDA(call) { \
+    cudaError_t err = call; \
+    if(err != cudaSuccess) { \
+        std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+        exit(EXIT_FAILURE); \
+    } \
+}
+
+#define CHECK_CUBLAS(call) { \
+    cublasStatus_t status = call; \
+    if(status != CUBLAS_STATUS_SUCCESS) { \
+        std::cerr << "cuBLAS Error: " << status << " at " << __FILE__ << ":" << __LINE__ << std::endl; \
+        exit(EXIT_FAILURE); \
+    } \
+}
 
 inline void printFromGPUToCPU(const float *d_x, size_t size) {
     // Allocate host memory

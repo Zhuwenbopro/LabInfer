@@ -52,7 +52,7 @@ public:
         }
         
         caches[uid].copy(start_pos*len, tensor, 0, tensor.Size());
-        cache_lens[uid] += tensor.ElemNum();
+        cache_lens[uid] = start_pos + tensor.ElemNum();
     }
 
     void clear(const size_t uid) {
