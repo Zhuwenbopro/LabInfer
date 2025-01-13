@@ -19,6 +19,7 @@ public:
     virtual ~Layer() = default; 
 
     const std::string& Name() const { return name; }
+    void setName(const std::string& _name) { name = _name; }
     const std::string& Device() const { return device; }
 
     virtual void to(const std::string& _device) {
