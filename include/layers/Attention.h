@@ -57,63 +57,9 @@ Attention::Attention(
 }
 
 
-void _read_bin(const std::string& filename, float* ptr, size_t size) {
-    std::ifstream inFile(filename, std::ios::binary);
-
-    if (!inFile) {
-        std::cerr << "无法打开文件" << std::endl;
-        return ;
-    }
-    // 获取文件大小
-    inFile.seekg(0, std::ios::end);  // 移动到文件末尾
-    std::streampos fileSize = inFile.tellg();  // 获取文件大小
-    inFile.seekg(0, std::ios::beg);  // 回到文件开始
-    if(fileSize / sizeof(float) != size) {
-        std::cerr << "文件尺寸对不上" << std::endl;
-        return ;
-    }
-    inFile.read(reinterpret_cast<char*>(ptr), fileSize);
-
-    inFile.close();
-}
-
-
-
-void _check_pass(const char*  message){
-    std::cout << "\033[32m" << message << "\033[0m" << std::endl;
-}
-
-void _check_error(const char*  message){
-    std::cout << "\033[31m" << message << "\033[0m" << std::endl;
-}
-
-bool _compare_results(const float *a, const float *b, int size, float tolerance) {
-    for (int i = 0; i < size; ++i) {
-        if (std::fabs(a[i] - b[i]) > tolerance) {
-            std::cout << "Difference at index " << i << ": " << a[i] << " vs " << b[i] << std::endl;
-            return false;
-        }
-    }
-    return true;
-}
-
-void _check(const float *a, const float *b, int size, const std::string& item, float tolerance=1e-2f) {
-    if (_compare_results(a, b, size, 5e-5)) {
-        _check_pass(("[" + item + "] CUDA and CPU results match.").c_str());
-    } else {
-        _check_error(("[" + item + "] CUDA and CPU results do not match!").c_str());
-    }
-
-    for(int i = 0; i < 5; i++) {
-        if(i >= size) break;
-        std::cout << a[i] << " vs " << b[i] << std::endl;
-    }
-}
-
-
 void Attention::forward(InputWarp& inputWarp) {
     size_t uid = inputWarp.uid;
-    Tensor<float> x   = inputWarp.inter_value;
+    Tensor<float> x = inputWarp.inter_value;
 
     Tensor<float> q = layers.at("q_linear")->forward(x);
     Tensor<float> k = layers.at("k_linear")->forward(x);

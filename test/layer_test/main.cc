@@ -12,8 +12,87 @@ void check_linear();
 void check_rmsnorm();
 void check_mlp();
 void check_RoPE();
+void check_attention();
+void check_decoder();
 
 
+int main() {
+    check_linear();
+    check_rmsnorm();
+    check_embedding();
+    check_RoPE();
+    check_mlp();
+    check_attention();
+    check_decoder();
+}
+
+
+void check_decoder() {
+    Title("check_attention");
+
+    const size_t attn_head = 32;
+    const size_t kv_head = 8;
+    const size_t hidden_size = 2048;
+    const size_t intermediate_size = 8192;
+    const size_t max_len = 250;
+    const float epsilon = 1e-5;
+
+    const size_t head_dim = hidden_size / attn_head;
+    const size_t q_size  = head_dim * attn_head;
+    const size_t kv_size = head_dim * kv_head;
+
+    std::unordered_map<std::string, std::shared_ptr<float>> weights;
+    weights["decoder_layer.input_layernorm.weight"] = std::shared_ptr<float>(new float[hidden_size]);
+    read_bin("w_in_norm.bin", weights["decoder_layer.input_layernorm.weight"].get(), hidden_size);
+
+    weights["decoder_layer.self_attn.q_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
+    weights["decoder_layer.self_attn.k_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
+    weights["decoder_layer.self_attn.v_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
+    weights["decoder_layer.self_attn.o_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
+    read_bin("w_q.bin", weights["decoder_layer.self_attn.q_linear.weight"].get(), hidden_size * q_size);
+    read_bin("w_k.bin", weights["decoder_layer.self_attn.k_linear.weight"].get(), hidden_size * kv_size);
+    read_bin("w_v.bin", weights["decoder_layer.self_attn.v_linear.weight"].get(), hidden_size * kv_size);
+    read_bin("w_o.bin", weights["decoder_layer.self_attn.o_linear.weight"].get(), hidden_size * q_size);
+
+    weights["decoder_layer.post_attention_layernorm.weight"] = std::shared_ptr<float>(new float[hidden_size]);
+    read_bin("w_post_norm.bin", weights["decoder_layer.post_attention_layernorm.weight"].get(), hidden_size);
+
+    weights["decoder_layer.mlp.gate_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*intermediate_size]);
+    weights["decoder_layer.mlp.up_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*intermediate_size]);
+    weights["decoder_layer.mlp.down_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*intermediate_size]);
+    read_bin("w_gate.bin", weights["decoder_layer.mlp.gate_proj.weight"].get(), hidden_size * intermediate_size);
+    read_bin("w_up.bin", weights["decoder_layer.mlp.up_proj.weight"].get(), hidden_size * intermediate_size);
+    read_bin("w_down.bin", weights["decoder_layer.mlp.down_proj.weight"].get(), hidden_size * intermediate_size);
+    
+    DecoderLayer decoder(attn_head, kv_head, hidden_size, intermediate_size);
+    decoder.load(weights);
+
+    Tensor<int> input_ids(batch_size, 1);
+    input_ids[0] = 0; input_ids[1] = 3324; input_ids[2] = 34; input_ids[3] = 731; input_ids[4] = 7734; input_ids[5] = 455;
+    Tensor<float> x1(batch_size, hidden_size);
+    read_bin("decoder_in.bin", x1, x1.Size());
+    InputWarp inputWarp(input_ids);
+    inputWarp.inter_value = x1;
+
+    decoder.forward(inputWarp);
+    Tensor<float> y1 = inputWarp.inter_value;
+
+    Tensor<float> cmp(batch_size, hidden_size);
+    read_bin("decoder_out.bin", cmp, cmp.Size());
+    check(y1, cmp, cmp.Size(), "Decoder");
+
+    // ----
+
+    Tensor<float> x2(batch_size, hidden_size);
+    read_bin("decoder_in.bin", x2, x2.Size());
+    inputWarp.inter_value = x2;
+    inputWarp.to("cuda");
+    decoder.to("cuda");
+    decoder.forward(inputWarp);
+    Tensor<float> y2 = inputWarp.inter_value;
+    y2.to("cpu");
+    check(y2, cmp, cmp.Size(), "Decoder");
+}
 
 void check_attention() {
     Title("check_attention");
@@ -62,20 +141,6 @@ void check_attention() {
     Tensor<float> y1 = inputWarp.inter_value;
 
     check(y1, y2, batch_size*N, "ATTENTION");
-}
-
-
-
-int main() {
-    check_linear();
-    // check_rmsnorm();
-    
-    // check_embedding();
-    // check_RoPE();
-    // check_mlp();
-
-    check_attention();
-
 }
 
 void check_RoPE() {
@@ -190,17 +255,13 @@ void check_linear() {
     linear.load(weights);
 
     Tensor<float> x(batch_size, hidden_size);
-    read_bin("hidden_size.bin", x, x.Size());
+    rand_init(x, x.Size());
     Tensor<float> y = linear.forward(x);
-
-    Tensor<float> q(batch_size, hidden_size);
-    read_bin("Q.bin", q, q.Size());
-    check(q, y, q.Size(), "Linear");
 
     x.to("cuda");
     linear.to("cuda");
     Tensor<float> y_cuda = linear.forward(x);
     y_cuda.to("cpu");
 
-    check(y_cuda, q, y.Size(), "Linear");
+    check(y_cuda, y, y.Size(), "Linear");
 }

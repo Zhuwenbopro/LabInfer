@@ -8,5 +8,6 @@
     #include "Mlp.h"
     #include "RoPE.h"
     #include "Attention.h"
+    #include "DecoderLayer.h"
 
 #endif
