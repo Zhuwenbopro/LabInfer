@@ -15,7 +15,7 @@ public:
     RMSNorm(const size_t _hidden_size, const float _epsilon = 1e-5, const std::string& _name = "RMSNorm");
 
     // 覆盖基类的 forward 方法
-    Tensor<float> forward(Tensor<float>& x) override;
+    void forward(InputWarp& inputWarp) override;
 
     // 虚析构函数
     virtual ~RMSNorm() = default;
@@ -30,12 +30,9 @@ RMSNorm::RMSNorm(const size_t _hidden_size, const float _epsilon, const std::str
     params.emplace("weight", Parameter<float>(1, hidden_size, "cpu", "weight"));
 }
 
-Tensor<float> RMSNorm::forward(Tensor<float>& x)
+void RMSNorm::forward(InputWarp& inputWarp)
 {
-    Parameter<float>& W = params.at("weight");
-    // 使用它们进行运算
-    F->rmsnorm(x, W, hidden_size, x.ElemNum(), epsilon);
-    return x;
+    F->rmsnorm(inputWarp.inter_value, params.at("weight"), hidden_size, inputWarp.inter_value.ElemNum(), epsilon);
 }
 
 #endif

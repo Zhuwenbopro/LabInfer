@@ -9,5 +9,6 @@
     #include "RoPE.h"
     #include "Attention.h"
     #include "DecoderLayer.h"
+    #include "LayerList.h"
 
 #endif

@@ -12,12 +12,12 @@ DEVICE_DIR := $(SRC_DIR)/device
 BUILD_DIR := ../../build
 THIRD_PARTY_DIR := ./../../third_party
 
-INCLUDES := -I./../../include
+INCLUDES := -I./../../include -I$(DEVICE_DIR) -I$(THIRD_PARTY_DIR)
 
 # =============================================================================
 # 查找所有 .cc 和 .cu 文件
 # =============================================================================
-CPU_SRC := $(shell find $(SRC_DIR) -type f -name '*.cc')
+CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc ../../src/layer/layer.cc ../../src/model/model.cc
 CPU_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CPU_SRC:.cc=.o)))
 
 CUDA_SRC := $(shell find $(SRC_DIR) -type f -name '*.cu')
@@ -30,21 +30,10 @@ MAIN_OBJ := $(BUILD_DIR)/main.o
 # =============================================================================
 # 编译标志
 # =============================================================================
-USE_CUDA ?= 1
-
-ifeq ($(USE_CUDA),1)
-    MACRO := -DUSE_CUDA
-    OPTFLAGS := -O3 -fopenmp -march=native
-    CXXFLAGS := -std=c++20 -I$(DEVICE_DIR) $(INCLUDES) $(MACRO) -I$(THIRD_PARTY_DIR) $(OPTFLAGS)
-    NVCCFLAGS := -O3 -Xcompiler -fPIC $(INCLUDES) -std=c++20 $(MACRO) -Xcompiler -fopenmp -Xcompiler -march=native
-    LDFLAGS := -lopenblas
-else
-    MACRO :=
-    OPTFLAGS := -O3 -fopenmp -march=native
-    CXXFLAGS := -std=c++20 -I$(DEVICE_DIR) $(INCLUDES) -I$(THIRD_PARTY_DIR) $(OPTFLAGS)
-    NVCCFLAGS := -O3 -Xcompiler -fPIC $(INCLUDES) -std=c++20 -Xcompiler -fopenmp -Xcompiler -march=native
-    LDFLAGS := -lopenblas
-endif
+MACRO := -DUSE_CUDA
+CXXSTAND := -std=c++20
+CXXFLAGS := $(CXXSTAND) $(INCLUDES) $(MACRO) -O3 -fopenmp  # 添加 -fopenmp
+NVCCFLAGS := $(CXXSTAND) $(INCLUDES) $(MACRO) -O3 -Xcompiler -fopenmp # 使用 -Xcompiler 传递给 g++
 
 # =============================================================================
 # 最终目标
@@ -59,10 +48,10 @@ all: $(TARGET)
 # =============================================================================
 # 链接目标
 # =============================================================================
+LDFLAGS := -lopenblas -lcublas
 
 $(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
 	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS)
-
 # =============================================================================
 # 编译规则
 # =============================================================================
@@ -101,17 +90,12 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # =============================================================================
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
+	mv ./*.bin ~/data/
 
-# =============================================================================
-# 备份和恢复数据
-# =============================================================================
-backup:
-	mv model.safetensors *.json ~/data
-
-restore:
-	mv ~/data/* ./
+data:
+	mv ~/data/*.bin ./
 
 # =============================================================================
 # 声明伪目标
 # =============================================================================
-.PHONY: all clean backup restore
+.PHONY: all clean

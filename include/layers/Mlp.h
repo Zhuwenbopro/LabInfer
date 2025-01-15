@@ -12,7 +12,7 @@ public:
     Mlp(const size_t& in_size, const size_t& middle_size);
 
     // 覆盖基类的 forward 方法
-    Tensor<float> forward(Tensor<float>& x) override;
+    void forward(InputWarp& inputWarp) override;
 
     // 虚析构函数
     virtual ~Mlp() = default;
@@ -34,19 +34,19 @@ Mlp::Mlp(const size_t& _in_size, const size_t& _middle_size) : Layer("cpu", "mlp
 }
 
 
-Tensor<float> Mlp::forward(Tensor<float>& x)
+void Mlp::forward(InputWarp& inputWarp)
 {
-    Tensor gate = layers.at("gate_linear")->forward(x);
-
+    Tensor x = inputWarp.inter_value;
+    layers.at("gate_linear")->forward(inputWarp);
+    Tensor gate = inputWarp.inter_value;
     F->silu(gate, gate.Size());
     
-    Tensor up = layers.at("up_linear")->forward(x);
+    inputWarp.inter_value = x;
+    layers.at("up_linear")->forward(inputWarp);
     
-    F->elem_multiply(gate, gate, up, gate.Size());
+    F->elem_multiply(inputWarp.inter_value, inputWarp.inter_value, gate, gate.Size());
     
-    Tensor y = layers.at("down_linear")->forward(gate);
-    
-    return y;
+    layers.at("down_linear")->forward(inputWarp);
 }
 
 #endif // MLP_H

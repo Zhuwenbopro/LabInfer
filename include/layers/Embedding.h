@@ -12,7 +12,7 @@ public:
     Embedding(const size_t vocab_size, const size_t hidden_size, const std::string& _name = "embed_tokens");
 
     // 覆盖基类的 forward 方法
-    Tensor<float> forward(Tensor<int>& x) override;
+    void forward(InputWarp& inputWarp) override;
 
     // 虚析构函数
     virtual ~Embedding() = default;
@@ -31,11 +31,12 @@ Embedding::Embedding(const size_t _vocab_size, const size_t _hidden_size, const 
     params.emplace("weight", Parameter<float>(_vocab_size, _hidden_size, "cpu", "weight"));
 }
 
-Tensor<float> Embedding::forward(Tensor<int>& x)
+void Embedding::forward(InputWarp& inputWarp)
 {
-    Tensor<float> y(x.ElemNum(), hidden_size, x.Device(), name + "_output");
-    F->embedding(y, x, params.at("weight"), hidden_size, x.Size());
-    return y;
+    size_t num = inputWarp.input_ids.ElemNum();
+    Tensor<float> y(num, hidden_size, device, name + "_output");
+    F->embedding(y, inputWarp.input_ids, params.at("weight"), hidden_size, num);
+    inputWarp.inter_value = y;
 }
 
 #endif // EMBEDDING_H

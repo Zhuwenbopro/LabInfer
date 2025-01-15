@@ -13,7 +13,7 @@ public:
     Linear(const size_t size_in, const size_t size_out, const std::string& _name = "Linear", bool _bias = false);
 
     // 覆盖基类的 forward 方法
-    Tensor<float> forward(Tensor<float>& x) override;
+    void forward(InputWarp& inputWarp) override;
 
     // 虚析构函数
     virtual ~Linear() = default;
@@ -36,15 +36,16 @@ Linear::Linear(const size_t size_in, const size_t size_out, const std::string& _
     if(bias) params.emplace("bias", Parameter<float>(1, size_in, "cpu", "bias"));
 }
 
-Tensor<float> Linear::forward(Tensor<float>& x)
+void Linear::forward(InputWarp& inputWarp)
 {   
-    if(x.ElemLen() != input_size) {
+    if(inputWarp.inter_value.ElemLen() != input_size) {
+        std::cout << "input size = " << input_size << "   = " << inputWarp.inter_value.ElemLen() << std::endl;
         throw std::runtime_error("Layer " + name + "'s input len not match param len.");
     }
 
-    Tensor<float> y(x.ElemNum(), output_size, x.Device(), name + "_output");
-    F->matmul(y, x, params.at("weight"), input_size, output_size, x.ElemNum());
-    return y;
+    Tensor<float> y(inputWarp.inter_value.ElemNum(), output_size, device, name + "_output");
+    F->matmul(y, inputWarp.inter_value, params.at("weight"), input_size, output_size, inputWarp.inter_value.ElemNum());
+    inputWarp.inter_value = y;
 }
 
 #endif // LINEAR_H
