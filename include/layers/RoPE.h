@@ -15,7 +15,7 @@ public:
     RoPE(const size_t _head_dim, const std::string& _name = "rotary_positional_embedding");
 
     // 覆盖基类的 forward 方法
-    Tensor<float> forward(Tensor<float>& x, Tensor<int>& pos) override;
+    void forward(InputWarp& inputWarp) override;
 
     // 虚析构函数
     virtual ~RoPE() = default;
@@ -66,15 +66,9 @@ RoPE::RoPE(const size_t _head_dim, const std::string& _name) : Layer("cpu", _nam
     }
 }
 
-Tensor<float> RoPE::forward(Tensor<float>& x, Tensor<int>& pos)
+void RoPE::forward(InputWarp& inputWarp)
 {
-    if(x.ElemNum() != pos.ElemNum()) {
-        throw std::logic_error("pos num does not match x.elemNum()"); 
-    }
-
-    F->apply_rope(x, pos, params.at("inv_freq"), x.ElemLen(), head_dim, x.ElemNum());
-
-    return x;
+    F->apply_rope(inputWarp.inter_value, inputWarp.pos, params.at("inv_freq"), inputWarp.inter_value.ElemLen(), head_dim, inputWarp.inter_value.ElemNum());
 }
 
 

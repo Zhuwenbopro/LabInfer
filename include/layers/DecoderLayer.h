@@ -50,15 +50,15 @@ void DecoderLayer::forward(InputWarp& inputWarp)
     Tensor<float> x_copy(inputWarp.inter_value.ElemNum(), inputWarp.inter_value.ElemLen(), device, name+"_copy");
     x_copy.copy(0, inputWarp.inter_value, 0, inputWarp.inter_value.Size());
 
-    inputWarp.inter_value = layers.at("input_layernorm")->forward(inputWarp.inter_value);
+    layers.at("input_layernorm")->forward(inputWarp);
     
     layers.at("self_attn")->forward(inputWarp);
     F->add(inputWarp.inter_value, inputWarp.inter_value, x_copy, x_copy.Size());
 
     x_copy.copy(0, inputWarp.inter_value, 0, inputWarp.inter_value.Size());
-    inputWarp.inter_value = layers.at("post_attention_layernorm")->forward(inputWarp.inter_value);
+    layers.at("post_attention_layernorm")->forward(inputWarp);
 
-    inputWarp.inter_value = layers.at("mlp")->forward(inputWarp.inter_value);
+    layers.at("mlp")->forward(inputWarp);
     F->add(inputWarp.inter_value, inputWarp.inter_value, x_copy, x_copy.Size());
 }
 

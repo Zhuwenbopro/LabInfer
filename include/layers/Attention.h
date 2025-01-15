@@ -59,14 +59,20 @@ Attention::Attention(
 
 void Attention::forward(InputWarp& inputWarp) {
     size_t uid = inputWarp.uid;
-    Tensor<float> x = inputWarp.inter_value;
+    Tensor x = inputWarp.inter_value;
 
-    Tensor<float> q = layers.at("q_linear")->forward(x);
-    Tensor<float> k = layers.at("k_linear")->forward(x);
-    Tensor<float> v = layers.at("v_linear")->forward(x);
+    layers.at("q_linear")->forward(inputWarp);
+    layers.at("rope")->forward(inputWarp);
+    Tensor q = inputWarp.inter_value;
+    inputWarp.inter_value = x;
 
-    q = layers.at("rope")->forward(q, inputWarp.pos);
-    k = layers.at("rope")->forward(k, inputWarp.pos);
+    layers.at("k_linear")->forward(inputWarp);
+    layers.at("rope")->forward(inputWarp);
+    Tensor k = inputWarp.inter_value;
+    inputWarp.inter_value = x;
+
+    layers.at("v_linear")->forward(inputWarp);
+    Tensor v = inputWarp.inter_value;
 
     int rep = attn_head/kv_head;
     if(rep != 1) {
@@ -81,12 +87,9 @@ void Attention::forward(InputWarp& inputWarp) {
     v_cache.add(uid, v, inputWarp.start_pos);
 
     Tensor<float> o(q.ElemNum(), q.ElemLen(), q.Device(), "attn_output");
-
     F->masked_attention(o, q, k_cache.get(uid), v_cache.get(uid), nullptr, inputWarp.pos, head_dim, attn_head, q.ElemNum(), k_cache.Len(uid));
-
-    inputWarp.inter_value = layers.at("o_linear")->forward(o);
-
-    inputWarp.inter_value.to(x.Device());
+    inputWarp.inter_value = o;
+    layers.at("o_linear")->forward(inputWarp);
 }
 
 void Attention::to(const std::string& _device) {

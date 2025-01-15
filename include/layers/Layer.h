@@ -44,23 +44,6 @@ public:
 
     // Parameter& Param(const std::string& _name) { return params.at(_name); }
 
-    virtual Tensor<float> forward(Tensor<float>& x1, Tensor<float>& x2) {
-        throw std::logic_error(name + " Tensor<float> forward(Tensor<float>& x1, Tensor<float>& x2) not implemented.");
-    }
-
-    virtual Tensor<float> forward(Tensor<float>& x1, Tensor<int>& x2) {
-        throw std::logic_error(name + " Tensor<float> forward(Tensor<float>& x1, Tensor<float>& x2) not implemented.");
-    }
-
-    // 把下面这两个函数合并
-    virtual Tensor<float> forward(Tensor<float>& x) {
-        throw std::logic_error(name + " Tensor<float> forward(Tensor<float>& x) not implemented.");
-    }
-
-    virtual Tensor<float> forward(Tensor<int>& x) {
-        throw std::logic_error(name + " Tensor<float> forward(Tensor<float>& x) not implemented.");
-    }
-
     virtual void forward(InputWarp& input) {
         throw std::logic_error(name + " Tensor<float> forward(Tensor<float>& x) not implemented.");
     }
