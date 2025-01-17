@@ -1,5 +1,12 @@
 #include "Config.h"
+/*
 
+vocab_size: 128256
+rope_theta: 500000
+rope_type: llama3
+eos_token_id: [ 128001 128008 128009 ]
+
+*/
 
 int main() {
     Config config("config.json");

@@ -222,7 +222,7 @@ void elem_multiply_cpu(float* y, const float* x1, const float* x2, const int siz
     }
 }
 
-void max_index_cpu(float* index, float* x, const int n, const int num) {
+void CPUFunction::max_index(int* index, float* x, const int n, const int num) {
     for (int i = 0; i < num; i++) {
         int max_idx = 0;
         float max_val = x[i * n];
@@ -232,6 +232,6 @@ void max_index_cpu(float* index, float* x, const int n, const int num) {
                 max_idx = j;
             }
         }
-        index[i] = (float)max_idx;
+        index[i] = max_idx;
     }
 }

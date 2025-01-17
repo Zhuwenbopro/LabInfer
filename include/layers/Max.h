@@ -5,11 +5,11 @@
 
 class Max : public Layer {
 public:
+    Max() = delete;
+    Max(const size_t _vocab_size);
     void forward(InputWarp& inputWarp) override;
+private:
+    size_t vocab_size;
 };
-
-void Max::forward(InputWarp& inputWarp) {
-
-}
 
 #endif

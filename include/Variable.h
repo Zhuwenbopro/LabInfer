@@ -14,8 +14,7 @@ public:
 
     // Value() 是原始的指针
     operator T*() const { return (T*)value.get(); }
-    // T* Value() { return (T*)value.get(); }
-    // std::shared_ptr<void> SharedPtr() { return value; }
+    std::shared_ptr<void> Value() { return value; }
 
     size_t Size() const { return elem_num * elem_len; }
     size_t Bytes() const { return elem_num * elem_len * sizeof(T); }
@@ -27,7 +26,7 @@ public:
 
     
 
-    void setValue(const std::shared_ptr<T>& _value) { value = _value; }
+    void setValue(const std::shared_ptr<void>& _value) { value = _value; }
     void setName(const std::string& _name){ name = _name; }
     void reset() {
         value.reset();

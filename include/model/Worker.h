@@ -14,11 +14,11 @@ class Worker {
 public:
     // 构造函数启动线程
     Worker(const std::string& _name, 
-            std::shared_ptr<SafeQueue<std::string>> inQueue, 
-            std::shared_ptr<SafeQueue<std::string>> outQueue,
-            Layer* _layer
+            std::shared_ptr<SafeQueue<InputWarp>> inQueue, 
+            std::shared_ptr<SafeQueue<InputWarp>> outQueue,
+            Layer& _layer
             ) : name(_name), queue_in(inQueue), queue_out(outQueue), layer(_layer), running(false) {
-        std::cout << "start: " << name << std::endl;
+        std::cout << "initialize : " << name << std::endl;
     }
 
     // 禁止拷贝和赋值操作（因为 std::thread 无法拷贝）
@@ -43,12 +43,14 @@ public:
             workerThread_.join(); // 等待线程退出
         }
         running = false;
+        std::cout << "thread[" << name << "] stopped" << std::endl;
     }
+
 private:
     std::string name;
-    std::shared_ptr<SafeQueue<std::string>> queue_in;
-    std::shared_ptr<SafeQueue<std::string>> queue_out;
-    Layer* layer;
+    std::shared_ptr<SafeQueue<InputWarp>> queue_in;
+    std::shared_ptr<SafeQueue<InputWarp>> queue_out;
+    Layer& layer;
 
     std::thread workerThread_;       // 工作线程
     bool running;
@@ -56,37 +58,13 @@ private:
 
     // 线程的工作函数
     void threadFunction() {
-        std::string message;
         while (!stopFlag_.load()) {
-            // 进行 merge 把已经积累起来的合并
-            // if(state & FIRST) {
-            //     printMsg(name+" is getting message...");
-            //     message = queue_in->mergepop();
-            //     printMsg(name + " : " + message);
-            // } else {
-            //     printMsg(name+" is getting message...");
-            //     message = queue_in->pop();
-            //     printMsg(name + " : " + message);
-            // }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(500)); // 模拟工作
-            // queue_out->push(message);
-            printMsg(name + " push msg : " + message);
-
-            // // 判断是否结束词
-            // if(state & LAST) {
-                
-            // }
+            InputWarp inputWarp = queue_in->pop();
+            layer.forward(inputWarp);
+            std::this_thread::sleep_for(std::chrono::milliseconds(30000)); // 模拟工作
+            queue_out->push(inputWarp);
         }
-        std::cout << "Thread exiting..." << std::endl;
     }
-
-    void printMsg(const std::string& msg) {
-        static std::mutex print_mutex;
-        std::lock_guard<std::mutex> lock(print_mutex);
-        std::cout << msg << std::endl;
-    }
-
 };
 
 #endif

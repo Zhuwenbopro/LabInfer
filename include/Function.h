@@ -80,7 +80,7 @@ public:
 
     virtual void elem_multiply(float* y, const float* x1, const float* x2, const int size) = 0;
 
-    virtual void max_index(float* index, float* x, const int n, const int num) = 0;
+    virtual void max_index(int* index, float* x, const int n, const int num) = 0;
     
     // n 是 in 的元素长度
     virtual void repeat_kv(float* o, float* in, int dim, int rep, int n) = 0;

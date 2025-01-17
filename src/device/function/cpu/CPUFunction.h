@@ -68,9 +68,7 @@ class CPUFunction : public Function {
         elem_multiply_cpu(y, x1, x2, size);
     }
 
-    void max_index(float* index, float* x, const int n, const int num) override {
-        max_index_cpu(index, x, n, num);
-    }
+    void max_index(int* index, float* x, const int n, const int num) override;
 
     void repeat_kv(float* o, float* in, int dim, int rep, int n) override {
         repeat_kv_cpu(o, in, dim, rep, n);
