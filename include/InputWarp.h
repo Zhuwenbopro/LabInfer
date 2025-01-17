@@ -11,8 +11,6 @@ public:
     size_t uid;
     size_t start_pos;
 
-    InputWarp() = delete;
-    // FIXME : 未考虑当
     InputWarp(Tensor<int>& _input_ids, const size_t _start_pos = 0) {
         static size_t guid = 0;
         uid = guid++;

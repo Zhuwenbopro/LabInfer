@@ -35,16 +35,16 @@ void Title(const std::string &title) {
 }
 
 
-void write_bin(const std::string& filename, float* ptr, size_t size) {
+void write_bin(const std::string& filename, void* ptr, size_t bytes) {
     std::ofstream outFile(filename, std::ios::binary);
 
     if (!outFile) {
         std::cerr << "无法打开文件 " + filename << std::endl;
-        return ;
+        exit(-1);
     }
 
     // 写入数组数据到文件
-    outFile.write(reinterpret_cast<char*>(ptr), size * sizeof(float));
+    outFile.write(reinterpret_cast<char*>(ptr), bytes);
     
     // 关闭文件
     outFile.close();
@@ -52,20 +52,20 @@ void write_bin(const std::string& filename, float* ptr, size_t size) {
     std::cout << "数据已存储到文件 " + filename << std::endl;
 }
 
-void read_bin(const std::string& filename, float* ptr, size_t size) {
+void read_bin(const std::string& filename, void* ptr, size_t bytes) {
     std::ifstream inFile(filename, std::ios::binary);
 
     if (!inFile) {
         std::cerr << "无法打开文件" << std::endl;
-        return ;
+        exit(-1);
     }
     // 获取文件大小
     inFile.seekg(0, std::ios::end);  // 移动到文件末尾
     std::streampos fileSize = inFile.tellg();  // 获取文件大小
     inFile.seekg(0, std::ios::beg);  // 回到文件开始
-    if(fileSize / sizeof(float) != size) {
-        std::cerr << "文件尺寸对不上" << std::endl;
-        return ;
+    if(fileSize != bytes) {
+        std::cerr << "文件尺寸对不上  " << fileSize << " vs. " << bytes << std::endl;
+        exit(-1);
     }
     inFile.read(reinterpret_cast<char*>(ptr), fileSize);
 

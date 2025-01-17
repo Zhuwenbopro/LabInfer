@@ -7,7 +7,7 @@
 __global__ void elem_multiply_cuda_kernel(float* y, const float* x1, const float* x2, int size);
 __global__ void repeat_kv_kernel(float* o, float* in, int dim, int rep, int n);
 __global__ void add_cuda_kernel(float* y, const float* x1, const float* x2, int n, int batch_size);
-__global__ void max_index_kernel(float* index, float* x, int n);
+__global__ void max_index_kernel(int* index, float* x, int n);
 __global__ void silu_cuda_kernel(float *x, const int n, const int batch_size);
 __global__ void apply_rope_kernel_optimized(float *x, const int *pos, const float *inv_freq, const int n, int head_dim, const int num);
 __global__ void softmax_gpu(float *__restrict__ x, int size);
@@ -64,7 +64,7 @@ void CUDAFunction::repeat_kv(float* o, float* in, int dim, int rep, int n) {
     repeat_kv_kernel<<<blocks_per_grid, num_threads_small>>>(o, in, dim, rep, n);
 }
 
-void CUDAFunction::max_index(float* index, float* x, const int n, const int num) {
+void CUDAFunction::max_index(int* index, float* x, const int n, const int num) {
     int threadsPerBlock = 256;
     int sharedMemSize = threadsPerBlock * 2 * sizeof(float); // 存储值和索引
     max_index_kernel<<<num, threadsPerBlock, sharedMemSize>>>(index, x, n);
@@ -163,7 +163,7 @@ __global__ void repeat_kv_kernel(float* o, float* in, int dim, int rep, int n) {
     }
 }
 
-__global__ void max_index_kernel(float* index, float* x, int n) {
+__global__ void max_index_kernel(int* index, float* x, int n) {
     extern __shared__ float sdata[];
     // sdata[threadIdx.x] 存储局部最大值
     // sdata[blockDim.x + threadIdx.x] 存储对应的索引

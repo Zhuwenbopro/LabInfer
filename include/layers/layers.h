@@ -10,5 +10,6 @@
     #include "Attention.h"
     #include "DecoderLayer.h"
     #include "LayerList.h"
+    #include "Max.h"
 
 #endif

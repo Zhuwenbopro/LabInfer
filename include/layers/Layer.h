@@ -22,21 +22,7 @@ public:
     void setName(const std::string& _name) { name = _name; }
     const std::string& Device() const { return device; }
 
-    virtual void to(const std::string& _device) {
-        if(device == _device) return;
-
-        for (auto& [_name, param] : params) {
-            param.to(_device);
-        }
-
-        F = DeviceManager::getInstance().getDevice(_device)->F;
-
-        for (auto& [_name, layer] : layers) {
-            layer->to(_device);
-        }
-
-        device = _device;
-    }
+    virtual void to(const std::string& _device);
 
     // void load_state(char * filename, bool tie_weights = false);
 
@@ -44,13 +30,9 @@ public:
 
     // Parameter& Param(const std::string& _name) { return params.at(_name); }
 
-    virtual void forward(InputWarp& input) {
-        throw std::logic_error(name + " Tensor<float> forward(Tensor<float>& x) not implemented.");
-    }
+    virtual void forward(InputWarp& input);
 
-    virtual void add_layer(Layer* layer, const std::string& name = "x") { 
-        throw std::logic_error(name + " add_layer(Layer* layer) not implemented."); 
-    }
+    virtual void add_layer(Layer* layer, const std::string& name = "x");
 
 protected:
     Function* F;
@@ -62,46 +44,9 @@ protected:
     std::string name;
 
 private:
-    void remove_prefix_from_keys(std::unordered_map<std::string, std::shared_ptr<float>>& state_map, const std::string& prefix);
-// FIXME : just test
+    void remove_prefix_from_keys(std::unordered_map<std::string, std::shared_ptr<void>>& state_map, const std::string& prefix);
 public:
-    // FIXME : float 解耦
-    virtual void load(std::unordered_map<std::string, std::shared_ptr<float>>& state_map) {
-        remove_prefix_from_keys(state_map, name + ".");
-
-        for (auto& [_name, param] : params) {
-            auto it = state_map.find(_name);
-            if (it != state_map.end()) {
-                param.setValue(it->second);
-                state_map.erase(it);
-            } else {
-                throw std::runtime_error("Layer " + name + "'s param '" + _name + "' not found in weights.");
-            }
-        }
-
-        for (auto& [name, ptr_layer] : layers) {
-            ptr_layer->load(state_map);
-        }
-    }
-
-    // FIXME : to be delete
-    void printParam() { 
-        for (auto& [_name, param] : params) {
-            std::cout << "\n\nthis is  Layer '" + name << "' in Param '" << _name << "' " << param << "\n\n";
-            param.to("cpu");
-            for(int i = 1; i <= param.Size(); i++) {
-                std::cout << param[i];
-                if(i%param.ElemLen() == 0) std::cout << "\n";
-                else std::cout << " ";
-                if(i > 100) break;
-            }
-            param.to(device);
-        }
-
-        for (auto& [_name, layer] : layers) {
-            layer->printParam();
-        }
-    }
+    virtual void load(std::unordered_map<std::string, std::shared_ptr<void>>& state_map);
 };
 
 

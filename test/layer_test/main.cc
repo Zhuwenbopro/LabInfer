@@ -25,32 +25,33 @@ int main() {
     input_ids[0] = 0; input_ids[1] = 3324; input_ids[2] = 34; input_ids[3] = 731; input_ids[4] = 7734; input_ids[5] = 455;
     InputWarp inputWarp(input_ids);
 
-    std::unordered_map<std::string, std::shared_ptr<float>> weights;
-    weights["decoder_layer.input_layernorm.weight"] = std::shared_ptr<float>(new float[hidden_size]);
-    read_bin("w_in_norm.bin", weights["decoder_layer.input_layernorm.weight"].get(), hidden_size);
+    std::unordered_map<std::string, std::shared_ptr<void>> weights;
+    weights["decoder_layer.input_layernorm.weight"] = std::shared_ptr<void>(new float[hidden_size]);
+    read_bin("w_in_norm.bin", weights["decoder_layer.input_layernorm.weight"].get(), hidden_size*sizeof(float));
 
     weights["decoder_layer.self_attn.q_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
     weights["decoder_layer.self_attn.k_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
     weights["decoder_layer.self_attn.v_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
     weights["decoder_layer.self_attn.o_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
-    read_bin("w_q.bin", weights["decoder_layer.self_attn.q_linear.weight"].get(), hidden_size * q_size);
-    read_bin("w_k.bin", weights["decoder_layer.self_attn.k_linear.weight"].get(), hidden_size * kv_size);
-    read_bin("w_v.bin", weights["decoder_layer.self_attn.v_linear.weight"].get(), hidden_size * kv_size);
-    read_bin("w_o.bin", weights["decoder_layer.self_attn.o_linear.weight"].get(), hidden_size * q_size);
+    read_bin("w_q.bin", weights["decoder_layer.self_attn.q_linear.weight"].get(), hidden_size * q_size  * sizeof(float));
+    read_bin("w_k.bin", weights["decoder_layer.self_attn.k_linear.weight"].get(), hidden_size * kv_size * sizeof(float));
+    read_bin("w_v.bin", weights["decoder_layer.self_attn.v_linear.weight"].get(), hidden_size * kv_size * sizeof(float));
+    read_bin("w_o.bin", weights["decoder_layer.self_attn.o_linear.weight"].get(), hidden_size * q_size  * sizeof(float));
 
     weights["decoder_layer.post_attention_layernorm.weight"] = std::shared_ptr<float>(new float[hidden_size]);
-    read_bin("w_post_norm.bin", weights["decoder_layer.post_attention_layernorm.weight"].get(), hidden_size);
+    read_bin("w_post_norm.bin", weights["decoder_layer.post_attention_layernorm.weight"].get(), hidden_size * sizeof(float));
 
     weights["decoder_layer.mlp.gate_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*intermediate_size]);
     weights["decoder_layer.mlp.up_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*intermediate_size]);
     weights["decoder_layer.mlp.down_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*intermediate_size]);
-    read_bin("w_gate.bin", weights["decoder_layer.mlp.gate_proj.weight"].get(), hidden_size * intermediate_size);
-    read_bin("w_up.bin", weights["decoder_layer.mlp.up_proj.weight"].get(), hidden_size * intermediate_size);
-    read_bin("w_down.bin", weights["decoder_layer.mlp.down_proj.weight"].get(), hidden_size * intermediate_size);
+    read_bin("w_gate.bin", weights["decoder_layer.mlp.gate_proj.weight"].get(), hidden_size * intermediate_size * sizeof(float));
+    read_bin("w_up.bin", weights["decoder_layer.mlp.up_proj.weight"].get(), hidden_size * intermediate_size * sizeof(float));
+    read_bin("w_down.bin", weights["decoder_layer.mlp.down_proj.weight"].get(), hidden_size * intermediate_size * sizeof(float));
 
-    
+    /* cpu */
+
     Tensor<float> x1(batch_size, hidden_size);
-    read_bin("decoder_in.bin", x1, x1.Size());
+    read_bin("decoder_in.bin", x1, x1.Bytes());
     inputWarp.inter_value = x1;
 
     DecoderLayer decoder(attn_head, kv_head, hidden_size, intermediate_size);
@@ -60,8 +61,21 @@ int main() {
     Tensor<float> y1 = inputWarp.inter_value;
 
     Tensor<float> cmp(batch_size, hidden_size);
-    read_bin("decoder_out.bin", cmp, cmp.Size());
+    read_bin("decoder_out.bin", cmp, cmp.Bytes());
     check(y1, cmp, cmp.Size(), "Decoder");
+
+    /* cuda */
+
+    Tensor<float> x2(batch_size, hidden_size);
+    read_bin("decoder_in.bin", x2, x2.Bytes());
+    inputWarp.inter_value = x2;
+
+    inputWarp.to("cuda");
+    decoder.to("cuda");
+    decoder.forward(inputWarp);
+    Tensor<float> y2 = inputWarp.inter_value;
+    y2.to("cpu");
+    check(y1, y2, y2.Size(), "Decoder");
     // check_linear();
     // check_rmsnorm();
     // check_embedding();

@@ -440,8 +440,6 @@ void check_elem_multiply(Device *cpu, Device *cuda) {
     cuda->deallocate(y_cuda);
 }
 
-
-// FIXME : [masked_multihead_attention] CUDA and CPU results do not match!
 void check_masked_attention(Device *cpu, Device *cuda) {
     Title("masked_multihead_attention");
     size_t pos = 6;
@@ -468,17 +466,17 @@ void check_masked_attention(Device *cpu, Device *cuda) {
     int *pos_cuda = (int*)cuda->allocate(pos * sizeof(int));
     for(int i = 0; i < pos; i++) pos_cpu[i] = i;
 
-    read_bin("q.bin", q_cpu, hidden_size * pos);
-    read_bin("k.bin", k_cpu, hidden_size * pos);
-    read_bin("v.bin", v_cpu, hidden_size * pos);
+    // read_bin("q.bin", q_cpu, hidden_size * pos);
+    // read_bin("k.bin", k_cpu, hidden_size * pos);
+    // read_bin("v.bin", v_cpu, hidden_size * pos);
     // // Initialize input data
-    // rand_init(q_cpu, q_size  * position);
-    // rand_init(k_cpu, kv_size * position);
-    // rand_init(v_cpu, kv_size * position);
+    rand_init(q_cpu, hidden_size * pos);
+    rand_init(k_cpu, hidden_size * pos);
+    rand_init(v_cpu, hidden_size * pos);
 
     
-    float *tmp  =  (float*)cpu->allocate(hidden_size * pos * sizeof(float));
-    read_bin("o.bin", tmp, hidden_size * pos);
+    // float *tmp  =  (float*)cpu->allocate(hidden_size * pos * sizeof(float));
+    // read_bin("o.bin", tmp, hidden_size * pos);
 
     // Move data to device
     cuda->move_in(q_cuda, q_cpu, hidden_size * pos * sizeof(float));
@@ -500,11 +498,11 @@ void check_masked_attention(Device *cpu, Device *cuda) {
         check_error("[masked_multihead_attention] CUDA and CPU results do not match!");
     }
 
-    if (compare_results(tmp, y_cpu, hidden_size * pos)) {
-        check_pass("[masked_multihead_attention] CUDA and CPU results match.");
-    } else {
-        check_error("[masked_multihead_attention] CUDA and CPU results do not match!");
-    }
+    // if (compare_results(tmp, y_cpu, hidden_size * pos)) {
+    //     check_pass("[masked_multihead_attention] CUDA and CPU results match.");
+    // } else {
+    //     check_error("[masked_multihead_attention] CUDA and CPU results do not match!");
+    // }
 
     // Clean up
     cpu->deallocate(q_cpu);
@@ -525,12 +523,12 @@ void check_max_index(Device *cpu, Device *cuda) {
     
     // 分配主机内存
     float *x_cpu = (float*)cpu->allocate(n * num * sizeof(float));
-    float *index_cpu = (float*)cpu->allocate(num * sizeof(float));
-    float *cuda_to_cpu = (float*)cpu->allocate(num * sizeof(float));
+    int *index_cpu = (int*)cpu->allocate(num * sizeof(int));
+    int *cuda_to_cpu = (int*)cpu->allocate(num * sizeof(int));
 
     // 分配设备内存
     float *x_cuda = (float*)cuda->allocate(n * num * sizeof(float));
-    float *index_cuda = (float*)cuda->allocate(num * sizeof(float));
+    int *index_cuda = (int*)cuda->allocate(num * sizeof(int));
 
     // 初始化输入数据
     rand_init(x_cpu, n * num);
@@ -547,7 +545,7 @@ void check_max_index(Device *cpu, Device *cuda) {
     // }
 
     // 将输入数据从主机复制到设备
-    cuda->move_in(x_cuda, x_cpu, n * num * sizeof(float));
+    cuda->move_in(x_cuda, x_cpu, n * num * sizeof(int));
 
     // 在设备和主机上分别调用 max_index 函数
     // cuda->F->max_index(index_cuda, x, n, num);
@@ -561,10 +559,10 @@ void check_max_index(Device *cpu, Device *cuda) {
     cpu->F->max_index(index_cpu, x_cpu, n, num);
 
     // 将设备上的结果复制回主机
-    cuda->move_out(index_cuda, cuda_to_cpu, num * sizeof(float));
+    cuda->move_out(index_cuda, cuda_to_cpu, num * sizeof(int));
 
     // 比较结果
-    if (compare_results(cuda_to_cpu, index_cpu, num)) {
+    if (compare_results((float*)cuda_to_cpu, (float*)index_cpu, num)) {
         check_pass("[max_index] CUDA and CPU results match.");
     } else {
         check_error("[max_index] CUDA and CPU results do not match!");

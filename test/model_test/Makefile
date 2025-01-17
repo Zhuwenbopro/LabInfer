@@ -17,7 +17,9 @@ INCLUDES := -I./../../include -I$(DEVICE_DIR) -I$(THIRD_PARTY_DIR)
 # =============================================================================
 # 查找所有 .cc 和 .cu 文件
 # =============================================================================
-CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc ../../src/layer/layer.cc ../../src/model/model.cc
+CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc  \
+		$(shell find ../../src/layers/ -type f -name '*.cc') \
+		../../src/model/model.cc
 CPU_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CPU_SRC:.cc=.o)))
 
 CUDA_SRC := $(shell find $(SRC_DIR) -type f -name '*.cu')
@@ -90,10 +92,12 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # =============================================================================
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
-	mv ./*.bin ~/data/
+	mv ./model.safetensors ~/data/
+	mv ./xxx.model ~/data/
 
 data:
-	mv ~/data/*.bin ./
+	mv ~/data/model.safetensors ./
+	mv ~/xxx.model ./
 
 # =============================================================================
 # 声明伪目标

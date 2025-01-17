@@ -15,6 +15,7 @@ private:
     std::unordered_map<size_t, size_t> cache_lens;
 
 public:
+    Cache() = delete;
     Cache(const size_t _len, const size_t _max_len) : len(_len), max_len(_max_len), device("cpu") { }
 
     ~Cache() { }

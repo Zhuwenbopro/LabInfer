@@ -90,13 +90,13 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # =============================================================================
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
-	mv ./*.bin ~/data
+#	mv ./*.bin ~/data
 
-data:
-	mv ~/data/k.bin ./
-	mv ~/data/q.bin ./
-	mv ~/data/v.bin ./
-	mv ~/data/o.bin ./
+#data:
+#	mv ~/data/k.bin ./
+#	mv ~/data/q.bin ./
+#	mv ~/data/v.bin ./
+#	mv ~/data/o.bin ./
 
 # =============================================================================
 # 声明伪目标

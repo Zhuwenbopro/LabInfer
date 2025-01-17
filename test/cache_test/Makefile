@@ -1,7 +1,7 @@
 # =============================================================================
 # 编译器设置
 # =============================================================================
-CXX := g++-11
+CXX := g++
 NVCC := nvcc
 
 # =============================================================================
@@ -17,7 +17,7 @@ INCLUDES := -I./../../include -I$(DEVICE_DIR) -I$(THIRD_PARTY_DIR)
 # =============================================================================
 # 查找所有 .cc 和 .cu 文件
 # =============================================================================
-CPU_SRC := $(shell find $(SRC_DIR) -type f -name '*.cc')
+CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc ../../src/layer/layer.cc
 CPU_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CPU_SRC:.cc=.o)))
 
 CUDA_SRC := $(shell find $(SRC_DIR) -type f -name '*.cu')
@@ -48,7 +48,7 @@ all: $(TARGET)
 # =============================================================================
 # 链接目标
 # =============================================================================
-LDFLAGS := -lopenblas
+LDFLAGS := -lopenblas -lcublas
 
 $(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
 	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS)
@@ -75,7 +75,6 @@ define compile_cuda
 $(BUILD_DIR)/$(notdir $(1:.cu=.o)): $(1) | $(BUILD_DIR)
 	$(NVCC) $(NVCCFLAGS) -MMD -c $(1) -o $$@
 endef
-
 
 # 为每个 .cc 文件生成编译规则
 $(foreach src,$(CPU_SRC),$(eval $(call compile_cpu,$(src))))

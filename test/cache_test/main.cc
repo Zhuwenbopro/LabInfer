@@ -1,4 +1,5 @@
 #include "Cache.h"
+#include "Config.h"
 
 /* RESULT
 len = 10
@@ -20,7 +21,8 @@ Caught expected exception: no 999 in cache
 */
 
 int main() {
-    Cache cache(Config("config.json"));
+    size_t len = 10;
+    Cache cache(len, 252);
     cache.print();
 
     try {
@@ -29,8 +31,8 @@ int main() {
         std::cout << "Caught expected exception: " << e.what() << std::endl;
     }
 
-    Tensor<float> tensor1(3, 10);
-    Tensor<float> tensor2(3, 10);
+    Tensor<float> tensor1(3, len);
+    Tensor<float> tensor2(3, len);
     for(int i = 0; i < 30; i++) {
         tensor1[i] = i + 0.02;
         tensor2[i] = i + 32.22;
