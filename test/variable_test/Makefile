@@ -46,7 +46,7 @@ all: $(TARGET)
 # =============================================================================
 # 链接目标
 # =============================================================================
-LDFLAGS := -lopenblas
+LDFLAGS := -lopenblas -lcublas
 
 $(TARGET): $(MAIN_OBJ) $(CPU_OBJ) $(CUDA_OBJ)
 	$(NVCC) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS) 

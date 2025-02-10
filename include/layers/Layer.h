@@ -44,7 +44,8 @@ protected:
     std::string name;
 
 private:
-    void remove_prefix_from_keys(std::unordered_map<std::string, std::shared_ptr<void>>& state_map, const std::string& prefix);
+    std::unordered_map<std::string, std::shared_ptr<void>> remove_prefix_from_keys(std::unordered_map<std::string, std::shared_ptr<void>>& state_map, const std::string& prefix);
+
 public:
     virtual void load(std::unordered_map<std::string, std::shared_ptr<void>>& state_map);
 };

@@ -29,7 +29,7 @@ void Layer::to(const std::string& _device) {
     device = _device;
 }
 
-void Layer::remove_prefix_from_keys(std::unordered_map<std::string, std::shared_ptr<void>>& state_map, const std::string& prefix) {
+std::unordered_map<std::string, std::shared_ptr<void>> Layer::remove_prefix_from_keys(std::unordered_map<std::string, std::shared_ptr<void>>& state_map, const std::string& prefix) {
     std::unordered_map<std::string, std::shared_ptr<void>> updated_map;
     // 遍历 state_map
     for (auto& pair : state_map) {
@@ -46,30 +46,31 @@ void Layer::remove_prefix_from_keys(std::unordered_map<std::string, std::shared_
         }
     }
     // 用更新后的 map 替换原来的 map
-    state_map = std::move(updated_map);
+    // state_map = std::move(updated_map);
+    return updated_map;
 }
 
-
 void Layer::load(std::unordered_map<std::string, std::shared_ptr<void>>& state_map) {
-    remove_prefix_from_keys(state_map, name + ".");
+    std::unordered_map<std::string, std::shared_ptr<void>> update_map = remove_prefix_from_keys(state_map, name + ".");
 
-    std::cout << name << std::endl << std::endl;
-    for (auto& [_name, param] : state_map) {
-        std::cout << _name << std::endl;
-    }
-    std::cout << std::endl << std::endl;
+    // std::cout << name << "  " << std::endl << std::endl;
+    // for (auto& [_name, param] : update_map) {
+    //     std::cout << _name << std::endl;
+    // }
+    // std::cout << std::endl << std::endl;
 
     for (auto& [_name, param] : params) {
-        auto it = state_map.find(_name);
-        if (it != state_map.end()) {
+        auto it = update_map.find(_name);
+        if (it != update_map.end()) {
             param.setValue(it->second);
-            state_map.erase(it);
+            update_map.erase(it);
         } else {
             throw std::runtime_error("Layer " + name + "'s param '" + _name + "' not found in weights.");
         }
     }
 
     for (auto& [name, ptr_layer] : layers) {
-        ptr_layer->load(state_map);
+        ptr_layer->load(update_map);
     }
+
 }
