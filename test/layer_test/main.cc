@@ -29,14 +29,14 @@ int main() {
     weights["decoder_layer.input_layernorm.weight"] = std::shared_ptr<void>(new float[hidden_size]);
     read_bin("w_in_norm.bin", weights["decoder_layer.input_layernorm.weight"].get(), hidden_size*sizeof(float));
 
-    weights["decoder_layer.self_attn.q_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
-    weights["decoder_layer.self_attn.k_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
-    weights["decoder_layer.self_attn.v_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
-    weights["decoder_layer.self_attn.o_linear.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
-    read_bin("w_q.bin", weights["decoder_layer.self_attn.q_linear.weight"].get(), hidden_size * q_size  * sizeof(float));
-    read_bin("w_k.bin", weights["decoder_layer.self_attn.k_linear.weight"].get(), hidden_size * kv_size * sizeof(float));
-    read_bin("w_v.bin", weights["decoder_layer.self_attn.v_linear.weight"].get(), hidden_size * kv_size * sizeof(float));
-    read_bin("w_o.bin", weights["decoder_layer.self_attn.o_linear.weight"].get(), hidden_size * q_size  * sizeof(float));
+    weights["decoder_layer.self_attn.q_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
+    weights["decoder_layer.self_attn.k_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
+    weights["decoder_layer.self_attn.v_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*kv_size]);
+    weights["decoder_layer.self_attn.o_proj.weight"] = std::shared_ptr<float>(new float[hidden_size*q_size]);
+    read_bin("w_q.bin", weights["decoder_layer.self_attn.q_proj.weight"].get(), hidden_size * q_size  * sizeof(float));
+    read_bin("w_k.bin", weights["decoder_layer.self_attn.k_proj.weight"].get(), hidden_size * kv_size * sizeof(float));
+    read_bin("w_v.bin", weights["decoder_layer.self_attn.v_proj.weight"].get(), hidden_size * kv_size * sizeof(float));
+    read_bin("w_o.bin", weights["decoder_layer.self_attn.o_proj.weight"].get(), hidden_size * q_size  * sizeof(float));
 
     weights["decoder_layer.post_attention_layernorm.weight"] = std::shared_ptr<float>(new float[hidden_size]);
     read_bin("w_post_norm.bin", weights["decoder_layer.post_attention_layernorm.weight"].get(), hidden_size * sizeof(float));

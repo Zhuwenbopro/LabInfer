@@ -17,10 +17,10 @@ Attention::Attention(
 
     q_dim = head_dim*_attn_head; 
     kv_dim = head_dim*_kv_head;
-    layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_linear"));
-    layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_linear"));
-    layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_linear"));
-    layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_linear"));
+    layers.emplace("q_linear", new Linear(hidden_size, q_dim, "q_proj"));
+    layers.emplace("k_linear", new Linear(hidden_size, kv_dim, "k_proj"));
+    layers.emplace("v_linear", new Linear(hidden_size, kv_dim, "v_proj"));
+    layers.emplace("o_linear", new Linear(q_dim, hidden_size, "o_proj"));
     layers.emplace("rope", new RoPE(head_dim));
 }
 

@@ -50,8 +50,8 @@ public:
     }
 
     // 分配内存
-    std::shared_ptr<void> allocate(size_t bytes, const std::string& _device) {
-        Device * dev = getDevice(_device);
+    std::shared_ptr<void> allocate(size_t bytes, const std::string& deviceName) {
+        Device * dev = getDevice(deviceName);
         void* raw_ptr = dev->allocate(bytes);
 
         auto deleter = [dev](void* ptr) {
@@ -65,34 +65,34 @@ public:
         return std::shared_ptr<void>(raw_ptr, deleter);
     }
 
-    void copy(void* dst, void* src, size_t bytes, const std::string& _device) {
-        Device * dev = getDevice(_device);
+    void copy(void* dst, void* src, size_t bytes, const std::string& deviceName) {
+        Device * dev = getDevice(deviceName);
         dev->copy(dst, src, bytes);
     }
 
     // 转移
     void toDevice(
         std::shared_ptr<void>& value, 
-        const size_t bytes, 
-        std::string& from_dev, 
-        const std::string& to_dev
+        size_t bytes, 
+        const std::string& srcDeviceName, 
+        const std::string& dstDeciceName
     ) {
-        if(from_dev == to_dev) return;
+        if(srcDeviceName == dstDeciceName) return;
 
-        std::shared_ptr<void> to_value = allocate(bytes, to_dev);
+        std::shared_ptr<void> to_value = allocate(bytes, dstDeciceName);
 
-        if(from_dev != "cpu"){
-            Device* fromDevice = getDevice(from_dev);
-            if(to_dev == "cpu") { // non-cpu to cpu
+        if(srcDeviceName != "cpu"){
+            Device* fromDevice = getDevice(srcDeviceName);
+            if(dstDeciceName == "cpu") { // non-cpu to cpu
                 fromDevice->move_out(value.get(), to_value.get(), bytes);
             }else { // non-cpu to non-cpu
-                Device* toDevice = getDevice(to_dev);
+                Device* toDevice = getDevice(dstDeciceName);
                 std::shared_ptr<void> cpu_tmp = allocate(bytes, "cpu");
                 fromDevice->move_out(value.get(), cpu_tmp.get(), bytes);
                 toDevice->move_in(to_value.get(), cpu_tmp.get(), bytes);
             }
         }else { // cpu to non-cpu
-            Device* toDevice = getDevice(to_dev);
+            Device* toDevice = getDevice(dstDeciceName);
             toDevice->move_in(to_value.get(), value.get(), bytes);
         }
 

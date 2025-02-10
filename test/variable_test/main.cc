@@ -41,8 +41,8 @@ void check_add(){
 void check_parameter() {
     Title("check_parameter");
     size_t len = 10;
-    Parameter<int> param1(1, 10, "cpu", "param");
-    Parameter<int> param2(1, 10, "cpu", "param");
+    Parameter<int> param1(1, 10, "cpu", "param1", true);
+    Parameter<int> param2(1, 10, "cpu", "param2", true);
 
     for(int i = 0; i < len; i++) {
         param1[i] = i;
@@ -52,7 +52,6 @@ void check_parameter() {
     param1.setShared();
     param1.copy(3, param2, 2, 4);
 
-    
     for(int i = 0; i < len; i++)
         std::cout << param1[i] << " ";
     std::cout << std::endl;

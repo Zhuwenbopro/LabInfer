@@ -17,7 +17,7 @@ INCLUDES := -I./../../include -I$(DEVICE_DIR) -I$(THIRD_PARTY_DIR)
 # =============================================================================
 # 查找所有 .cc 和 .cu 文件
 # =============================================================================
-CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc ../../src/layer/layer.cc
+CPU_SRC := ../../src/device/function/cpu/CPUFunction.cc
 CPU_OBJ := $(addprefix $(BUILD_DIR)/, $(notdir $(CPU_SRC:.cc=.o)))
 
 CUDA_SRC := $(shell find $(SRC_DIR) -type f -name '*.cu')
