@@ -16,7 +16,7 @@ public:
     Worker(const std::string& _name, 
             std::shared_ptr<SafeQueue<InputWarp>> inQueue, 
             std::shared_ptr<SafeQueue<InputWarp>> outQueue,
-            Layer& _layer
+            Layer* _layer
             ) : name(_name), queue_in(inQueue), queue_out(outQueue), layer(_layer), running(false) {
         std::cout << "initialize : " << name << std::endl;
     }
@@ -28,6 +28,7 @@ public:
     // 析构函数通知线程退出并等待
     ~Worker() {
         if(running) this->stop();
+        delete layer;
     }
 
     void run() {
@@ -50,7 +51,7 @@ private:
     std::string name;
     std::shared_ptr<SafeQueue<InputWarp>> queue_in;
     std::shared_ptr<SafeQueue<InputWarp>> queue_out;
-    Layer& layer;
+    Layer* layer;
 
     std::thread workerThread_;       // 工作线程
     bool running;
@@ -60,8 +61,9 @@ private:
     void threadFunction() {
         while (!stopFlag_.load()) {
             InputWarp inputWarp = queue_in->pop();
-            layer.forward(inputWarp);
-            std::this_thread::sleep_for(std::chrono::milliseconds(30000)); // 模拟工作
+
+            layer->forward(inputWarp);
+
             queue_out->push(inputWarp);
         }
     }

@@ -57,26 +57,26 @@ Model::Model(const std::string& config_file, const std::string& model_file) {
     size_t kv_head = config.get<size_t>("num_key_value_heads");
 
     // 下面这一段模型的构建，之后要根据输入 xxx.model 文件创建
-    LayerList embed("model");
-    embed.add_layer(new Embedding(vocab_size, hidden_size), "embed_tokens");
+    Layer* embed = new LayerList("model");
+    embed->add_layer(new Embedding(vocab_size, hidden_size), "embed_tokens");
 
-    LayerList decoders("model.layers");
+    Layer* decoders = new LayerList("model.layers");
     for(int i = 0; i < num_hidden_layers; i++) {
-        decoders.add_layer(new DecoderLayer(attn_head, kv_head, hidden_size, middle_size, 250, epsilon), std::to_string(i));
+        decoders->add_layer(new DecoderLayer(attn_head, kv_head, hidden_size, middle_size, 250, epsilon), std::to_string(i));
     }
     
-    LayerList backbone("model");
-    backbone.add_layer(new RMSNorm(hidden_size, epsilon), "norm");
-    backbone.add_layer(new Linear(hidden_size, vocab_size), "lm_head");
-    backbone.add_layer(new Max(vocab_size), "max");
+    Layer* backbone = new LayerList("model");
+    backbone->add_layer(new RMSNorm(hidden_size, epsilon), "norm");
+    backbone->add_layer(new Linear(hidden_size, vocab_size), "lm_head");
+    backbone->add_layer(new Max(vocab_size), "max");
     
     printf("loading weight...\n");
     // 加载参数
     std::unordered_map<std::string, std::shared_ptr<void>> state_map;
     this->load_state("model.safetensors", state_map, tie_weights);
-    embed.load(state_map);
-    decoders.load(state_map);
-    backbone.load(state_map);
+    embed->load(state_map);
+    decoders->load(state_map);
+    backbone->load(state_map);
     
     // 读模型配置文件 xxx.model
     printf("queue\n");
