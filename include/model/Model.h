@@ -9,7 +9,7 @@
 
 struct DeviceSection {
     std::string device;
-    Layer& layers;
+    Layer* layers;
 };
 
 // std::vector<DeviceSection> parse_model_file(const std::string& filename);

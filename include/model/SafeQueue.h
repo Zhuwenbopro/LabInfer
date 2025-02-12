@@ -51,10 +51,8 @@ public:
         sem_.acquire(); // 等待信号量大于 0，即队列中有元素
         std::lock_guard<std::mutex> lock(mutex_);
 
-        std::cout << "queue " << name_ << " pop in" << std::endl;
         T value = queue_.front();
         queue_.pop();
-        std::cout << "queue " << name_ << " pop out" << std::endl;
         return value;
     }
 };

@@ -8,7 +8,7 @@ public:
     Tensor<int> input_ids;
     Tensor<int> output_ids;
     Tensor<float> inter_value;
-    size_t uid;
+    size_t uid;                 // 会自动构成
     size_t start_pos;
 
     InputWarp(Tensor<int>& _input_ids, const size_t _start_pos = 0) {
@@ -21,6 +21,8 @@ public:
 
         for(int i = 0; i < input_ids.ElemNum(); i++) pos[i] = start_pos + i;
         pos.to(input_ids.Device());
+
+        output_ids = Tensor<int>(input_ids.ElemNum(), 1, "cpu", "output");
     }
 
     void to(const std::string& device) {
