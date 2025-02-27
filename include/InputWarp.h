@@ -21,14 +21,13 @@ public:
 
         for(int i = 0; i < input_ids.ElemNum(); i++) pos[i] = start_pos + i;
         pos.to(input_ids.Device());
-
-        output_ids = Tensor<int>(input_ids.ElemNum(), 1, "cpu", "output");
+        // TODO: add batch_size
+        output_ids = Tensor<int>(1, 1, "cpu", "output");
     }
 
     void to(const std::string& device) {
         if(pos != nullptr) pos.to(device);
         if(input_ids != nullptr) input_ids.to(device);
-        if(output_ids != nullptr) output_ids.to(device);
         if(inter_value != nullptr) inter_value.to(device);
     }
 };

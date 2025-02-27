@@ -84,6 +84,8 @@ public:
     
     // n 是 in 的元素长度
     virtual void repeat_kv(float* o, float* in, int dim, int rep, int n) = 0;
+
+    virtual void topK_topP_sampling(int* index, float* logits, float temperature, int topK, float topP, int n, int num) = 0;
 };
 
 #endif // Function_H

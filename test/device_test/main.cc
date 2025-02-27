@@ -18,6 +18,7 @@ void check_embedding(Device *cpu, Device *cuda);
 void check_elem_multiply(Device *cpu, Device *cuda);
 void check_masked_attention(Device *cpu, Device *cuda);
 void check_max_index(Device *cpu, Device *cuda);
+void check_topK_topP(Device *cpu, Device *cuda);
 
 int main() {
 
@@ -34,6 +35,7 @@ int main() {
     check_elem_multiply(cpu, cuda);
     check_masked_attention(cpu, cuda);
     check_max_index(cpu, cuda);
+    check_topK_topP(cpu, cuda);
     std::cout << "test finished ..." << std::endl;
 
     return 0;
@@ -43,6 +45,68 @@ void const_init(float* ptr, int size, const float cst = 1.0f) {
     for (int i = 0; i < size; ++i) {
         ptr[i] = cst;
     }    
+}
+
+
+void check_topK_topP(Device *cpu, Device *cuda) {
+    Title("check_topK_topP");
+    int n = N;             // 每组数据的大小
+    int num = 5;           // 组数（批量大小）
+    float temperature = 0.7;
+    float p = 0.7;
+    int k = 50;
+    
+    // 分配主机内存
+    float *x_cpu = (float*)cpu->allocate(n * num * sizeof(float));
+    int *index_cpu = (int*)cpu->allocate(num * sizeof(int));
+    int *cuda_to_cpu = (int*)cpu->allocate(num * sizeof(int));
+
+    // 分配设备内存
+    float *x_cuda = (float*)cuda->allocate(n * num * sizeof(float));
+    int *index_cuda = (int*)cuda->allocate(num * sizeof(int));
+
+    // 初始化输入数据
+    rand_init(x_cpu, n * num);
+
+    // 将输入数据从主机复制到设备
+    cuda->move_in(x_cuda, x_cpu, n * num * sizeof(int));
+
+    // 在设备和主机上分别调用 max_index 函数
+    // cuda->F->max_index(index_cuda, x_cuda, n, num);
+
+    // cpu->F->max_index(cuda_to_cpu, x_cpu, n, num);
+    // for(int i = 0; i < num; i++)
+    //     std::cout << cuda_to_cpu[i] << " ";
+    // std::cout << std::endl;
+    
+    cpu->F->topK_topP_sampling(index_cpu, x_cpu, temperature, k, p, n, num);
+    std::cout << "cpu:\t";
+    for(int i = 0; i < num; i++)
+        std::cout << index_cpu[i] << " ";
+    std::cout << std::endl;
+
+    cuda->F->topK_topP_sampling(cuda_to_cpu, x_cuda, temperature, k, p, n, num);
+    std::cout << "cuda:\t";
+    for(int i = 0; i < num; i++)
+        std::cout << cuda_to_cpu[i] << " ";
+    std::cout << std::endl;
+
+    // 将设备上的结果复制回主机
+    // cuda->move_out(index_cuda, cuda_to_cpu, num * sizeof(int));
+
+    // 比较结果
+    // if (compare_results((float*)cuda_to_cpu, (float*)index_cpu, num)) {
+    //     check_pass("[max_index] CUDA and CPU results match.");
+    // } else {
+    //     check_error("[max_index] CUDA and CPU results do not match!");
+    // }
+
+    // 释放内存
+    cpu->deallocate(x_cpu);
+    cpu->deallocate(index_cpu);
+    cpu->deallocate(cuda_to_cpu);
+    cuda->deallocate(x_cuda);
+    cuda->deallocate(index_cuda);
 }
 
 void check_rmsnorm(Device *cpu, Device *cuda) {

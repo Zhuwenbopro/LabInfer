@@ -208,12 +208,6 @@ void Model::load_state(char * filename, std::unordered_map<std::string, std::sha
     return;
 }
 
-void Model::run() {
-    for(int i = 0; i < workers.size(); i++) {
-        workers[i].get()->run();
-    }
-}
-
 void Model::stop() {
     for(int i = 0; i < workers.size(); i++) {
         workers[i].get()->stop();

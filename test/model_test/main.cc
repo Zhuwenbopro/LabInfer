@@ -11,7 +11,6 @@ int main() {
         std::cout << "可输入命令：\n";
         std::cin >> cmd;
         if(cmd == "quit") break;
-        if(cmd == "run") model.run();
         if(cmd == "stop") model.stop();
         if(cmd == "add_request") {
             Tensor<int> input_ids(6, 1);

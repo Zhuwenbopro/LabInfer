@@ -18,7 +18,7 @@ public:
             std::shared_ptr<SafeQueue<InputWarp>> outQueue,
             Layer* _layer
             ) : name(_name), queue_in(inQueue), queue_out(outQueue), layer(_layer), running(false) {
-        std::cout << "initialize : " << name << std::endl;
+        run();
     }
 
     // 禁止拷贝和赋值操作（因为 std::thread 无法拷贝）
@@ -31,12 +31,7 @@ public:
         delete layer;
     }
 
-    void run() {
-        if(running) return;
-        workerThread_ = std::thread(&Worker::threadFunction, this);
-        running = true;
-    }
-
+    // FIXME : can not quit correctly
     void stop() {
         if(!running) return;
         stopFlag_.store(true); // 设置退出标志
@@ -57,13 +52,17 @@ private:
     bool running;
     std::atomic<bool> stopFlag_{false}; // 标志线程是否退出
 
+    void run() {
+        if(running) return;
+        workerThread_ = std::thread(&Worker::threadFunction, this);
+        running = true;
+    }
+
     // 线程的工作函数
     void threadFunction() {
         while (!stopFlag_.load()) {
             InputWarp inputWarp = queue_in->pop();
-
             layer->forward(inputWarp);
-
             queue_out->push(inputWarp);
         }
     }

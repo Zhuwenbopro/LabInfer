@@ -109,12 +109,14 @@ bool compare_results(const float *a, const float *b, int size, float tolerance) 
     return true;
 }
 
-// 随机数生成器
-std::random_device rd;
-std::mt19937 gen(rd());
-std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+
 
 void rand_init(float* ptr, int size){
+    // 随机数生成器
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+
     for (int i = 0; i < size; ++i) {
         ptr[i] = dist(gen);
     }    
