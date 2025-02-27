@@ -20,13 +20,12 @@ private:
     std::vector<std::unique_ptr<Worker>> workers;
     std::vector<DeviceSection> device_sections;
 
+    
     void load_state(char * filename, std::unordered_map<std::string, std::shared_ptr<void>>& state_map, bool tie_weights);
 
 public:
     Model(const std::string& config_file, const std::string& model_file);
     ~Model();
-
-    void run();
 
     void stop();
 

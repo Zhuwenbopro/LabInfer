@@ -1,9 +1,12 @@
 #include "CPUFunction.h"
 #include <cmath>
+#include <random>
+#include <algorithm>
 #include <string.h>
 #include <omp.h>
 #include <cblas.h>
 #include <vector>
+
 
 inline float dot(float* a, float* b, size_t size) {
     return cblas_sdot(size, a, 1, b, 1);
@@ -19,7 +22,7 @@ inline void _add(float* y, float* x, size_t size, float alpha = 1) {
 }
 
 
-void embedding_cpu(float* y, const int* x, const float* W, const int d, const int x_size) {
+void CPUFunction::embedding(float* y, const int* x, const float* W, const int d, const int x_size) {
     #pragma omp parallel for
     for(int i = 0; i < x_size; i++) {
         int id = x[i];
@@ -28,7 +31,7 @@ void embedding_cpu(float* y, const int* x, const float* W, const int d, const in
 }
 
 // y = WX     W(W_in*W_out), X(W_in*num), C(W_out*num)  
-void matmul_cpu(float *y, const float *X, const float *W, int W_in, int W_out, int num) {
+void CPUFunction::matmul(float *y, const float *X, const float *W, int W_in, int W_out, int num) {
     // 缩放因子
     float alpha = 1.0;
     float beta = 0.0;  // C 的初始权重
@@ -42,9 +45,7 @@ void matmul_cpu(float *y, const float *X, const float *W, int W_in, int W_out, i
                 y, W_out);           // 结果矩阵 C 和列主布局步长
 }
 
-
-
-void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float epsilon) {
+void CPUFunction::rmsnorm(float* x, const float* w, int n, int batch_size, const float epsilon) {
     for(int b = 0; b < batch_size; b++) {
         // 求平方和
         float sum_of_squares = 0.0f;
@@ -65,7 +66,7 @@ void rmsnorm_cpu(float* x, const float* w, int n, int batch_size, const float ep
     }
 }
 
-void softmax_cpu(float *x, int n, int batch_size) {
+void CPUFunction::softmax(float *x, int n, int batch_size) {
     // Step 1: Subtract max value from each column (vector) for numerical stability
     #pragma omp parallel for
     for (int i = 0; i < batch_size; ++i) {
@@ -116,7 +117,7 @@ void softmax_cpu(float *x, int n, int batch_size) {
 }
 
 // dim = 32, num = 6
-void apply_rope_cpu(
+void CPUFunction::apply_rope(
     float *x, 
     const int *pos, 
     const float *inv_freq, 
@@ -146,7 +147,7 @@ void apply_rope_cpu(
     }
 }
 
-void silu_cpu(float *x, const int n, int batch_size){
+void CPUFunction::silu(float *x, const int n, int batch_size){
     for(int b = 0; b < batch_size; b++){
         float* input = b*n + x;
         for(int i = 0; i < n; i++){
@@ -155,14 +156,14 @@ void silu_cpu(float *x, const int n, int batch_size){
     }
 }
 
-void add_cpu(float* y, const float* x1, const float* x2, const int n, int batch_size) {
+void CPUFunction::add(float* y, const float* x1, const float* x2, const int n, int batch_size) {
     size_t total = n*batch_size;
     for(int i = 0; i < total; i++) {
         y[i] = x1[i] + x2[i];
     }
 }
 
-void repeat_kv_cpu(float* out, float* in, int dim, int rep, int n) {
+void CPUFunction::repeat_kv(float* out, float* in, int dim, int rep, int n) {
     int loop = n / dim;
     for(int l = 0; l < loop; l++) {
         float* in_base = in + l*dim;
@@ -203,7 +204,7 @@ void CPUFunction::masked_attention(float* y, float* q, float* k, float* v, float
             }
         }
         scale(scores, scale_, kv_num_*head_num);
-        softmax_cpu(scores, kv_num_, head_num);
+        softmax(scores, kv_num_, head_num);
 
         for(int i_kv = 0; i_kv < kv_num_; i_kv++) {
             float* v_ = v + i_kv * dim * head_num;
@@ -216,7 +217,7 @@ void CPUFunction::masked_attention(float* y, float* q, float* k, float* v, float
     if(!hasvalue) delete scores;
 }
 
-void elem_multiply_cpu(float* y, const float* x1, const float* x2, const int size) {
+void CPUFunction::elem_multiply(float* y, const float* x1, const float* x2, const int size) {
     for(int i = 0; i < size; i++) {
         y[i] = x1[i] * x2[i];
     }
@@ -234,4 +235,54 @@ void CPUFunction::max_index(int* index, float* x, const int n, const int num) {
         }
         index[i] = max_idx;
     }
+}
+
+void CPUFunction::topK_topP_sampling(int* index, float* logits, float temperature, int topK, float topP, int n, int num) {
+    scale(logits, 1/temperature, n*num);
+    float* top_k_logits = new float[topK];
+
+    for(int i = 0; i < num; i++) {
+        float* logits_tmp = logits + i*n;
+        // 获取Top-k的索引和概率
+        std::vector<std::pair<int, float>> top_k_values;
+        for (size_t j = 0; j < n; ++j) {
+            top_k_values.push_back({j, logits_tmp[j]});
+        }
+
+        // 排序并选择前k大的值
+        std::partial_sort(top_k_values.begin(), top_k_values.begin() + topK, top_k_values.end(),
+                          [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
+                              return a.second > b.second;
+                          });
+        
+        // 计算Top-k部分的softmax并应用Top-p筛选
+        for (int k = 0; k < topK; ++k) {
+            top_k_logits[k] = top_k_values[k].second;
+        }
+        
+        // 对Top-k进行softmax计算
+        softmax(top_k_logits, topK, 1);
+
+        // 根据Top-p筛选token，保证累积概率不超过p
+        float cumulative_prob = 0.0f;
+        std::vector<int> filtered_indices;
+        std::vector<float> filtered_probs;
+
+        for (int j = 0; j < topK; ++j) {
+            cumulative_prob += top_k_logits[j];
+            if (cumulative_prob > topP) {
+                break;
+            }
+            filtered_indices.push_back(top_k_values[j].first);
+            filtered_probs.push_back(top_k_logits[j]);
+        }
+
+        // 采样
+        std::discrete_distribution<int> dist(filtered_probs.begin(), filtered_probs.end());
+        std::random_device rd; // 用于随机数生成
+        std::mt19937 gen(rd()); // 伪随机数生成器
+        index[i] = filtered_indices[dist(gen)];
+
+    }
+    delete top_k_logits;
 }

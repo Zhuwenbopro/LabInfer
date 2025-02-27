@@ -3,6 +3,11 @@
 #include <cub/cub.cuh>
 #include "CUDAFunction.h"
 #include <float.h>
+#include <thrust/device_vector.h>
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
+#include <random>
+#include <algorithm>
 
 __global__ void elem_multiply_cuda_kernel(float* y, const float* x1, const float* x2, int size);
 __global__ void repeat_kv_kernel(float* o, float* in, int dim, int rep, int n);
@@ -16,10 +21,13 @@ __global__ void embedding_cuda_kernel(float* y, const int* x, const float* W, co
 __global__ void compute_masked_output_kernel(float* o, float* v_cache, float* scores, int kv_num, int dim);
 __global__ void compute_masked_scores_kernel(float* scores, float* __restrict__ q, float* __restrict__ k_cache, int* q_pos, int dim, float  scale);
 
+__global__ void apply_temperature_kernel(float* logits, int size, float temperature);
+__device__ bool compare_pair(const std::pair<int, float>& a, const std::pair<int, float>& b);
+__global__ void top_k_kernel(float* logits, int* indices, int size, int k);
+
 cublasHandle_t handle;
 
 CUDAFunction::CUDAFunction() {
-    std::cout << "create cuda function\n";
     // CHECK_CUDA(cudaFree(0));
     CHECK_CUBLAS(cublasCreate(&handle));
 }
@@ -131,6 +139,64 @@ void CUDAFunction::masked_attention(float* y, float* q, float* k, float* v, floa
     compute_masked_output_kernel<<<dim3(seq_q), dim3(head_num)>>>(y, v, scores, seq_kv, dim);
 
     if(!hasvalue) cudaFree(scores);
+}
+
+void CUDAFunction::topK_topP_sampling(int* index, float* logits, float temperature, int topK, float topP, int n, int num) {
+    int threads_per_block = 256;
+    int blocks = (n*num + threads_per_block - 1) / threads_per_block;
+    apply_temperature_kernel<<<blocks, threads_per_block>>>(logits, n, temperature);
+    cudaDeviceSynchronize();
+
+    dim3 blockDim(num_threads_large);
+    dim3 gridDim(1, num);
+    softmax_gpu<<<gridDim, blockDim>>>(logits, n);
+    cudaDeviceSynchronize();
+
+    float* logits_cpu = new float[n*num];
+    cudaMemcpy(logits_cpu, logits, n*num * sizeof(int), cudaMemcpyDeviceToHost);
+    float* top_k_logits = new float[topK];
+    for(int i = 0; i < num; i++) {
+        float* logits_tmp = logits_cpu + i*n;
+        // 获取Top-k的索引和概率
+        std::vector<std::pair<int, float>> top_k_values;
+        for (size_t j = 0; j < n; ++j) {
+            top_k_values.push_back({j, logits_tmp[j]});
+        }
+
+        // 排序并选择前k大的值
+        std::partial_sort(top_k_values.begin(), top_k_values.begin() + topK, top_k_values.end(),
+                          [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
+                              return a.second > b.second;
+                          });
+        
+        // 计算Top-k部分的softmax并应用Top-p筛选
+        for (int k = 0; k < topK; ++k) {
+            top_k_logits[k] = top_k_values[k].second;
+        }
+
+        // 根据Top-p筛选token，保证累积概率不超过p
+        float cumulative_prob = 0.0f;
+        std::vector<int> filtered_indices;
+        std::vector<float> filtered_probs;
+
+        for (int j = 0; j < topK; ++j) {
+            cumulative_prob += top_k_logits[j];
+            if (cumulative_prob > topP) {
+                break;
+            }
+            filtered_indices.push_back(top_k_values[j].first);
+            filtered_probs.push_back(top_k_logits[j]);
+        }
+
+        // 采样
+        std::discrete_distribution<int> dist(filtered_probs.begin(), filtered_probs.end());
+        std::random_device rd; // 用于随机数生成
+        std::mt19937 gen(rd()); // 伪随机数生成器
+        index[i] = filtered_indices[dist(gen)];
+
+    }
+    delete top_k_logits;
+    delete logits_cpu;
 }
 
 __global__ void add_cuda_kernel(float* y, const float* x1, const float* x2, int n, int batch_size) {
@@ -346,12 +412,13 @@ __global__ void softmax_gpu(float *__restrict__ x, int size) {
     x += idx;
 
     // 找到最大值（用于数值稳定性）
-    float max_val = -FLT_MAX;
-    for (int i = tid; i < size; i += block_size) {
-        if (x[i] > max_val) {
-            max_val = x[i];
-        }
-    }
+    // float max_val = -FLT_MAX;
+    // for (int i = tid; i < size; i += block_size) {
+    //     if (x[i] > max_val) {
+    //         max_val = x[i];
+    //     }
+    // }
+    float max_val = *thrust::max_element(thrust::device, x, x + size);
 
     using BlockReduce = cub::BlockReduce<float, 1024>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
@@ -438,6 +505,29 @@ __global__ void embedding_cuda_kernel(float* y, const int* x, const float* W, co
         float* y_row = y + idx * d;
         for (int i = 0; i < d; ++i) {
             y_row[i] = W_row[i];
+        }
+    }
+}
+
+// Sampling
+__global__ void apply_temperature_kernel(float* logits, int size, float temperature) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        logits[idx] /= temperature;
+    }
+}
+
+__device__ bool compare_pair(const std::pair<int, float>& a, const std::pair<int, float>& b) {
+    return a.second > b.second;
+}
+
+__global__ void top_k_kernel(float* logits, int* indices, int size, int k) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        for (int i = 0; i < k; ++i) {
+            if (logits[idx] > logits[i]) {
+                indices[i] = idx;
+            }
         }
     }
 }

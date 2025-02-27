@@ -27,7 +27,7 @@ public:
     void elem_multiply(float* y, const float* x1, const float* x2, const int size) override;
     void max_index(int* index, float* x, const int n, const int num) override;
     void repeat_kv(float* o, float* in, int dim, int rep, int n) override;
-
+    void topK_topP_sampling(int* index, float* logits, float temperature, int topK, float topP, int n, int num) override;
 };
 
 #endif // CUDA_FUNCTION_H
