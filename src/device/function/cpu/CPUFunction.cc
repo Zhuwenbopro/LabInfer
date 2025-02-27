@@ -22,7 +22,7 @@ inline void _add(float* y, float* x, size_t size, float alpha = 1) {
 }
 
 
-void CPUFunction::embedding(float* y, const int* x, const float* W, const int d, const int x_size) {
+void CPUFunction::embedding(float* y, int* x, const float* W, const int d, const int x_size) {
     #pragma omp parallel for
     for(int i = 0; i < x_size; i++) {
         int id = x[i];
@@ -270,11 +270,11 @@ void CPUFunction::topK_topP_sampling(int* index, float* logits, float temperatur
 
         for (int j = 0; j < topK; ++j) {
             cumulative_prob += top_k_logits[j];
+            filtered_indices.push_back(top_k_values[j].first);
+            filtered_probs.push_back(top_k_logits[j]);
             if (cumulative_prob > topP) {
                 break;
             }
-            filtered_indices.push_back(top_k_values[j].first);
-            filtered_probs.push_back(top_k_logits[j]);
         }
 
         // 采样

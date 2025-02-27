@@ -30,6 +30,7 @@ void* CUDAAllocator::allocate(size_t bytes) {
 void CUDAAllocator::deallocate(void* ptr) {
     cudaError_t err = cudaFree(ptr);
     if (err != cudaSuccess) {
+        std::cout << " free ptr: "<< ptr << std::endl;
         std::cerr << "cudaFree failed! Error: " << cudaGetErrorString(err) << std::endl;
         std::cerr << "CUDA Error Code: " << err << std::endl;
         exit(EXIT_FAILURE);

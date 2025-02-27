@@ -69,7 +69,7 @@ public:
     * @param[in] x_size x 输入 token 数。
     * @param[in] batch_size 输入批次。默认为 1。
     */
-    virtual void embedding(float* y, const int* x, const float* W, const int d, const int x_size) = 0;
+    virtual void embedding(float* y, int* x, const float* W, const int d, const int x_size) = 0;
 
     /**
      *  @brief 
