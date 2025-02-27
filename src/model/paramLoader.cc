@@ -1,11 +1,7 @@
-#include "model/Model.h"
+#include "model/ParamLoader.h"
 #include <regex>
 #define SAFETENSORS_IMPLEMENTATION
 #include "safetensors.h"
-
-#define die(...) do{printf(__VA_ARGS__); fputc('\n',stdout); exit(EXIT_FAILURE);}while(0);
-#define MIN(a,b) ((a)<(b)?(a):(b))
-#define MAX(a,b) ((a)>(b)?(a):(b))
 
 float f16_to_f32(uint16_t h) {
     uint16_t sign = (h & 0x8000) >> 15;
@@ -43,103 +39,39 @@ float bf16_to_f32(uint16_t bf16_value) {
     return result;
 }
 
-Model::Model(const std::string& config_file, const std::string& model_file) {
-    Config config(config_file);
-    size_t hidden_size = config.get<size_t>("hidden_size");
-    size_t vocab_size = config.get<size_t>("vocab_size");
-    bool tie_weights = config.get<bool>("tie_word_embeddings");
-    size_t num_hidden_layers = config.get<size_t>("num_hidden_layers");
-    
-    float epsilon = config.get<float>("rms_norm_eps");
-    size_t middle_size = config.get<size_t>("intermediate_size");
-    size_t head_dim = config.get<size_t>("head_dim");
-    size_t attn_head = config.get<size_t>("num_attention_heads");
-    size_t kv_head = config.get<size_t>("num_key_value_heads");
+#define die(...) do{printf(__VA_ARGS__); fputc('\n',stdout); exit(EXIT_FAILURE);}while(0);
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#define MAX(a,b) ((a)>(b)?(a):(b))
 
-    // 下面这一段模型的构建，之后要根据输入 xxx.model 文件创建
-    Layer* embed = new LayerList("model");
-    embed->add_layer(new Embedding(vocab_size, hidden_size), "embed_tokens");
-
-    Layer* decoders = new LayerList("model.layers");
-    for(int i = 0; i < num_hidden_layers; i++) {
-        decoders->add_layer(new DecoderLayer(attn_head, kv_head, hidden_size, middle_size, 250, epsilon), std::to_string(i));
-    }
-    
-    Layer* backbone = new LayerList("model");
-    backbone->add_layer(new RMSNorm(hidden_size, epsilon), "norm");
-    backbone->add_layer(new Linear(hidden_size, vocab_size), "lm_head");
-    // Sampling
-    backbone->add_layer(new Max(vocab_size), "max");
-    
-    printf("loading weight...\n");
-    // 加载参数
-    std::unordered_map<std::string, std::shared_ptr<void>> state_map;
-    this->load_state("model.safetensors", state_map, tie_weights);
-    embed->load(state_map);
-    decoders->load(state_map);
-    backbone->load(state_map);
-    
-    // 读模型配置文件 xxx.model
-    printf("queue\n");
-    // std::vector<DeviceSection> device_sections = parse_model_file(model_file);
-    device_sections.push_back(DeviceSection{std::string("cpu"), embed});
-    device_sections.push_back(DeviceSection{std::string("cpu"), decoders});
-    device_sections.push_back(DeviceSection{std::string("cpu"), backbone});
-
-    // cpu : embed_tokens
-    // cuda:0 : layers 0 layers 1 layers 2 layers 3 layers 4 layers 5 layers 6 layers 7
-    // cuda:1 : layers 8 layers 9 layers 10 layers 11 layers 12 layers 13 layers 14 layers 15
-    // cpu : norm lm_head
-    // 建模型 靠着 DeviceSection.device = [DeviceSection.layer, ...]
-    // 加载权重
-    // 分配给 worker
-    for(int i = 0; i <= device_sections.size(); i++)
-        queues.push_back(std::make_shared<SafeQueue<InputWarp>>(std::to_string(i)));
-
-    printf("workers\n");
-    workers.push_back(std::make_unique<Worker>("embedding", queues[0], queues[1], embed));
-    workers.push_back(std::make_unique<Worker>("decoders", queues[1], queues[2], decoders));
-    workers.push_back(std::make_unique<Worker>("backbone", queues[2], queues[3], backbone));
-
-}
-
-void Model::load_state(char * filename, std::unordered_map<std::string, std::shared_ptr<void>>& state_map, bool tie_weights) {
-    if (!filename) {
-        std::cerr << "Error: load_state filename is null!" << std::endl;
-        exit(-1);
-    }
-
-    FILE *file = fopen(filename, "rb");
-	if (!file)  die("can't open %s", filename);
-	if(fseek(file, 0, SEEK_END)) die("can't fseek end on %s", filename);
+void ParamLoader::load_param(Layer* layer, char* data_file) {
+    if(!data_file) die("%s is null", data_file);
+    FILE *file = fopen(data_file, "rb");
+	if (!file)  die("can't open %s", data_file);
+	if(fseek(file, 0, SEEK_END)) die("can't fseek end on %s", data_file);
 	int64_t file_size = ftell(file);
 	if(file_size == -1LL) die("invalid file size");
-
+    
     uint64_t header_len_u64 = 0;
-    if(fseek(file, 0, SEEK_SET)) die("can't fseek start on %s", filename);
+    if(fseek(file, 0, SEEK_SET)) die("can't fseek start on %s", data_file);
 	if(sizeof(header_len_u64) != (int64_t)fread(&header_len_u64, 1, sizeof(header_len_u64), file)) die("cant fread header_len");
 
     void *head_buffer = malloc(header_len_u64);
 	if(!head_buffer) die("Can't malloc %lli bytes", (long long) header_len_u64);
-    if(fseek(file, 8, SEEK_SET)) die("can't fseek start on %s", filename);
+    if(fseek(file, 8, SEEK_SET)) die("can't fseek start on %s", data_file);
     if(header_len_u64 != (int64_t)fread(head_buffer, 1, header_len_u64, file)) die("cant fread head_buffer");
 
     // 在这里读取文件头
     safetensors_File f = {0};
     char * result = safetensors_file_init(head_buffer, header_len_u64, &f);
-    if(result) {
-		std::cerr << "Error: load_state safetensors_file_init failed!" << std::endl;
-        exit(-1);
-	}
+    if(result) die("Error: load_state safetensors_file_init failed!");
+
 
     for(int i = 0; i < f.num_tensors; i++) {
         safetensors_TensorDescriptor t = f.tensors[i];
         uint64_t size = t.end_offset_bytes - t.begin_offset_bytes;
         std::string tensor_name(t.name.ptr, t.name.len);
 
-        // std::cout << tensor_name << std::endl;
-
-        if(fseek(file, 8 + header_len_u64 + t.begin_offset_bytes, SEEK_SET)) die("can't fseek start on %s", filename);
+        if(fseek(file, 8 + header_len_u64 + t.begin_offset_bytes, SEEK_SET)) die("can't fseek start on %s", data_file);
         void *temp_buffer = malloc(size);
 	    if(!temp_buffer) die("Can't malloc %lli bytes", (long long) size);
         if(size != (int64_t)fread(temp_buffer, 1, size, file)) die("cant fread temp_buffer");
@@ -206,21 +138,7 @@ void Model::load_state(char * filename, std::unordered_map<std::string, std::sha
     free(head_buffer);
     fclose(file);
 
+    layer->load(state_map);
+
     return;
-}
-
-void Model::stop() {
-    for(int i = 0; i < workers.size(); i++) {
-        workers[i].get()->stop();
-    }
-}
-
-void Model::add_request(InputWarp& inputWarp) {
-    if(queues.size() == 0)
-        throw std::logic_error("no worker in working."); 
-    queues[0]->push(inputWarp);
-}
-
-Model::~Model() {
-    stop();
 }

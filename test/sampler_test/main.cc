@@ -1,4 +1,4 @@
-#include "Sampler.h"
+#include "model/Sampler.h"
 #include "../test.h"
 
 int main() {

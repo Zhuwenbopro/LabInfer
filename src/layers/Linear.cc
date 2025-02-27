@@ -17,8 +17,15 @@ void Linear::forward(InputWarp& inputWarp)
         std::cout << "input size = " << input_size << "   = " << inputWarp.inter_value.ElemLen() << std::endl;
         throw std::runtime_error("Layer " + name + "'s input len not match param len.");
     }
-
-    Tensor<float> y(inputWarp.inter_value.ElemNum(), output_size, device, name + "_output");
-    F->matmul(y, inputWarp.inter_value, params.at("weight"), input_size, output_size, inputWarp.inter_value.ElemNum());
-    inputWarp.inter_value = y;
+    
+    if(name == "lm_head") {
+        Tensor<float> y(1, output_size, device, name + "_output");
+        int num = inputWarp.inter_value.ElemNum();
+        F->matmul(y, inputWarp.inter_value + (num-1)*input_size, params.at("weight"), input_size, output_size, 1);
+        inputWarp.inter_value = y;
+    } else {
+        Tensor<float> y(inputWarp.inter_value.ElemNum(), output_size, device, name + "_output");
+        F->matmul(y, inputWarp.inter_value, params.at("weight"), input_size, output_size, inputWarp.inter_value.ElemNum());
+        inputWarp.inter_value = y;
+    }
 }

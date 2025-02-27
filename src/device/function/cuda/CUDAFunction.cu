@@ -3,9 +3,6 @@
 #include <cub/cub.cuh>
 #include "CUDAFunction.h"
 #include <float.h>
-#include <thrust/device_vector.h>
-#include <thrust/sort.h>
-#include <thrust/execution_policy.h>
 #include <random>
 #include <algorithm>
 
@@ -111,10 +108,9 @@ void CUDAFunction::rmsnorm(float* x, const float* w, const int n, int batch_size
     rmsnorm_kernel<<<gridSize, blockSize>>>(x, w, n, batch_size, epsilon, elementsPerThread);
 }
 
-void CUDAFunction::embedding(float* y, const int* x, const float* W, const int d, const int x_size) {
+void CUDAFunction::embedding(float* y, int* x, const float* W, const int d, const int x_size) {
     int block_size = 256;
     int grid_size = (x_size + block_size - 1) / block_size;
-
     embedding_cuda_kernel<<<grid_size, block_size>>>(y, x, W, d, x_size);
 }
 
@@ -151,7 +147,7 @@ void CUDAFunction::topK_topP_sampling(int* index, float* logits, float temperatu
     dim3 gridDim(1, num);
     softmax_gpu<<<gridDim, blockDim>>>(logits, n);
     cudaDeviceSynchronize();
-
+    
     float* logits_cpu = new float[n*num];
     cudaMemcpy(logits_cpu, logits, n*num * sizeof(int), cudaMemcpyDeviceToHost);
     float* top_k_logits = new float[topK];
@@ -162,7 +158,6 @@ void CUDAFunction::topK_topP_sampling(int* index, float* logits, float temperatu
         for (size_t j = 0; j < n; ++j) {
             top_k_values.push_back({j, logits_tmp[j]});
         }
-
         // 排序并选择前k大的值
         std::partial_sort(top_k_values.begin(), top_k_values.begin() + topK, top_k_values.end(),
                           [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
@@ -178,16 +173,14 @@ void CUDAFunction::topK_topP_sampling(int* index, float* logits, float temperatu
         float cumulative_prob = 0.0f;
         std::vector<int> filtered_indices;
         std::vector<float> filtered_probs;
-
         for (int j = 0; j < topK; ++j) {
             cumulative_prob += top_k_logits[j];
+            filtered_indices.push_back(top_k_values[j].first);
+            filtered_probs.push_back(top_k_logits[j]);
             if (cumulative_prob > topP) {
                 break;
             }
-            filtered_indices.push_back(top_k_values[j].first);
-            filtered_probs.push_back(top_k_logits[j]);
         }
-
         // 采样
         std::discrete_distribution<int> dist(filtered_probs.begin(), filtered_probs.end());
         std::random_device rd; // 用于随机数生成
@@ -412,13 +405,12 @@ __global__ void softmax_gpu(float *__restrict__ x, int size) {
     x += idx;
 
     // 找到最大值（用于数值稳定性）
-    // float max_val = -FLT_MAX;
-    // for (int i = tid; i < size; i += block_size) {
-    //     if (x[i] > max_val) {
-    //         max_val = x[i];
-    //     }
-    // }
-    float max_val = *thrust::max_element(thrust::device, x, x + size);
+    float max_val = -FLT_MAX;
+    for (int i = tid; i < size; i += block_size) {
+        if (x[i] > max_val) {
+            max_val = x[i];
+        }
+    }
 
     using BlockReduce = cub::BlockReduce<float, 1024>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
@@ -503,9 +495,9 @@ __global__ void embedding_cuda_kernel(float* y, const int* x, const float* W, co
 
         // 将 embedding 写入输出
         float* y_row = y + idx * d;
-        for (int i = 0; i < d; ++i) {
-            y_row[i] = W_row[i];
-        }
+
+        // 使用内存复制来避免显式循环，降低开销
+        memcpy(y_row, W_row, d * sizeof(float));
     }
 }
 
