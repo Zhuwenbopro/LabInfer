@@ -2,7 +2,6 @@
 #define EMBEDDING_H
 
 #include "Layer.h"
-#include "Config.h"
 
 class Embedding : public Layer {
 public:
