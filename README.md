@@ -8,18 +8,16 @@
 # 安装 OpenBLAS
 sudo apt-get install libopenblas-dev
 
-
 sudo apt-get install libopencv-dev
 ```
 
-**TODO List**
-#### 第一阶段 v0.1 (已完成)
-分词器 tokenizer : encode、decode 暂时先用 [huggingface](https://github.com/huggingface/tokenizers) 的吧，之后再说
-- [x] 各种 transformer 层 layers
-- [x] state load -- [safetensor]([https://github.com/syoyo/safetensors-cpp)
-- [x] 手工搭一个[模型测试推理](https://huggingface.co/meta-llama/Llama-3.2-1B/tree/main?library=transformers)
-- [x] 支持 kv cache
-- [x] 支持 batch
+
+## 已完成
+- llama 3.1流程推理
+- 采样：top-k、top-p、temperature
+- 计算优化：kv cache
+- load [safetensor]([https://github.com/syoyo/safetensors-cpp)
+
 
 ```
 /test/layer_test 内的 测试程序 main.cc 需要下面的数据，放到文件下
@@ -27,10 +25,11 @@ sudo apt-get install libopencv-dev
 提取码：b72y 
 ```
 
-#### 第二阶段 (性能优化)
-- [ ] swap
-- [ ] 每层采样计算时间，用于后续评估
-- [ ] pipeline
+## TODO List
+- [ ] 性能评估：运行时间、吞吐量、占用空间
+- [ ] 多设备支持
+- [ ] tensor parallel
 - [ ] pagedAttention
 - [ ] chunk
-- [ ] 根据采样时间划分模型
+- [ ] benchmark 测试设备性能
+- [ ] 自动化模型划分

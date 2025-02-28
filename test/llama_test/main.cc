@@ -1,7 +1,12 @@
 #include "model/ParamLoader.h"
-#include "model/Sampler.h"
 #include "layers/layers.h"
 #include "InputWarp.h"
+#include <iostream>
+#include <chrono>
+
+using namespace std;
+using namespace chrono;
+
 
 int main() {
     const size_t batch_size = 6;
@@ -27,8 +32,9 @@ int main() {
     model->add_layer(decoders, "layers");
     model->add_layer(new RMSNorm(hidden_size, epsilon), "norm");
     model->add_layer(new Linear(hidden_size, vocab_size), "lm_head");
+    model->add_layer(new Sampling(0.7, 10, 0.9));
+
     printf("loading weight...\n");
-    
     ParamLoader loader(true);
     loader.load_param(model, "model.safetensors");
     printf("load finished\n");
@@ -40,22 +46,32 @@ int main() {
     InputWarp inputWarp(input_ids);
     InputWarp inputWarp1 = inputWarp;
     inputWarp1.to("cuda");
-    Sampler sampler(0.7, 2, 0.7);
 
-    printf("forward...\n");
-    model->forward(inputWarp);
-    printf("sampling...\n");
-    sampler.sample(inputWarp);
-    std::cout << inputWarp.output_ids[0] << std::endl;
+    int max_tokens = 100;
+
+    printf("cpu forward...\n");
+    auto start = high_resolution_clock::now();
+    for(int i = 0; i < max_tokens; i++) {
+        model->forward(inputWarp);
+        std::cout << inputWarp.output_ids[0] << std::endl;
+        inputWarp.input_ids = inputWarp.output_ids;
+    }
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(end - start); // 转换为微秒
+    std::cout << "Time taken: " << duration.count() << " microseconds." << std::endl;
+    
+    
     
     printf("cuda forward...\n");
     model->to("cuda");
-    model->forward(inputWarp1);
-    printf("cuda sampling...\n");
-    sampler.to("cuda");
-    sampler.sample(inputWarp1);
+    start = high_resolution_clock::now();
+    for(int i = 0; i < max_tokens; i++) {
+        model->forward(inputWarp1);
+        inputWarp1.input_ids = inputWarp1.output_ids;
+    }
+    end = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(end - start); // 转换为微秒
+    std::cout << "Time taken: " << duration.count() << " microseconds." << std::endl;
+    inputWarp1.to("cpu");
     std::cout << inputWarp1.output_ids[0] << std::endl;
-
-    
-
 }

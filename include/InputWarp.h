@@ -29,6 +29,7 @@ public:
         if(pos != nullptr) pos.to(device);
         if(input_ids != nullptr) input_ids.to(device);
         if(inter_value != nullptr) inter_value.to(device);
+        if(output_ids != nullptr) output_ids.to(device);
     }
 };
 

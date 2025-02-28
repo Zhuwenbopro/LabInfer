@@ -7,9 +7,6 @@
 #include <iostream>
 #include "layers/layers.h"
 
-#define FIRST 0x1
-#define LAST 0x2
-
 class Worker {
 public:
     // 构造函数启动线程

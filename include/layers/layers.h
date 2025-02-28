@@ -11,5 +11,6 @@
     #include "DecoderLayer.h"
     #include "LayerList.h"
     #include "Max.h"
+    #include "Sampling.h"
 
 #endif
