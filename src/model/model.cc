@@ -1,7 +1,10 @@
 #include "model/Model.h"
 #include <regex>
 
-Model::Model(const std::string& model_path, const std::string& model_file) {
+Model::Model(const std::string& model_path) {
+
+    std::cout << "initial start...\n";
+
     Config config(model_path + "/config.json");
     size_t hidden_size = config.get<size_t>("hidden_size");
     size_t vocab_size = config.get<size_t>("vocab_size");
@@ -35,17 +38,23 @@ Model::Model(const std::string& model_path, const std::string& model_file) {
     // TODO : 不同的模型 命名文件不同
     paramLoader.load_param(model, (model_path + "/model.safetensors").c_str());
 
+    std::cout << "initial finished...\n";
 }
 
-void Model::infer(InputWarp& inputWarp, int max_len) {
-    if(inputWarp.Device() != device) {
-        throw std::logic_error("inputWarp and Model not in the same device!\n"); 
-    }
+Tensor<int> Model::infer(Tensor<int>& input_ids, int max_len) {
+    InputWarp inputWarp(input_ids);
+    inputWarp.to(device);
+    Tensor<int> output_ids = Tensor<int>(max_len, 1, "cpu", "result");
 
     for(int i = 0; i < max_len; i++) {
         model->forward(inputWarp);
         inputWarp.input_ids = inputWarp.output_ids;
+        Tensor<int> o = inputWarp.output_ids;
+        o.to("cpu");
+        output_ids[i] = o[0];
     }
+
+    return output_ids;
 }
 
 void Model::to(const std::string &_device) {
