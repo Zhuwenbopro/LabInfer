@@ -14,10 +14,10 @@ private:
     std::string device;
 
 public:
-    Model(const std::string& config_file, const std::string& model_file);
+    Model(const std::string& model_path);
     ~Model();
 
-    void infer(InputWarp& inputWarp, int max_len = 250);
+    Tensor<int> infer(Tensor<int>& input_ids, int max_len = 250);
 
     void to(const std::string &_device);
 };
