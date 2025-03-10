@@ -12,7 +12,7 @@ private:
 public:
     ParamLoader(bool tie_weights = true) : tie_weights(tie_weights) {}
 
-    void load_param(Layer* layer, char* data_file);
+    void load_param(Layer* layer, const char* data_file);
 };
 
 #endif

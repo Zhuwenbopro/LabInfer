@@ -43,7 +43,7 @@ float bf16_to_f32(uint16_t bf16_value) {
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
-void ParamLoader::load_param(Layer* layer, char* data_file) {
+void ParamLoader::load_param(Layer* layer, const char* data_file) {
     if(!data_file) die("%s is null", data_file);
     FILE *file = fopen(data_file, "rb");
 	if (!file)  die("can't open %s", data_file);

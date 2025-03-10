@@ -32,7 +32,8 @@ public:
 
     virtual void forward(InputWarp& input);
 
-    virtual void add_layer(Layer* layer, const std::string& name = "x");
+    virtual void add_layer(Layer* layer, const std::string& name = "x") ;
+    virtual Layer* get_layer(const std::string& name);
 
 protected:
     Function* F;

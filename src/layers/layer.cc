@@ -13,6 +13,10 @@ void Layer::add_layer(Layer* layer, const std::string& name) {
     throw std::logic_error(name + " add_layer(Layer* layer) not implemented."); 
 }
 
+Layer* Layer::get_layer(const std::string& name) { 
+    throw std::logic_error(name + " get_layer(Layer* layer) not implemented."); 
+}
+
 void Layer::to(const std::string& _device) {
     if(device == _device) return;
 
