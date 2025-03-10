@@ -13,3 +13,11 @@ void LayerList::add_layer(Layer* layer, const std::string& _name) {
     layer->setName(_name);
     layers.emplace(_name, layer);
 }
+
+Layer* LayerList::get_layer(const std::string& name) {
+    for(std::string _name : layers_name) {
+        if(name == _name) 
+            return layers[name];
+    }
+    return nullptr;
+}

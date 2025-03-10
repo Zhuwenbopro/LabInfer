@@ -11,7 +11,8 @@ public:
     void forward(InputWarp& inputWarp) override;
     virtual ~LayerList() = default;
 
-    void add_layer(Layer* layer, const std::string& name) override;
+    virtual void add_layer(Layer* layer, const std::string& name) override;
+    virtual Layer* get_layer(const std::string& name) override;
 private:
     std::vector<std::string> layers_name;
 };
