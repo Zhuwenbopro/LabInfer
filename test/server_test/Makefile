@@ -66,7 +66,7 @@ $(BUILD_DIR):
 
 # 编译 main.cc 为 main.o
 $(MAIN_OBJ): $(MAIN_SRC) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+	$(CXX) $(CXXFLAGS) -lboost_system -lpthread -MMD -c $< -o $@
 
 # 定义编译 .cc 文件为 .o 文件的规则
 define compile_cpu

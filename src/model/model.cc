@@ -41,10 +41,10 @@ Model::Model(const std::string& model_path) {
     std::cout << "initial finished...\n";
 }
 
-Tensor<int> Model::infer(Tensor<int>& input_ids, int max_len) {
+std::vector<int> Model::infer(std::vector<int>& input_ids, int max_len) {
     InputWarp inputWarp(input_ids);
     inputWarp.to(device);
-    Tensor<int> output_ids = Tensor<int>(max_len, 1, "cpu", "result");
+    std::vector<int> output_ids = std::vector<int>(max_len, 0);
 
     for(int i = 0; i < max_len; i++) {
         model->forward(inputWarp);
