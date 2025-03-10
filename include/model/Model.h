@@ -17,7 +17,7 @@ public:
     Model(const std::string& model_path);
     ~Model();
 
-    Tensor<int> infer(Tensor<int>& input_ids, int max_len = 250);
+    std::vector<int> infer(std::vector<int>& input_ids, int max_len = 250);
 
     void to(const std::string &_device);
 };

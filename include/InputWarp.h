@@ -13,6 +13,21 @@ public:
     size_t uid;                 // 会自动构成
     size_t start_pos;
 
+    InputWarp(std::vector<int>& _input_ids, const size_t _uid = 0) {
+        start_pos = 0;
+        device = "cpu";
+        uid = _uid;
+
+        input_ids = Tensor<int>(_input_ids.size(), 1, "cpu", "position");
+        pos = Tensor<int>(_input_ids.size(), 1, "cpu", "position");
+        for(int i = 0; i < _input_ids.size(); i++) {
+            pos[i] = start_pos + i;
+            input_ids[i] = _input_ids[i];
+        }
+
+        output_ids = Tensor<int>(1, 1, "cpu", "output");
+    }
+
     InputWarp(Tensor<int>& _input_ids, const size_t _start_pos = 0) {
         device = _input_ids.Device();
 
