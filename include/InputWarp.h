@@ -13,8 +13,7 @@ public:
     size_t uid;                 // 会自动构成
     size_t start_pos;
 
-    InputWarp(std::vector<int>& _input_ids, const size_t _uid = 0) {
-        start_pos = 0;
+    InputWarp(std::vector<int>& _input_ids, const size_t _uid = 0, const size_t _start_pos = 0) {
         device = "cpu";
         uid = _uid;
 
@@ -28,11 +27,9 @@ public:
         output_ids = Tensor<int>(1, 1, "cpu", "output");
     }
 
-    InputWarp(Tensor<int>& _input_ids, const size_t _start_pos = 0) {
+    InputWarp(Tensor<int>& _input_ids, const size_t _uid = 0, const size_t _start_pos = 0) {
         device = _input_ids.Device();
-
-        static size_t guid = 0;
-        uid = guid++;
+        uid = _uid;
         start_pos = _start_pos;
 
         input_ids = _input_ids;
