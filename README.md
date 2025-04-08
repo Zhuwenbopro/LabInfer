@@ -13,3 +13,9 @@ sudo apt-get install libopenblas-dev
 
 sudo apt-get install libopencv-dev
 ```
+# 组织架构
+![结构图](./assets/arch.png)
+
+## Engine
+* 创建模型的运行结构 workers
+* 初始化 worker （装上device、layer初始化，装参数）
