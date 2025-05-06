@@ -2,19 +2,13 @@
 #ifndef CUDA_FUNCTION_H
 #define CUDA_FUNCTION_H
 
-// 包含所有相关的头文件
 #include "Function.h"
-#include "common.h"
-// 如果有更多的头文件，继续添加
 
 class CUDAFunction : public Function {
 public:
 
     CUDAFunction();
     ~CUDAFunction();
-    void whereami() override {
-        std::cout << "Function in CUDA" << std::endl;
-    }
 
     void matmul(float *y, const float *x, const float *w, const int n, const int d, const int num) override;
     void rmsnorm(float* x, const float* w, const int n, int batch_size = 1, const float epsilon=1e-5) override;

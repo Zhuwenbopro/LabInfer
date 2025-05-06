@@ -23,10 +23,11 @@ void check_topK_topP(Device *cpu, Device *cuda);
 int main() {
 
     Device * cpu = deviceManager.getDevice("cpu");
-    Device * cuda = deviceManager.getDevice("cuda");
+    Device * cuda = deviceManager.getDevice("cuda:0");
+    std::cout << "cuda device name: " << cuda->name << std::endl;
 
     std::cout << "start testing ..." << std::endl;
-    // check_rmsnorm(cpu, cuda);
+    check_rmsnorm(cpu, cuda);
     // check_matmul(cpu, cuda);
     // check_softmax(cpu, cuda);
     // check_silu(cpu, cuda);
@@ -35,7 +36,7 @@ int main() {
     // check_elem_multiply(cpu, cuda);
     // check_masked_attention(cpu, cuda);
     // check_max_index(cpu, cuda);
-    check_topK_topP(cpu, cuda);
+    // check_topK_topP(cpu, cuda);
     std::cout << "test finished ..." << std::endl;
 
     return 0;
@@ -105,21 +106,22 @@ void check_topK_topP(Device *cpu, Device *cuda) {
 void check_rmsnorm(Device *cpu, Device *cuda) {
     Title("check_rmsnorm");
     int batch_size = 5;
+    std::cout << "batch_size: " << batch_size << std::endl;
     // 分配主机内存
     float *input_cpu = (float*)cpu->allocate(N * batch_size * sizeof(float));
     float *weight_cpu = (float*)cpu->allocate(N * batch_size * sizeof(float));
     float *cuda_to_cpu = (float*)cpu->allocate(N * batch_size * sizeof(float));
     float *input_cuda = (float*)cuda->allocate(N * batch_size * sizeof(float));
     float *weight_cuda = (float*)cuda->allocate(N * batch_size * sizeof(float));
-
+    std::cout << "init cuda memory" << std::endl;
     input_cpu[1] = 0.5;
     // 初始化输入数据和权重
     rand_init(input_cpu, N * batch_size);
     const_init(weight_cpu, N * batch_size);
-
+    std::cout << "cuda move in" << std::endl;
     cuda->move_in(input_cuda, input_cpu, N * batch_size * sizeof(float));
     cuda->move_in(weight_cuda, weight_cpu, N * batch_size * sizeof(float));
-
+    std::cout << "calcualte function" << std::endl;
     // 调用 rmsnorm 函数
     const float epsilon = 1e-5;
     cuda->F->rmsnorm(input_cuda, weight_cuda, N, batch_size, epsilon);

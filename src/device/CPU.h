@@ -11,7 +11,7 @@ class CPU : public Device {
 public:
     // 构造函数
     CPU() {
-        device = "cpu";
+        name = "cpu";
         allocator = new CPUAllocator();
         F = new CPUFunction();
     }

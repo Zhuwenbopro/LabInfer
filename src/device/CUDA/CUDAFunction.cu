@@ -1,4 +1,4 @@
-#include "common.h"
+#include "CUDAUtils.h"
 #include <cuda_runtime.h>
 #include <cub/cub.cuh>
 #include "CUDAFunction.h"
@@ -100,7 +100,7 @@ void CUDAFunction::softmax(float *x, const int n, const int batch_size) {
 }
 
 void CUDAFunction::rmsnorm(float* x, const float* w, const int n, int batch_size, const float epsilon) {
-    int elementsPerThread = divUp(n, num_threads_large);
+    int elementsPerThread = (n + num_threads_large - 1) / num_threads_large;
     dim3 blockSize(num_threads_large);
     dim3 gridSize(1, batch_size);  // 每个批次一个线程块
 

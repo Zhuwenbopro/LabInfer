@@ -4,9 +4,6 @@
 
 class Function {
 public:
-
-    virtual void whereami() = 0;
-
     /**
     * @brief 对输入数据执行均方根归一化（RMS Normalization）。
     *
