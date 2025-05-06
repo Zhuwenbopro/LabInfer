@@ -62,7 +62,7 @@ $(BUILD_DIR):
 
 # 编译 main.cc 为 main.o
 $(MAIN_OBJ): $(MAIN_SRC) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) -MMD -c $< -o $@
 
 # 定义编译 .cc 文件为 .o 文件的规则
 define compile_cpu
@@ -90,13 +90,6 @@ $(foreach src,$(CUDA_SRC),$(eval $(call compile_cuda,$(src))))
 # =============================================================================
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
-#	mv ./*.bin ~/data
-
-#data:
-#	mv ~/data/k.bin ./
-#	mv ~/data/q.bin ./
-#	mv ~/data/v.bin ./
-#	mv ~/data/o.bin ./
 
 # =============================================================================
 # 声明伪目标

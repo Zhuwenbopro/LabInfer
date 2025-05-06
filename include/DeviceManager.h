@@ -33,7 +33,6 @@ public:
         for (auto& pair : devices) {
             delete pair.second;
         }
-
     }
 
     // 静态方法获取 Device 实例
@@ -127,10 +126,15 @@ private:
         // cpu 是一定有的
         devices["cpu"] = new CPU();
     
-    // TODO : add 'cuda:0', 'cuda:1'
-#ifdef USE_CUDA
-        devices["cuda"] = new CUDA();
-#endif
+    #ifdef USE_CUDA
+        int cuda_device_count = 0;
+        CUDA_CHECK(cudaGetDeviceCount(&cuda_device_count));
+        
+        for(int i = 0; i < cuda_device_count; ++i) {
+            std::string device_name = "cuda:" + std::to_string(i);
+            devices[device_name] = new CUDA(i);
+        }
+    #endif
         // TODO : 根据需要添加更多设备
     }
 

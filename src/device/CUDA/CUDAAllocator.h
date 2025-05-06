@@ -8,9 +8,8 @@ class CUDAAllocator : public Allocator {
 public:
     CUDAAllocator();
 
-    void* allocate(size_t bytes) override;
+    std::shared_ptr<void> allocate(size_t bytes) override;
 
-    void deallocate(void* ptr) override;
 };
 
 #endif // CUDAAllocator_H
