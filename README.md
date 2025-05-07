@@ -18,13 +18,13 @@ sudo apt-get install libopencv-dev
 ![结构图](./assets/arch.png)
 
 # TODO
-- [] 进行原型验证（5.7 - 5.11）
-  - [] 整体 Engine 启动，Worker初始化Layer、Device、Communicator完成。（5.7）
-  - [] 数据流动完成，Communicator 完成通信。（5.8）
-- [] 技术调研（5.10 - 5.18）
-- [] 技术原型验证（5.12 - 5.23）
-- [] 细节实现（5.24 - 5.31）
-- [] 创新功能（To be continue）
+- [ ] 进行原型验证（5.7 - 5.11）
+  - [ ] 整体 Engine 启动，Worker初始化Layer、Device、Communicator完成。（5.7）
+  - [ ] 数据流动完成，Communicator 完成通信。（5.8）
+- [ ] 技术调研（5.10 - 5.18）
+- [ ] 技术原型验证（5.12 - 5.23）
+- [ ] 细节实现（5.24 - 5.31）
+- [ ] 创新功能（To be continue）
 
 ## Engine
 * 创建模型的运行结构 workers
