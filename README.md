@@ -19,8 +19,12 @@ sudo apt-get install libopencv-dev
 
 # TODO
 - [ ] 进行原型验证（5.7 - 5.11）
-  - [ ] 整体 Engine 启动，Worker初始化Layer、Device、Communicator完成。（5.7）
+  - [x] 整体 Engine 启动，Worker初始化Layer、Device、Communicator完成。（5.7）
   - [ ] parameter、tensor、paramLoader完成设计与验证。（5.8）
+  - [ ] device 多设备、多数据类型验证（5.9）
+  - [ ] Communicator TCP 分发（5.10）
+  - [ ] 数据流动完成，Communicator 完成通信。（5.9）
+  - [ ] 数据流动完成，Communicator 完成通信。（5.9）
   - [ ] 数据流动完成，Communicator 完成通信。（5.9）
 - [ ] 技术调研（5.10 - 5.18）
 - [ ] 技术原型验证（5.12 - 5.23）

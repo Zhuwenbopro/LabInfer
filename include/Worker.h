@@ -5,7 +5,6 @@
 #include "Device.h"
 #include "Layer.h"
 #include "Communicator.h"
-#include "ParamLoader.h"
 #include "SafePrinter.h"
 
 class Worker
@@ -28,7 +27,6 @@ public:
         init();
 
         run();
-
     }
 
 private:
@@ -50,11 +48,6 @@ private:
         layer_->setDevice(device_);
         layer_->setCommunicator(communicator_);
 
-
-        // TODO init device 5.7
-        // TODO init layer 5.7
-        // Load parameters from file into layer
-        // TODO init Communicator 5.7
 
         SafePrinter::print("world ", world_, " rank ", rank_, " finished init");
 

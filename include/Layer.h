@@ -1,11 +1,9 @@
 #pragma once
 #include <string>
-#include <iostream>
-#include "Tensor.h"
-#include "Parameter.h"
-#include "ParamLoader.h"
 #include "Device.h"
 #include "Communicator.h"
+#include <stdexcept>
+
 
 class Layer
 {
@@ -28,13 +26,19 @@ public:
         communicator_ = communicator;
     }
 
-
-    void forward(Tensor &input, Tensor &output)
+    void loadParam()
     {
-        // for(int i = 0; i < n_; ++i)
-        // {
-        //     output[i] = input[i] + param_[i];
-        // }
+
+    }
+
+    void forward(float *input, float *output)
+    {
+        if(!input || !output)
+        {
+            throw std::invalid_argument("Input or output tensor is null");
+        }
+        
+        output[0] = input[0] * 2;
     }
 
     void print()
@@ -50,7 +54,6 @@ public:
     
 private:
     std::string name_;
-    int n_;
     Device* device_;
     Communicator* communicator_;
 };
