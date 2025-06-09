@@ -23,6 +23,36 @@ sudo apt-get install libopencv-dev
 * Worker 完成其节点内的 TP 计算后，将其（作为流水线一个阶段的）输出结果报告/返回给其所在节点的 Engine
 * 不同节点上的 Engine 实例之间。一个节点的 Engine (我们称之为 Engine_A，负责阶段 S) 在收到其内部 Worker 的结果后，会使用 InterNodePipelineCommunicator 将这个结果 Send 给负责下一个阶段 S+1 的另一个节点上的 Engine (我们称之为 Engine_B)。同样，Engine_B 会使用这个 Communicator 来 Recv 来自 Engine_A 的数据。
 
+## 整体框架
+# LABInfer
+<p align="center">
+  <img src="./assets/mainFrame.png" width="300" alt="LABINFER">
+</p>
+
+* Engine 管理一个 Worker 线程池，并告诉线程池里的 Worker 它的 rank。由线程池内的 Worker 自己控制自己需要的参数、设备上下文等。
+  * Engine 持有 `std::vector<std::unique_ptr<WorkerThread>> worker_threads_`。
+  * 持有任务队列（供外部请求或上游 PP stage 放入）
+  * 持有结果队列（供下游 PP stage 或最终 Server 拉取）
+* WorkerThread 有自己的持久计算线程、输入任务队列（Engine 向其推送）、自己的 CUDA 环境、TP 通信器等，通过回调或共享队列将结果/状态返回给 Engine。
+
+### 任务分发 (Task Dispatching)
+* 任务来源：Engine 的 Scheduler（首个 PP Stage Engine）、上游 Engine（中间/后续 PP Stage Engine）。
+* Engine 将 ModelInputBatch 的元数据放到共享内存中，
+
+### 结果聚合 (Result Aggregation) 
+PP（Pipeline Parallelism）之间的通信发生在 Engine 层。内部的 WorkerThread 通过回调或共享队列把结果（WorkerOutput）放给 Engine。Engine 需要根据结果的状态来判断是将结果发给下一个 Stage 还是回传给 Server。
+
+### 错误处理 (Error Handling)
+* WorkerOutput 中应包含 status 字段 (WorkerStatus::FAILED)、error_code (枚举类型) 和 error_message (字符串)。
+* WorkerThread 在捕获到异常或检测到错误后，应构造这样的 WorkerOutput 并通过回调或共享队列返回给 Engine。
+* Engine::on_worker_result()
+```
+if (output.status == WorkerStatus::FAILED) {
+    handle_failed_batch(output.bid, output.req_ids, output.error_message, output.error_code);
+    // 可能还需要标记该 WorkerThread 状态为 ERROR 或需要重启/检查
+    // mark_worker_as_failed(worker_rank);
+}
+```
 # 接口定义
 ```
 // common.h ----------------------------------------

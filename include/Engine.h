@@ -1,66 +1,46 @@
 #pragma once
-#include <atomic>
+
+#include <memory>
+#include <queue>
+#include <vector>
 #include <mutex>
 #include <condition_variable>
-#include <thread>
-#include <vector>
+#include "common.h"
 #include "Worker.h"
+
+
+class OutputToken
+{
+};
+
+class Scheduler
+{
+};
 
 class Engine
 {
+private:
+    std::queue<std::shared_ptr<Request>> pending_requests_;
+    std::mutex pending_request_mtx_;
+    std::condition_variable pending_request_cv_;
+
+    std::vector<std::shared_ptr<RequestState>> active_request_states_;
+    std::vector<std::unique_ptr<Worker>> workers_;
+    std::unique_ptr<Scheduler> scheduler_;
+    // std::unique_ptr<InterNodePipelineCommunicator> inter_node_comm_;
 public:
-    explicit Engine(int n, int world_id = 0) : world_size(n), counter(n), world_id(world_id) {
-
-        threads.reserve(world_size);
-        workers.reserve(world_size);
-
-        for (int i = 0; i < world_size; ++i) {
-            // emplace_back(args…) constructs the Worker in‑place inside the vector
-            // using the constructor arguments you provide, avoiding an extra copy or move.
-            workers.emplace_back(world_id, i, counter, mtx, cv);
-            // launching a thread whose entry‑point is operator() on the very last Worker object,
-            // and by using std::ref to ensure it calls the real Worker (not a temporary copy).
-            threads.emplace_back(std::ref(workers.back()));
-        }
-
-        // 主线程等待所有 Worker 完成初始化
-        {
-            // As soon as lk is constructed, it calls mtx.lock(), so you hold exclusive ownership of the Engine’s mtx mutex.
-            std::unique_lock<std::mutex> lk(mtx);
-            // Atomically unlock mtx and suspend the thread while waiting.
-            // When notified (and the predicate returns true), it will re‑lock mtx before returning.
-            cv.wait(lk, [this] { return counter.load() == 0; });
-        }
-        // std::cout << "所有线程都完成操作，主线程继续。\n";
-    }
-
-    ~Engine() {
-        
-        stop();
-
-        for (auto &t : threads) {
-            if (t.joinable()) {
-                t.join();
-            }
-        }
-    }
-
-    // TODO 5.9 完成数据流动验证
-    void step() {
-        
-    }
-
-    // TODO 应该是发送某一个特殊的数据信号，通知网络中的所有结点停止工作
-    void stop() {
-
-    }
+    // 外部添加请求
+    void add_request(std::shared_ptr<Request> req);
+    // 外部获取生成的 token
+    bool get_output_token(OutputToken &token);
+    // 启动 Engine 主循环
+    void run();
+    // 停止 Engine
+    void stop();
 
 private:
-    const int world_size, world_id;
-    std::atomic<int> counter;
-    std::mutex mtx;
-    std::condition_variable cv;
-
-    std::vector<Worker> workers;
-    std::vector<std::thread> threads;
+    // 主处理逻辑循环
+    void process_loop();
+    // 给 Workers 发信号并收集结果
+    ModelOutputBatch dispatch_to_workers(const ModelInputBatch &input_batch);
 };
