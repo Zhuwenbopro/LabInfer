@@ -105,8 +105,8 @@ int main() {
 
 */
 
-#include "../include/Engine.h"
-#include "../include/Worker.h"
+#include "Engine.h"
+#include "Worker.h"
 
 int main()
 {

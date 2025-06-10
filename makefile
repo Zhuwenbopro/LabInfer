@@ -3,27 +3,36 @@
 # 编译器和编译选项
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -I include
-LDFLAGS = -static -lpthread -static-libgcc -static-libstdc++
+LDFLAGS = -lpthread
+
+BUILD_DIR = build
 
 # 源文件和目标文件
 SRCS = src/main.cpp src/Worker.cpp src/Engine.cpp 
-OBJS = $(SRCS:.cpp=.o)
+OBJS = $(addprefix $(BUILD_DIR)/,$(notdir $(SRCS:.cpp=.o)))
 TARGET = infer_server
 
 # 默认目标
 all: $(TARGET)
 
 # 链接目标文件生成可执行文件
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) | $(BUILD_DIR)
+	@echo "Linking..."
 	$(CXX) -o $@ $^ $(LDFLAGS)
+	@echo "Build finished: $(TARGET)"
 
-# 编译规则
-%.o: %.cpp
+$(BUILD_DIR):
+	@echo "Creating directory: $(BUILD_DIR)"
+	@mkdir -p $(BUILD_DIR)
+
+$(BUILD_DIR)/%.o: src/%.cpp | $(BUILD_DIR)
+	@echo "Compiling $< -> $@"
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # 清理目标
 clean:
-	del /Q $(subst /,\,$(OBJS)) $(TARGET).exe
+	@echo "Cleaning up..."
+	@rm -rf $(BUILD_DIR) $(TARGET) $(TARGET)
 
 # 重新编译
 rebuild: clean all
