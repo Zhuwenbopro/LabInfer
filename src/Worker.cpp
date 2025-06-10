@@ -84,7 +84,7 @@ void Worker::process_loop(){
     std::cout << "[Worker " << get_id() << " TID: " << get_thread_id_str() << "] Processing loop finished." << std::endl;
 }
 
-void Worker::handle_init(Command cmd){
+void Worker::handle_init(Command cmd) {
     std::cout << "[Worker " << get_id() << " TID: " << get_thread_id_str() << "] Handling INIT command..." << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(100 + get_id() * 50));
     is_initialized_ = true;

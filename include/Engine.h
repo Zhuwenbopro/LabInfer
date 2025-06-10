@@ -7,24 +7,9 @@
 class Engine
 {
 public:
-    Engine(int num_workers) : num_workers_(num_workers), request_id_counter_(0)
-    {
-        if (num_workers <= 0)
-            throw std::invalid_argument("Number of workers must be positive.");
-        std::cout << "[Engine] Creating " << num_workers_ << " workers." << std::endl;
-        for (int i = 0; i < num_workers_; ++i)
-        {
-            workers_.emplace_back(std::make_unique<Worker>(i, this));
-        }
-    }
+    Engine(int num_workers);
 
-    ~Engine()
-    {
-        std::cout << "[Engine] Shutting down..." << std::endl;
-        shutdown_workers();
-        workers_.clear();
-        std::cout << "[Engine] Shutdown complete." << std::endl;
-    }
+    ~Engine();
 
     void initialize_workers();
 
