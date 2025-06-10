@@ -1,46 +1,43 @@
 #pragma once
 
-#include <memory>
-#include <queue>
-#include <vector>
-#include <mutex>
-#include <condition_variable>
 #include "common.h"
 #include "Worker.h"
-
-
-class OutputToken
-{
-};
-
-class Scheduler
-{
-};
+#include <future>
 
 class Engine
 {
-private:
-    std::queue<std::shared_ptr<Request>> pending_requests_;
-    std::mutex pending_request_mtx_;
-    std::condition_variable pending_request_cv_;
-
-    std::vector<std::shared_ptr<RequestState>> active_request_states_;
-    std::vector<std::unique_ptr<Worker>> workers_;
-    std::unique_ptr<Scheduler> scheduler_;
-    // std::unique_ptr<InterNodePipelineCommunicator> inter_node_comm_;
 public:
-    // 外部添加请求
-    void add_request(std::shared_ptr<Request> req);
-    // 外部获取生成的 token
-    bool get_output_token(OutputToken &token);
-    // 启动 Engine 主循环
-    void run();
-    // 停止 Engine
-    void stop();
+    Engine(int num_workers) : num_workers_(num_workers), request_id_counter_(0)
+    {
+        if (num_workers <= 0)
+            throw std::invalid_argument("Number of workers must be positive.");
+        std::cout << "[Engine] Creating " << num_workers_ << " workers." << std::endl;
+        for (int i = 0; i < num_workers_; ++i)
+        {
+            workers_.emplace_back(std::make_unique<Worker>(i, this));
+        }
+    }
+
+    ~Engine()
+    {
+        std::cout << "[Engine] Shutting down..." << std::endl;
+        shutdown_workers();
+        workers_.clear();
+        std::cout << "[Engine] Shutdown complete." << std::endl;
+    }
+
+    void initialize_workers();
+
+    void shutdown_workers();
+
+    // MODIFIED to dispatch to all workers for INFER
+    std::future<Result> submit_inference_request(const std::string &input_text)
+    {
+        
+    }
 
 private:
-    // 主处理逻辑循环
-    void process_loop();
-    // 给 Workers 发信号并收集结果
-    ModelOutputBatch dispatch_to_workers(const ModelInputBatch &input_batch);
+    int num_workers_;
+    std::vector<std::unique_ptr<Worker>> workers_;
+    std::atomic<uint64_t> request_id_counter_;
 };
