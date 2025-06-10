@@ -2,6 +2,58 @@
 
 #include <cstdint>
 #include <vector>
+#include <future>
+#include <iostream>
+#include <memory>
+
+// 2. Command Type (Unchanged)
+enum class CommandType
+{
+    INIT,
+    INFER, // This will now be a multi-worker INFER
+    SHUTDOWN
+};
+
+// 3. Result Structure (Unchanged)
+struct Result
+{
+    uint64_t request_id = 0;
+    bool success = false;
+    std::string output_data; // For INFER, this might be from one worker or aggregated
+    std::string error_message;
+};
+
+// 4. Command Structure (MODIFIED)
+struct Command
+{
+    CommandType type;
+    uint64_t request_id = 0;
+    std::string input_data;
+
+    // For multi-worker INFER tasks:
+    std::shared_ptr<std::promise<Result>> master_promise; // Shared promise for the overall task
+    std::shared_ptr<std::atomic<int>> remaining_workers;  // Counter for participating workers
+
+    // For single-worker tasks like INIT (or if SHUTDOWN needed individual promise)
+    std::promise<Result> individual_promise;
+
+    Command() = default;
+
+    // Constructor for INFER (multi-worker)
+    Command(CommandType t, uint64_t id, std::string data,
+            std::shared_ptr<std::promise<Result>> mp,
+            std::shared_ptr<std::atomic<int>> rw)
+        : type(t), request_id(id), input_data(std::move(data)),
+          master_promise(std::move(mp)), remaining_workers(std::move(rw)) {}
+
+    // Constructor for INIT (single-worker with promise)
+    Command(CommandType t, std::promise<Result> ip)
+        : type(t), individual_promise(std::move(ip)) {}
+
+    // Constructor for SHUTDOWN (no promise needed, or could add one if required)
+    explicit Command(CommandType t) : type(t) {}
+};
+
 
 using Tensor = float; // 之后再考虑咋办
 
