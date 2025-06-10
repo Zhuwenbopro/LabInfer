@@ -165,3 +165,11 @@ void Worker::handle_infer(Command cmd){
         std::cout << "[Worker " << get_id() << " TID: " << get_thread_id_str() << "] (ReqID: " << cmd.request_id << ") Not the last worker for this INFER task. (" << cmd.remaining_workers->load() << " remaining)" << std::endl;
     }
 }
+
+
+std::string Worker::get_thread_id_str()
+{
+    std::stringstream ss;
+    ss << std::hex << std::setw(8) << std::setfill('0') << std::this_thread::get_id();
+    return ss.str();
+}

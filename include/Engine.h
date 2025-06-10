@@ -31,10 +31,7 @@ public:
     void shutdown_workers();
 
     // MODIFIED to dispatch to all workers for INFER
-    std::future<Result> submit_inference_request(const std::string &input_text)
-    {
-        
-    }
+    std::future<Result> submit_inference_request(const std::string &input_text);
 
 private:
     int num_workers_;

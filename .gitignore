@@ -1,3 +1,56 @@
-.vscode
+# IDE和编辑器文件
+.vscode/
+.vs/
+.idea/
+*.swp
+*.swo
+
+# 编译生成的目录
 build/
 temp/
+bin/
+obj/
+out/
+
+# 编译生成的中间文件
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.out
+*.app
+
+# 依赖文件
+*.d
+
+# 预编译头文件
+*.gch
+*.pch
+
+# 调试文件
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*~
+
+# 特定于项目的可执行文件
+infer_server
+infer_server.exe
+
+# 其他可能的生成文件
+Makefile.bak
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
