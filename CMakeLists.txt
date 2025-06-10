@@ -18,6 +18,7 @@ set(SOURCES
     src/main.cpp
     src/Worker.cpp
     src/Engine.cpp
+    src/CPUMemoryManager.cpp
 )
 
 # 创建可执行文件
