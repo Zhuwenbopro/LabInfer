@@ -1,6 +1,26 @@
 #include "Engine.h"
 #include <sstream>
 #include <iomanip>
+#include "CUDA/CUDAWorker.h"
+
+Engine::Engine(int num_workers) : num_workers_(num_workers), request_id_counter_(0)
+    {
+        if (num_workers <= 0)
+            throw std::invalid_argument("Number of workers must be positive.");
+        std::cout << "[Engine] Creating " << num_workers_ << " workers." << std::endl;
+        for (int i = 0; i < num_workers_; ++i)
+        {
+            workers_.emplace_back(std::make_unique<CUDAWorker>(i, this));
+        }
+    }
+
+Engine::~Engine()
+{
+    std::cout << "[Engine] Destructor called. Shutting down workers..." << std::endl;
+    shutdown_workers();
+    workers_.clear();
+    std::cout << "[Engine] All workers shut down." << std::endl;
+}
 
 std::string get_thread_id_str()
 {

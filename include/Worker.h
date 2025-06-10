@@ -3,7 +3,7 @@
 #include "SafeQueue.h"
 #include "common.h"
 #include <thread>
-// #include <atomic>
+#include <atomic>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -38,11 +38,13 @@ private:
     void process_loop();
     
 
-    void handle_init(Command cmd);
+    virtual void handle_init(Command cmd);
 
     void handle_infer(Command cmd);
 
     int id_;
+    std::atomic<bool> initialized_;
+    
     Engine *engine_;
     SafeQueue<Command> command_queue_;
     std::thread thread_;
