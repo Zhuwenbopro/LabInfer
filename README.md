@@ -26,7 +26,10 @@ sudo apt-get install libopencv-dev
 ## 整体框架
 # LABInfer
 <p align="center">
-  <img src="./assets/mainFrame.png" width="300" alt="LABINFER">
+  <img src="./assets/mainFrame.png" width="800" alt="LABINFER">
+</p>
+<p align="center">
+  <img src="./assets/mainFrame2.png" width="800" alt="LABINFER">
 </p>
 
 * Engine 管理一个 Worker 线程池，并告诉线程池里的 Worker 它的 rank。由线程池内的 Worker 自己控制自己需要的参数、设备上下文等。
