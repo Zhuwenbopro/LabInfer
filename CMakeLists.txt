@@ -12,16 +12,21 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # 添加include目录
 include_directories(include)
+# 添加第三方库目录
+include_directories(thirdparty)
 
 # 源文件
 set(SOURCES
     src/main.cpp
     src/Worker.cpp
     src/Engine.cpp
+    src/ConfigParser.cpp
     src/CPUMemoryManager.cpp
-    src/CUDAMemoryManager.cu
     src/KVCacheManager.cpp
     src/CUDA/CUDAWorker.cu
+    src/CUDA/CUDAFunction
+    src/CUDA/CUDAMemoryManager.cu
+    src/CPU/CPUMemoryManager.cpp
 )
 
 # 创建可执行文件
