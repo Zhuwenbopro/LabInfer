@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 #include "Function.h"
-#include "Bacth.h"
+#include "Batch.h"
 
 class Bacth;
 
@@ -28,4 +28,4 @@ public:
 
     // TODO : for the further further future
     // virtual void backward(std::shared_ptr<void> x) = 0;
-}
+};
