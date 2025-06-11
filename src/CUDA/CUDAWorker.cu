@@ -9,14 +9,9 @@ void CUDAWorker::handle_init(Command cmd)
 
     std::cout << "Worker " + std::to_string(get_id()) + " initialized successfully.";
 
+    void *d_array = memory_manager_.allocate(1000000 * sizeof(float));
     
-    float *d_array = NULL;
-    CUDA_CHECK(cudaMalloc((void**)&d_array, 1000000 * sizeof(float)));
-
     std::this_thread::sleep_for(std::chrono::seconds(500));
-
-    CUDA_CHECK(cudaFree(d_array));
-
 
     try
     {

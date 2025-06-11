@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Worker.h"
-#include "CUDA/CUDAWorker.h"
+#include "CUDA/CUDAMemoryManager.h"
 
 
 class CUDAWorker : public Worker
@@ -19,4 +19,6 @@ public:
     }
 private:
     void handle_init(Command cmd) override;
+
+    CUDAMemoryManager memory_manager_;
 };

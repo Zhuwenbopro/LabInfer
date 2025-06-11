@@ -2,7 +2,7 @@
 
 #include "MemoryManager.h"
 
-// 基础款，你之后再搞什么内存池之类的优化吧
+// 基础款，之后再搞什么内存池之类的优化吧
 class CUDAMemoryManager : public MemoryManager {
 public:
     CUDAMemoryManager();

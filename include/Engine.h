@@ -7,7 +7,7 @@
 class Engine
 {
 public:
-    Engine(int num_workers);
+    Engine(int num_workers, HardwareType hardware_type);
 
     ~Engine();
 
@@ -20,6 +20,8 @@ public:
 
 private:
     int num_workers_;
+    HardwareType hardware_type_;
+
     std::vector<std::unique_ptr<Worker>> workers_;
     std::atomic<uint64_t> request_id_counter_;
 };
