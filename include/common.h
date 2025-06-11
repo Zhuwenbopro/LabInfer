@@ -1,11 +1,18 @@
 #pragma once
 
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
+#include <chrono>
 #include <cstdint>
 #include <vector>
 #include <future>
 #include <iostream>
 #include <memory>
 
+// 向上取整
+inline int divUp(int a, int b) {
+    return (a - 1) / b + 1;
+}
 // 定义线程块大小
 const int num_threads_large = 1024; // 根据硬件规格调整
 const int num_threads_small = 256;

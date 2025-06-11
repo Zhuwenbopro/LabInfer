@@ -1,7 +1,7 @@
 #include "common.h"
 #include <cuda_runtime.h>
 #include <cub/cub.cuh>
-#include "CUDAFunction.h"
+#include "CUDA/CUDAFunction.h"
 #include <float.h>
 #include <random>
 #include <curand_kernel.h> 

@@ -1,5 +1,6 @@
 #pragma once
 #include "Function.h"
+#include "CUDAUtils.h"
 #include <iostream>
 
 
