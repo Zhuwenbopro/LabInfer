@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common.h"
 #include "MemoryManager.h"
 #include <unordered_map>
 #include <string>
@@ -15,13 +16,6 @@
 class KVCacheManager
 {
 public:
-    /**
-     * @brief 内存类型枚举
-     */
-    enum class MemoryType {
-        CPU,
-        CUDA
-    };
     /**
      * @brief KV缓存条目结构
      */
@@ -53,7 +47,7 @@ public:
      * @param enable_paged_attention 是否启用页式缓存管理
      * @param page_size 页大小（字节），仅在启用页式缓存时有效
      */
-    KVCacheManager(MemoryType memory_type = MemoryType::CPU, // 默认分配CPU内存
+    KVCacheManager(HardwareType memory_type = HardwareType::CPU, // 默认分配CPU内存
         size_t max_cache_size = 1024 * 1024 * 1024,  // 默认1GB
         bool enable_paged_attention = false,
         size_t page_size = 4 * 1024);  // 默认4KB
@@ -148,14 +142,14 @@ public:
      * @brief 获取当前内存类型
      * @return 内存类型
      */
-    MemoryType get_memory_type() const;
+    HardwareType get_memory_type() const;
     
     // /**
     //  * @brief 切换内存类型
     //  * @param memory_type 新的内存类型
     //  * @return 是否切换成功
     //  */
-    // bool switch_memory_type(MemoryType memory_type);
+    // bool switch_memory_type(HardwareType memory_type);
     
     /**
      * @brief 检查是否启用了页式缓存管理

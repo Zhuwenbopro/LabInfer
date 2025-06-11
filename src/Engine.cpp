@@ -4,15 +4,16 @@
 #include "CUDA/CUDAWorker.h"
 
 Engine::Engine(int num_workers) : num_workers_(num_workers), request_id_counter_(0)
+{
+    if (num_workers <= 0)
+        throw std::invalid_argument("Number of workers must be positive.");
+    std::cout << "[Engine] Creating " << num_workers_ << " workers." << std::endl;
+    for (int i = 0; i < num_workers_; ++i)
     {
-        if (num_workers <= 0)
-            throw std::invalid_argument("Number of workers must be positive.");
-        std::cout << "[Engine] Creating " << num_workers_ << " workers." << std::endl;
-        for (int i = 0; i < num_workers_; ++i)
-        {
-            workers_.emplace_back(std::make_unique<CUDAWorker>(i, this));
-        }
+        // TODO: 根据硬件环境选择合适的Worker类型
+        workers_.emplace_back(std::make_unique<CUDAWorker>(i, this));
     }
+}
 
 Engine::~Engine()
 {

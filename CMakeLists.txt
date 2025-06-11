@@ -19,6 +19,9 @@ set(SOURCES
     src/Worker.cpp
     src/Engine.cpp
     src/CPUMemoryManager.cpp
+    src/CUDAMemoryManager.cu
+    src/KVCacheManager.cpp
+    src/CUDA/CUDAWorker.cu
 )
 
 # 创建可执行文件

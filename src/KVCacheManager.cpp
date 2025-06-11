@@ -4,17 +4,17 @@
 #include <iostream>
 #include <algorithm>
 
-KVCacheManager::KVCacheManager(MemoryType memory_type, size_t max_cache_size, 
+KVCacheManager::KVCacheManager(HardwareType memory_type, size_t max_cache_size, 
                                bool enable_paged_attention, size_t page_size)
     : page_size_(page_size)
     , paged_attention_enabled_(enable_paged_attention)
 {
     // 根据内存类型创建对应的内存管理器
     switch (memory_type) {
-        case MemoryType::CPU:
+        case HardwareType::CPU:
             memory_manager_ = std::make_unique<CPUMemoryManager>();
             break;
-        case MemoryType::CUDA:
+        case HardwareType::CUDA:
             memory_manager_ = std::make_unique<CUDAMemoryManager>();
             break;
         default:
@@ -225,19 +225,19 @@ size_t KVCacheManager::get_page_size() const {
     return page_size_;
 }
 
-KVCacheManager::MemoryType KVCacheManager::get_memory_type() const {
+HardwareType KVCacheManager::get_memory_type() const {
     // 根据当前内存管理器类型返回对应的枚举值
     if (dynamic_cast<CPUMemoryManager*>(memory_manager_.get())) {
-        return MemoryType::CPU;
+        return HardwareType::CPU;
     } else if (dynamic_cast<CUDAMemoryManager*>(memory_manager_.get())) {
-        return MemoryType::CUDA;
+        return HardwareType::CUDA;
     }
     
     // 默认返回CPU类型
-    return MemoryType::CPU;
+    return HardwareType::CPU;
 }
 
-// bool KVCacheManager::switch_memory_type(MemoryType memory_type) {
+// bool KVCacheManager::switch_memory_type(HardwareType memory_type) {
 //     // 如果类型相同，无需切换
 //     if (get_memory_type() == memory_type) {
 //         return true;
@@ -247,10 +247,10 @@ KVCacheManager::MemoryType KVCacheManager::get_memory_type() const {
 //     std::unique_ptr<MemoryManager> new_manager;
     
 //     switch (memory_type) {
-//         case MemoryType::CPU:
+//         case HardwareType::CPU:
 //             new_manager = std::make_unique<CPUMemoryManager>();
 //             break;
-//         case MemoryType::CUDA:
+//         case HardwareType::CUDA:
 //             new_manager = std::make_unique<CUDAMemoryManager>();
 //             break;
 //         default:
