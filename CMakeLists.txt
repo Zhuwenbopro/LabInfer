@@ -23,12 +23,14 @@ set(SOURCES
     src/main.cpp
     src/Worker.cpp
     src/Engine.cpp
-    src/ConfigParser.cpp
-    src/KVCacheManager.cpp
+    #src/ConfigParser.cpp
+    #src/KVCacheManager.cpp
     src/CUDA/CUDAWorker.cu
-    src/CUDA/CUDAFunction.cu
+    #src/CUDA/CUDAFunction.cu
     src/CUDA/CUDAMemoryManager.cu
     src/CPU/CPUMemoryManager.cpp
+    src/ops/linear/linear_cpu.cpp
+    src/ops/linear/linear_cuda.cu
 )
 
 # 创建可执行文件

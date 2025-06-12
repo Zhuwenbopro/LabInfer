@@ -113,7 +113,7 @@ int main()
     try
     {
         const int NUM_WORKERS = 2; // Try with 1, 2, or more
-        Engine engine(NUM_WORKERS, HardwareType::CUDA); // Change to CPU or CUDA as needed
+        Engine engine(NUM_WORKERS, CUDA); // Change to CPU or CUDA as needed
 
         engine.initialize_workers();
 

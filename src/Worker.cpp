@@ -1,5 +1,20 @@
 #include "../include/Worker.h"
 
+// 初始化的时候把模型架子搭好，等着load param
+// TODO: 读取配置文件，加载模型
+Worker::Worker(int id, Engine *engine) : id_(id), engine_(engine), running_(false)
+{
+    std::cout << "[Worker " << get_id() << "] Created." << std::endl;
+    LinearFuncPtr linear_func = OpRegistry::Instance().Linear().Get(CUDA, FLOAT32);
+    model_ = std::make_unique<Linear>(linear_func);
+}
+
+Worker::~Worker()
+{
+    stop();
+    std::cout << "[Worker " << get_id() << "] Destroyed." << std::endl;
+}
+
 void Worker::start(){
     if (running_)
         return;

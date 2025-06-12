@@ -7,21 +7,19 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include "layers/layer.h"
+#include "layers/Linear.h"
+#include "function.h"
+#include "registry.h"
 
 class Engine;
 class Worker
 {
 public:
-    Worker(int id, Engine *engine) : id_(id), engine_(engine), running_(false)
-    {
-        std::cout << "[Worker " << get_id() << "] Created." << std::endl;
-    }
+    // 初始化的时候把模型分配好
+    Worker(int id, Engine *engine);
 
-    ~Worker()
-    {
-        stop();
-        std::cout << "[Worker " << get_id() << "] Destroyed." << std::endl;
-    }
+    ~Worker();
 
     void start();
 
@@ -34,18 +32,19 @@ public:
     // Helper to get a nicely formatted thread ID string
     std::string get_thread_id_str();
 
-private:
+protected:
     void process_loop();
     
 
     virtual void handle_init(Command cmd);
-
     void handle_infer(Command cmd);
 
     int id_;
     std::atomic<bool> initialized_;
     
     Engine *engine_;
+    std::unique_ptr<Layer> model_;
+
     SafeQueue<Command> command_queue_;
     std::thread thread_;
     std::atomic<bool> running_;

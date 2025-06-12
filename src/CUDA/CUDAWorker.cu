@@ -1,5 +1,9 @@
 #include "CUDA/CUDAWorker.h"
 #include "CUDA/CUDAUtils.h"
+// 删掉
+#include "Batch.h"
+
+cublasHandle_t handle;
 
 void CUDAWorker::handle_init(Command cmd)
 {
@@ -11,6 +15,8 @@ void CUDAWorker::handle_init(Command cmd)
 
     void *d_array = memory_manager_.allocate(1000000 * sizeof(float));
     
+    Batch bt;
+    model_->forward(bt);
     std::this_thread::sleep_for(std::chrono::seconds(500));
 
     try

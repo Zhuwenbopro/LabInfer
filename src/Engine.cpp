@@ -4,7 +4,7 @@
 #include "WorkerFactory.h"
 
 
-Engine::Engine(int num_workers, HardwareType hardware_type) : num_workers_(num_workers), hardware_type_(hardware_type), request_id_counter_(0)
+Engine::Engine(int num_workers, DeviceType device_type) : num_workers_(num_workers), device_type_(device_type), request_id_counter_(0)
 {
     if (num_workers <= 0)
         throw std::invalid_argument("Number of workers must be positive.");
@@ -12,7 +12,7 @@ Engine::Engine(int num_workers, HardwareType hardware_type) : num_workers_(num_w
     for (int i = 0; i < num_workers_; ++i)
     {
         // TODO: 根据硬件环境选择合适的Worker类型
-        workers_.emplace_back(create_worker(HardwareType::CUDA, i, this));
+        workers_.emplace_back(create_worker(CUDA, i, this));
     }
 }
 

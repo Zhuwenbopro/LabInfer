@@ -1,3 +1,5 @@
-class Bacth {
+#pragma once
+
+class Batch {
     
 };
