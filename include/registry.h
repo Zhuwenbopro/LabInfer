@@ -9,11 +9,11 @@
 template <typename FuncPtrT>
 class FuncRegistry {
 public:
-    void Register(int device, int dtype, FuncPtrT ptr) {
+    void Register(DeviceType device, DataType dtype, FuncPtrT ptr) {
         registry_map_[std::make_tuple(device, dtype)] = ptr;
     }
 
-    FuncPtrT Get(int device, int dtype) const {
+    FuncPtrT Get(DeviceType device, DataType dtype) const {
         auto it = registry_map_.find(std::make_tuple(device, dtype));
         if (it != registry_map_.end()) {
             return it->second;
@@ -24,7 +24,7 @@ public:
     }
 
 private:
-    std::map<std::tuple<int, int>, FuncPtrT> registry_map_;
+    std::map<std::tuple<DeviceType, DataType>, FuncPtrT> registry_map_;
 };
 
 // 全局的注册表管理器单例
