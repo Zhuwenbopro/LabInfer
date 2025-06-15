@@ -26,8 +26,8 @@ set(SOURCES
     #src/ConfigParser.cpp
     #src/KVCacheManager.cpp
     src/CUDA/CUDAWorker.cu
-    #src/CUDA/CUDAFunction.cu
     src/CUDA/CUDAMemoryManager.cu
+    src/CPU/CPUWorker.cpp
     src/CPU/CPUMemoryManager.cpp
     src/ops/linear/linear_cpu.cpp
     src/ops/linear/linear_cuda.cu

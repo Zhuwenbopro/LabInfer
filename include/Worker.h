@@ -33,11 +33,17 @@ public:
     std::string get_thread_id_str();
 
 protected:
-    void process_loop();
-    
 
-    virtual void handle_init(Command cmd);
-    void handle_infer(Command cmd);
+    void process_loop();
+    virtual void handle_init(Command cmd)
+    {
+        throw std::logic_error("handle_init must be overridden in derived class!");
+    }
+    
+    virtual void handle_infer(Command cmd)
+    {
+        throw std::logic_error("handle_infer must be overridden in derived class!");
+    }
 
     int id_;
     std::atomic<bool> initialized_;

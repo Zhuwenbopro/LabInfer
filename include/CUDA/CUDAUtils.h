@@ -4,6 +4,10 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 
+inline int divUp(int a, int b) {
+    return (a - 1) / b + 1;
+}
+
 // 定义线程块大小
 const int num_threads_large = 1024;
 const int num_threads_small = 256;

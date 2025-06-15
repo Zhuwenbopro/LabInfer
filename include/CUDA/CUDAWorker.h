@@ -7,18 +7,12 @@
 class CUDAWorker : public Worker
 {
 public:
-    CUDAWorker(int id, Engine *engine) : Worker(id, engine)
-    {
-        std::cout << "[CUDAWorker " << get_id() << "] Created." << std::endl;
-    }
+    CUDAWorker(int id, Engine *engine);
+    ~CUDAWorker();
 
-    ~CUDAWorker()
-    {
-        stop();
-        std::cout << "[CUDAWorker " << get_id() << "] Destroyed." << std::endl;
-    }
 private:
     void handle_init(Command cmd) override;
+    void handle_infer(Command cmd) override;
 
     CUDAMemoryManager memory_manager_;
 };

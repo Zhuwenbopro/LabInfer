@@ -1,12 +1,12 @@
-// #pragma once
+#pragma once
 
-// #include "MemoryManager.h"
+#include "MemoryManager.h"
 
-// class CPUMemoryManager : public MemoryManager {
-// public:
-//     CPUMemoryManager() { }
+class CPUMemoryManager : public MemoryManager {
+public:
+    CPUMemoryManager() { }
 
-//     void* allocate(size_t size) override;
+    void* allocate(size_t size) override;
 
-//     void deallocate(void* ptr) override;
-// };
+    void deallocate(void* ptr) override;
+};

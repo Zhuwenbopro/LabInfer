@@ -117,38 +117,36 @@ int main()
 
         engine.initialize_workers();
 
-        // std::cout << "\n--- Submitting Inference Tasks (will be sent to all workers) ---" << std::endl;
-        // std::vector<std::future<Result>> inference_futures;
+        std::cout << "\n--- Submitting Inference Tasks (will be sent to all workers) ---" << std::endl;
+        std::vector<std::future<Result>> inference_futures;
 
-        // inference_futures.push_back(engine.submit_inference_request("Hello Distributed World"));
-        // std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Stagger submissions a bit
-        // inference_futures.push_back(engine.submit_inference_request("C++ Tensor Parallelism Demo"));
+        inference_futures.push_back(engine.submit_inference_request("Hello Distributed World"));
+        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // Stagger submissions a bit
+        inference_futures.push_back(engine.submit_inference_request("C++ Tensor Parallelism Demo"));
 
-        // std::cout << "\n--- Waiting for Inference Results (master promise from last worker) ---" << std::endl;
-        // for (size_t i = 0; i < inference_futures.size(); ++i)
-        // {
-        //     try
-        //     {
-        //         // This future now waits for the master_promise,
-        //         // which is set by the last worker completing its part of the task.
-        //         Result res = inference_futures[i].get();
-        //         if (res.success)
-        //         {
-        //             std::cout << "[Main] Received FINAL result for ReqID " << res.request_id
-        //                       << ": '" << res.output_data << "'" << std::endl;
-        //         }
-        //         else
-        //         {
-        //             std::cerr << "[Main] Error for FINAL ReqID " << res.request_id
-        //                       << ": " << res.error_message << std::endl;
-        //         }
-        //     }
-        //     catch (const std::exception &e)
-        //     {
-        //         std::cerr << "[Main] Exception getting result for request " << i << ": " << e.what() << std::endl;
-        //     }
-        // }
-        // std::cout << "\n--- Engine and Workers will be shut down by Engine's destructor ---" << std::endl;
+        std::cout << "\n--- Waiting for Inference Results (master promise from last worker) ---" << std::endl;
+        for (size_t i = 0; i < inference_futures.size(); ++i)
+        {
+            try
+            {
+                Result res = inference_futures[i].get();
+                if (res.success)
+                {
+                    std::cout << "[Main] Received FINAL result for ReqID " << res.request_id
+                              << ": '" << res.output_data << "'" << std::endl;
+                }
+                else
+                {
+                    std::cerr << "[Main] Error for FINAL ReqID " << res.request_id
+                              << ": " << res.error_message << std::endl;
+                }
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "[Main] Exception getting result for request " << i << ": " << e.what() << std::endl;
+            }
+        }
+        std::cout << "\n--- Engine and Workers will be shut down by Engine's destructor ---" << std::endl;
     }
     catch (const std::exception &e)
     {
