@@ -12,4 +12,10 @@ public:
     
     // 回收内存
     virtual void deallocate(void* ptr) = 0;
+
+    // 获取可用内存大小
+    virtual size_t get_free_memory() const = 0;
+
+    // 获取总内存大小
+    virtual size_t get_total_memory() const = 0;
 };
