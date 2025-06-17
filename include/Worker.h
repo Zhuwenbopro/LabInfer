@@ -35,12 +35,14 @@ public:
 protected:
 
     void process_loop();
-    virtual void handle_init(Command cmd)
+    bool handle_command(Command cmd);
+
+    virtual Result handle_init()
     {
         throw std::logic_error("handle_init must be overridden in derived class!");
     }
     
-    virtual void handle_infer(Command cmd)
+    virtual Result handle_infer()
     {
         throw std::logic_error("handle_infer must be overridden in derived class!");
     }

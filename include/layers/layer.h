@@ -3,9 +3,8 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include "Batch.h"
 
-class Batch;
+class Batch{};
 
 class Layer {
 protected:

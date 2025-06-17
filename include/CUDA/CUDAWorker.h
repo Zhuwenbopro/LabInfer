@@ -11,8 +11,8 @@ public:
     ~CUDAWorker();
 
 private:
-    void handle_init(Command cmd) override;
-    void handle_infer(Command cmd) override;
+    Result handle_init() override;
+    Result handle_infer() override;
 
     CUDAMemoryManager memory_manager_;
 };

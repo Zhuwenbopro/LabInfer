@@ -15,7 +15,6 @@ public:
 
     void shutdown_workers();
 
-    // MODIFIED to dispatch to all workers for INFER
     std::future<Result> submit_inference_request(const std::string &input_text);
 
 private:
@@ -24,4 +23,6 @@ private:
 
     std::vector<std::unique_ptr<Worker>> workers_;
     std::atomic<uint64_t> request_id_counter_;
+
+    std::future<Result> submit_group_command(const Command& command_template);
 };

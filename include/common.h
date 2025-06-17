@@ -39,32 +39,17 @@ struct Command
 {
     CommandType type;
     uint64_t request_id = 0;
-    std::string input_data;
 
-    // For multi-worker INFER tasks:
-    std::shared_ptr<std::promise<Result>> master_promise; // Shared promise for the overall task
-    std::shared_ptr<std::atomic<int>> remaining_workers;  // Counter for participating workers
+    // 统一的完成信号机制
+    std::shared_ptr<std::promise<Result>> completion_promise;
+    std::shared_ptr<std::atomic<int>> remaining_tasks;
+    std::shared_ptr<std::atomic<bool>> any_worker_failed;
+    
+    Command(CommandType t) :  type(t), 
+        any_worker_failed(std::make_shared<std::atomic<bool>>(false)) { }
 
-    // For single-worker tasks like INIT (or if SHUTDOWN needed individual promise)
-    std::promise<Result> individual_promise;
 
-    Command() = default;
-
-    // Constructor for INFER (multi-worker)
-    Command(CommandType t, uint64_t id, std::string data,
-            std::shared_ptr<std::promise<Result>> mp,
-            std::shared_ptr<std::atomic<int>> rw)
-        : type(t), request_id(id), input_data(std::move(data)),
-          master_promise(std::move(mp)), remaining_workers(std::move(rw)) {}
-
-    // Constructor for INIT (single-worker with promise)
-    Command(CommandType t, std::promise<Result> ip)
-        : type(t), individual_promise(std::move(ip)) {}
-
-    // Constructor for SHUTDOWN (no promise needed, or could add one if required)
-    explicit Command(CommandType t) : type(t) {}
 };
-
 
 // using Tensor = float; // 之后再考虑咋办
 

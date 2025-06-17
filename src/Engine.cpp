@@ -1,6 +1,4 @@
 #include "Engine.h"
-#include <sstream>
-#include <iomanip>
 #include "WorkerFactory.h"
 
 
@@ -24,48 +22,57 @@ Engine::~Engine()
     std::cout << "[Engine] All workers shut down." << std::endl;
 }
 
-std::string get_thread_id_str()
+std::future<Result> Engine::submit_group_command(const Command& command_template)
 {
-    std::stringstream ss;
-    ss << std::hex << std::setw(8) << std::setfill('0') << std::this_thread::get_id();
-    return ss.str();
+    auto promise_ptr = std::make_shared<std::promise<Result>>();
+    auto counter_ptr = std::make_shared<std::atomic<int>>(num_workers_);
+    auto failed_flag_ptr = std::make_shared<std::atomic<bool>>(false);
+    
+    // 从 promise 获取 future，这是将要返回给调用者的
+    std::future<Result> result_future = promise_ptr->get_future();
+    
+    uint64_t req_id = request_id_counter_++;
+
+    for (auto &worker_ptr : workers_)
+    {
+        Command cmd_copy = command_template;
+
+        cmd_copy.request_id = req_id;
+        cmd_copy.completion_promise = promise_ptr;
+        cmd_copy.remaining_tasks = counter_ptr;
+        cmd_copy.any_worker_failed = failed_flag_ptr;
+
+        worker_ptr->push_command(std::move(cmd_copy));
+    }
+
+    return result_future;
 }
 
 void Engine::initialize_workers()
 {
-    std::cout << "[Engine] Initializing all workers..." << std::endl;
-    std::vector<std::future<Result>> init_futures;
-
-    for (auto &worker_ptr : workers_)
-    {
+    std::cout << "[Engine] Starting all worker threads..." << std::endl;
+    for (auto &worker_ptr : workers_) {
         worker_ptr->start();
-        std::promise<Result> init_promise;
-        init_futures.push_back(init_promise.get_future());
-        // INIT is still an individual command per worker
-        Command init_cmd(CommandType::INIT, std::move(init_promise));
-        worker_ptr->push_command(std::move(init_cmd));
     }
 
-    for (size_t i = 0; i < init_futures.size(); ++i)
+    std::cout << "[Engine] Submitting INIT command to all workers..." << std::endl;
+    Command init_template(CommandType::INIT);
+    
+    try
     {
-        try
+        Result res = submit_group_command(init_template).get();
+        if (res.success)
         {
-            Result res = init_futures[i].get();
-            if (res.success)
-            {
-                std::cout << "[Engine] Worker " << i << " initialization result: " << res.output_data << std::endl;
-            }
-            else
-            {
-                std::cerr << "[Engine] Worker " << i << " initialization failed: " << res.error_message << std::endl;
-            }
-        }
-        catch (const std::exception &e)
+            std::cout << "[Engine] All workers initialized successfully." << std::endl;
+        } else
         {
-            std::cerr << "[Engine] Exception for worker " << i << " init: " << e.what() << std::endl;
+            std::cerr << "[Engine] Overall worker initialization failed: " << res.error_message << std::endl;
         }
     }
-    std::cout << "[Engine] All workers initialized (or init attempted)." << std::endl;
+    catch (const std::exception &e)
+    {
+        std::cerr << "[Engine] Exception during initialization process: " << e.what() << std::endl;
+    }
 }
 
 void Engine::shutdown_workers()
@@ -73,29 +80,14 @@ void Engine::shutdown_workers()
     std::cout << "[Engine] Sending SHUTDOWN to all workers..." << std::endl;
     for (auto &worker_ptr : workers_)
     {
-        worker_ptr->stop(); // stop now sends SHUTDOWN and joins
+        worker_ptr->stop();
     }
     std::cout << "[Engine] All workers stopped." << std::endl;
 }
 
-std::future<Result> Engine::submit_inference_request(const std::string &input_text) {
-    uint64_t req_id = request_id_counter_++;
+std::future<Result> Engine::submit_inference_request(const std::string &input_text)
+{
+    Command infer_template(CommandType::INFER);
 
-        // Create one master promise for this entire multi-worker request
-        auto master_promise_ptr = std::make_shared<std::promise<Result>>();
-        std::future<Result> result_future = master_promise_ptr->get_future();
-
-        // Counter for how many workers need to complete this task
-        // For TP, this would be the number of workers in the TP group. Here, all workers.
-        auto remaining_workers_ptr = std::make_shared<std::atomic<int>>(num_workers_);
-
-        std::cout << "[Engine TID: " << get_thread_id_str() << "] Submitting INFER (ReqID: " << req_id << ") to ALL " << num_workers_ << " workers." << std::endl;
-
-        for (auto &worker_ptr : workers_)
-        {
-            Command infer_sub_cmd(CommandType::INFER, req_id, input_text,
-                                  master_promise_ptr, remaining_workers_ptr);
-            worker_ptr->push_command(std::move(infer_sub_cmd));
-        }
-        return result_future;
+    return submit_group_command(infer_template);
 }
