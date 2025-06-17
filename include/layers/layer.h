@@ -4,7 +4,6 @@
 #include <string>
 #include <unordered_map>
 
-class Batch{};
 
 class Layer {
 protected:
@@ -21,7 +20,7 @@ public:
         
     }
 
-    virtual void forward(Batch& batch) = 0;
+    virtual void forward(struct Batch& batch) = 0;
 
     // TODO : for the further further future
     // virtual void backward(std::shared_ptr<void> x) = 0;

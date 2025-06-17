@@ -42,7 +42,7 @@ protected:
         throw std::logic_error("handle_init must be overridden in derived class!");
     }
     
-    virtual Result handle_infer()
+    virtual Result handle_infer(std::shared_ptr<Batch> batch)
     {
         throw std::logic_error("handle_infer must be overridden in derived class!");
     }

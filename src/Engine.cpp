@@ -9,8 +9,7 @@ Engine::Engine(int num_workers, DeviceType device_type) : num_workers_(num_worke
     std::cout << "[Engine] Creating " << num_workers_ << " workers." << std::endl;
     for (int i = 0; i < num_workers_; ++i)
     {
-        // TODO: 根据硬件环境选择合适的Worker类型
-        workers_.emplace_back(create_worker(CUDA, i, this));
+        workers_.emplace_back(create_worker(device_type, i, this));
     }
 }
 
@@ -85,9 +84,10 @@ void Engine::shutdown_workers()
     std::cout << "[Engine] All workers stopped." << std::endl;
 }
 
-std::future<Result> Engine::submit_inference_request(const std::string &input_text)
+std::future<Result> Engine::submit_inference_request(struct Batch& batch)
 {
     Command infer_template(CommandType::INFER);
+    infer_template.batch = std::make_shared<struct Batch>(batch);
 
     return submit_group_command(infer_template);
 }

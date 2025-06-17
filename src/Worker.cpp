@@ -4,7 +4,7 @@
 // TODO: 读取配置文件，加载模型
 Worker::Worker(int id, Engine *engine) : id_(id), engine_(engine), running_(false)
 {
-    std::cout << "[Worker " << get_id() << "] Created." << std::endl;
+
 }
 
 Worker::~Worker()
@@ -19,7 +19,6 @@ void Worker::start()
         return;
     running_ = true;
     thread_ = std::thread(&Worker::process_loop, this);
-    std::cout << "[Worker " << get_id() << "] Thread started (ID: " << get_thread_id_str() << ")." << std::endl;
 }
 
 void Worker::stop()
@@ -56,8 +55,7 @@ void Worker::process_loop()
             task_result = this->handle_init();
             break;
         case CommandType::INFER:
-        // TODO：
-            task_result = this->handle_infer();
+            task_result = this->handle_infer(cmd.batch);
             break;
         case CommandType::SHUTDOWN:
             std::cout << "[Worker " << get_id() << "] Received SHUTDOWN. Exiting loop." << std::endl;

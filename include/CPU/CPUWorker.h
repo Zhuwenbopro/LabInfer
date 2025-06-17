@@ -7,7 +7,7 @@ public:
 
 private:
     Result handle_init() override;
-    Result handle_infer() override;
+    Result handle_infer(std::shared_ptr<Batch> batch) override;
 
     CPUMemoryManager memory_manager_;
 };

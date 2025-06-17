@@ -6,6 +6,7 @@
 #include <future>
 #include <iostream>
 #include <memory>
+#include "sole/sole.hpp"
 
 // 1. 设备类型和数据类型定义
 typedef int DeviceType;
@@ -35,20 +36,26 @@ struct Result
 };
 
 // 4. Command Structure (MODIFIED)
+struct Batch
+{
+    std::vector<sole::uuid> request_ids;
+    std::vector<std::vector<int>> token_batch;
+    std::vector<std::vector<int>> position_batch;
+    std::vector<int> batch_shape;
+};
+
 struct Command
 {
     CommandType type;
     uint64_t request_id = 0;
-
-    // 统一的完成信号机制
+    std::shared_ptr<Batch> batch;
+    
     std::shared_ptr<std::promise<Result>> completion_promise;
     std::shared_ptr<std::atomic<int>> remaining_tasks;
     std::shared_ptr<std::atomic<bool>> any_worker_failed;
     
     Command(CommandType t) :  type(t), 
         any_worker_failed(std::make_shared<std::atomic<bool>>(false)) { }
-
-
 };
 
 // using Tensor = float; // 之后再考虑咋办
