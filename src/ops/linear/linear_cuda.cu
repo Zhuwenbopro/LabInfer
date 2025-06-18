@@ -2,22 +2,29 @@
 #include "CUDA/CUDAUtils.h"
 #include <iostream>
 
-// cublasHandle_t handle;
-// TODO: 让这个函数真正跑起来
+__global__ void matmul_kernel(float *xout, const float *x, const float *w, int n, int d, int batch_size) 
+{
+    int batch_idx = blockIdx.y;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i >= d || batch_idx >= batch_size)
+        return;
+
+    float sum = 0.0f;
+    for (int j = 0; j < n; j++) {
+        sum += w[i * n + j] * x[batch_idx * n + j];
+    }
+    xout[batch_idx * d + i] = sum;
+}
+
 void cuda_fp32_linear_exec(void *y, void *x, void *w, int W_in, int W_out, int num)
 {
-    std::cout << "cuda_fp32_linear_exec" << std::endl;
-    // 参数设置
-    // float alpha = 1.0f;
-    // float beta = 0.0f;
+    int blockSize = num_threads_small;
+    int gridSizeX = (W_out + blockSize - 1) / blockSize;
+    int gridSizeY = num;
+    dim3 gridSize(gridSizeX, gridSizeY);
 
-    // CHECK_CUBLAS(cublasSgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N,
-    //                          (float *)W_out, num, (float *)W_in,        // M, N, K
-    //                          &alpha,
-    //                          (float *)w, W_in,                          // A lda
-    //                          (float *)x, W_in,                          // B ldb
-    //                          &beta,
-    //                          (float *)y, (float *)W_out));              // C ldc
+    matmul_kernel<<<gridSize, blockSize>>>((float *)y, (float *)x, (float *)w, W_in, W_out, num);
 }
 
 REGISTER_OP_FUNCTION(Linear, CUDA, FLOAT32, cuda_fp32_linear_exec);

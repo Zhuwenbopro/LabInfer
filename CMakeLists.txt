@@ -18,6 +18,7 @@ include_directories(thirdparty)
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
 
+
 # 源文件
 set(SOURCES
     src/main.cpp
@@ -51,6 +52,9 @@ target_link_libraries(infer_server PRIVATE
 # 链接线程库（跨平台方式）
 find_package(Threads REQUIRED)
 target_link_libraries(infer_server PRIVATE Threads::Threads)
+
+find_package(BLAS REQUIRED)
+target_link_libraries(infer_server PRIVATE ${BLAS_LIBRARIES})
 
 # 安装规则（可选）
 install(TARGETS infer_server DESTINATION bin)
