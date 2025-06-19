@@ -1,6 +1,5 @@
 #include "registry.h"
 #include "CUDA/CUDAUtils.h"
-#include <iostream>
 
 __global__ void matmul_kernel(float *xout, const float *x, const float *w, int n, int d, int batch_size) 
 {

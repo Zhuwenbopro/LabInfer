@@ -42,6 +42,13 @@ public:
 
     // 提供对特定类型函数指针注册表的访问
     FuncRegistry<LinearFuncPtr>& Linear() { return linear_registry_; }
+    FuncRegistry<RoPEFuncPtr>& RoPE() { return rope_registry_; }
+    FuncRegistry<SiluFuncPtr>& Softmax() { return softmax_registry_; }
+    FuncRegistry<SiluFuncPtr>& Silu() { return silu_registry_; }
+    FuncRegistry<MultiplyElementWiseFuncPtr>& MultiplyElem() { return multiply_elem_registry_; }
+    FuncRegistry<AddElementWiseFuncPtr>& AddElem() { return add_elem_registry_; }
+    FuncRegistry<RMSNormFuncPtr>& RMSNorm() { return rms_norm_registry_; }
+    FuncRegistry<MaxIndexFuncPtr>& MaxIndex() { return max_index_registry_; }
     // FuncRegistry<AttentionFuncPtr>& Attention() { return attention_registry_; }
     // FuncRegistry<RMSNormFuncPtr>& RMSNorm() { return rmsnorm_registry_; }
     // ...
@@ -50,6 +57,13 @@ private:
     OpRegistry() = default;
 
     FuncRegistry<LinearFuncPtr> linear_registry_;
+    FuncRegistry<RoPEFuncPtr> rope_registry_;
+    FuncRegistry<SoftmaxFuncPtr> softmax_registry_;
+    FuncRegistry<SiluFuncPtr> silu_registry_;
+    FuncRegistry<MultiplyElementWiseFuncPtr> multiply_elem_registry_;
+    FuncRegistry<AddElementWiseFuncPtr> add_elem_registry_;
+    FuncRegistry<RMSNormFuncPtr> rms_norm_registry_;
+    FuncRegistry<MaxIndexFuncPtr> max_index_registry_;
     // FuncRegistry<AttentionFuncPtr> attention_registry_;
     // FuncRegistry<RMSNormFuncPtr> rmsnorm_registry_;
     // ...
